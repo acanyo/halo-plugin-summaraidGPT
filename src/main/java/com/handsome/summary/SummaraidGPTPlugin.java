@@ -26,10 +26,6 @@ import static run.halo.app.extension.index.IndexAttributeFactory.simpleAttribute
 @Component
 @Slf4j
 public class SummaraidGPTPlugin extends BasePlugin {
-
-    @Autowired
-    private ChatService chatService;
-
     @Autowired
     private SchemeManager schemeManager;
 
