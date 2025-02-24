@@ -98,6 +98,10 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         CSS_CONTENT = config.getSummaryStyle() != null ? config.getSummaryStyle()
             : Constant.DEFAULT_CSS;
         final Properties properties = new Properties();
+        
+        // 处理摘要文本
+        String processedSummary = processText(config.getPostSummary());
+        
         properties.setProperty("postSelector", config.getPostSelector());
         properties.setProperty("summaryTheme", config.getSummaryTheme());
         properties.setProperty("checkbox", config.getCheckbox().toString());
@@ -106,8 +110,9 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         properties.setProperty("darkModeSelector", config.getDarkModeSelector());
         properties.setProperty("customizeIco", config.getCustomizeIco());
         properties.setProperty("title", config.getTitle());
-        properties.setProperty("summary", config.getPostSummary());
+        properties.setProperty("summary", processedSummary);  // 使用处理后的文本
         properties.setProperty("source", config.getSource());
+        
         String script = """
             <script>
                 const articleConfig = {
@@ -135,6 +140,25 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(script, properties);
     }
 
+    private String processText(String text) {
+        if (text == null) {
+            return "";
+        }
+        
+        return text
+            // 处理换行和空格
+            .replace("\n", " ")
+            .replace("\r", " ")
+            .replaceAll("\\s+", " ")
+            .trim()
+            // 处理JavaScript特殊字符
+            .replace("\\", "\\\\")  // 必须先处理反斜杠
+            .replace("\"", "\\\"")
+            .replace("'", "\\'")
+            .replace("\b", "\\b")
+            .replace("\f", "\\f")
+            .replace("\t", "\\t");
+    }
 
     @Data
     @AllArgsConstructor
