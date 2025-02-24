@@ -55,6 +55,6 @@ build {
 
 halo {
     version = '2.20'
-    debug = true
-    suspend = true
+//    debug = true
+//    suspend = true
 }
