@@ -1,0 +1,109 @@
+apiVersion: v1alpha1
+kind: Setting
+metadata:
+  name: plugin-summaraidGPT-settings
+spec:
+  forms:
+    - group: basic
+      label: 基本设置
+      formSchema:
+        - $formkit: text
+          name: clientId
+          label: ApiKey
+          placeholder: 请输入千帆ModelBuilder的应用介入的ApiKey
+          validation: required
+          help: 必填,请前往https://console.bce.baidu.com/qianfan/overview 应用介入获取ApiKey
+        - $formkit: text
+          name: clientSecret
+          label: SecretKey
+          placeholder: 请输入千帆ModelBuilder的应用介入的SecretKey
+          validation: required
+          help: 必填,请前往https://console.bce.baidu.com/qianfan/overview SecretKey
+        - $formkit: text
+          name: aiSystem
+          label: 模型人设
+          placeholder: 请输入模型人设
+          help: 模型人设，主要用于人设设定，例如：你好,你是一个专业写200字左右文章摘要总结写手,不写为默认值
+    - group: summary
+      label: 摘要设置
+      formSchema:
+        - $formkit: checkbox
+          label: 开启文章摘要
+          name: enableSummary
+          id: enableSummary
+          key: enableSummary
+          value: true
+          help: "开启文章摘要需要在基础设置中完成ApiKey和SecretKey"
+        - $formkit: text
+          label: 文章选择器
+          name: postSelector
+          id: postSelector
+          key: postSelector
+          value: "article"
+          help: "文章选择器，用于选择文章内容。多个回车"
+        - $formkit: text
+          label: 摘要标题
+          name: title
+          id: title
+          key: title
+          value: "文章摘要"
+          help: "摘要标题，用于显示在摘要顶部的自定义内容"
+        - $formkit: attachment
+          label: 摘要样式css
+          name: summaryStyle
+          id: summaryStyle
+          key: summaryStyle
+          value: "https://www.lik.cc/upload/ArticleSummary.css"
+          help: "摘要样式css地址，可以通过https://github.com/acanyo/halo-aipost-summaraidGPT 给我提交PR，欢迎你的共建"
+        - $formkit: textarea
+          label: 文章路由
+          name: postURL
+          id: postURL
+          key: postURL
+          value: "*/archives/*"
+          help: "在符合url条件的网页执行文章摘要功能，通常清况下，绝大多数Halo网站使用默认配置即可，无需调整"
+        - $formkit: textarea
+          label: 黑名单
+          name: blacklist
+          id: blacklist
+          key: blacklist
+          help: "黑名单URL,多个用,隔开注意是英文逗号，如 填写相关的网址地址 如:https://www.lik.cc/archives/1,https://www.lik.cc/archives/2"
+        - $formkit: attachment
+          label: 自定义图标
+          name: customizeIco
+          id: customizeIco
+          key: customizeIco
+          value: "https://www.lik.cc/upload/icon.svg"
+          help: 用于显示在摘要顶部的图标,目前支持png,jpg,webp,svg,其他图片格式未测试
+        - $formkit: text
+          label: 自定义开头语
+          name: source
+          id: source
+          key: source
+          value: "LIK.CC-GPT"
+          help: "用于显示在摘要顶部的描述"
+        - $formkit: text
+          label: 样式选择器
+          name: darkModeSelector
+          id: darkModeSelector
+          key: darkModeSelector
+          value: ""
+          help: "用于自动判断主题是否暗色模式自动切换,为空默认不切换"
+        - $formkit: select
+          name: summaryTheme
+          label: 摘要样式
+          sortable: true
+          clearable: true
+          searchable: true
+          placeholder: 请选择你的主题
+          options:
+            - label: 默认主题
+              value: default
+            - label: 精简主题
+              value: simple
+            - label: 七彩主题
+              value: yanzhi
+            - label: 模糊主题
+              value: menghuan
+            - label: 暗色主题
+              value: dark

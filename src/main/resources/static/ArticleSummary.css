@@ -1,0 +1,243 @@
+/* ArticleSummary.css */
+:root {
+    --handsome-white: #fff;
+    --handsome-black: #000;
+    --handsome-gray: #999999;
+    --handsome-main: #425AEF;
+    --handsome-card-border: #e3e8f7;
+    --style-border: 1px solid var(--handsome-card-border);
+    --style-border-hover: 1px solid var(--handsome-main);
+    /*--style-border-dashed: 1px dashed var(--handsome-theme-op);*/
+}
+
+/* 默认主题 */
+.gpttheme_default.post-SummaraidGPT {
+    background: #f7f9fe;
+    border-color: #e3e8f7;
+}
+
+.gpttheme_default .SummaraidGPT-title-text {
+    color: #363636;
+}
+
+.gpttheme_default .SummaraidGPT-explanation {
+    background: #fff;
+    color: #363636;
+    border-color: #e3e8f7;
+}
+
+.gpttheme_default #SummaraidGPT-tag {
+    color: rgba(60, 60, 67, 0.6);
+}
+
+/* Simple主题 */
+.gpttheme_simple.post-SummaraidGPT {
+    background: #f0f0f0;
+    border-color: #e0e0e0;
+}
+
+.gpttheme_simple .SummaraidGPT-title-text {
+    font-weight: 400;
+    font-size: 14px;
+    color: #26b373;
+}
+
+.gpttheme_simple .SummaraidGPT-explanation {
+    background: #fff;
+    color: #000;
+    border-color: #e0e0e0;
+}
+
+.gpttheme_simple #SummaraidGPT-tag {
+    color: #666;
+}
+
+/* Yanzhi主题 */
+.gpttheme_yanzhi.post-SummaraidGPT {
+    background: linear-gradient(180deg, rgba(249, 238, 255, 0.54), rgba(191, 223, 255, .35));
+    border-color: #f8bbd0;
+}
+
+.gpttheme_yanzhi .SummaraidGPT-title-text {
+    font-size: 14px;
+    font-weight: 700;
+    background-image: linear-gradient(to right, #ed9dff, #8f89ff);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.gpttheme_yanzhi .SummaraidGPT-explanation {
+    background: #fce4ec;
+    color: #d5006d;
+    border-color: #f8bbd0;
+}
+
+.gpttheme_yanzhi #SummaraidGPT-tag {
+    color: #880e4f;
+}
+
+/* Menghuan主题 */
+.gpttheme_menghuan.post-SummaraidGPT {
+    background-color: #f3e5f5;
+    border: none;
+}
+
+.gpttheme_menghuan .SummaraidGPT-title-text {
+    color: #ffeb3b;
+}
+
+.gpttheme_menghuan .SummaraidGPT-explanation {
+    background: #e1bee7;
+    color: #ffeb3b;
+    border-color: #f1f8e9;
+}
+
+.gpttheme_menghuan #SummaraidGPT-tag {
+    color: #33691e;
+}
+
+.gpttheme_menghuan.post-SummaraidGPT::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    filter: blur(8px);
+    opacity: .4;
+    background-image: conic-gradient(from 1.5708rad at 50% 50%, #d6b300 0%, #42A2FF 54%, #d6b300 100%);
+    transform: scaleX(.99) scaleY(.95) translateY(2px);
+}
+
+/* 黑暗主题 */
+.gpttheme_dark.post-SummaraidGPT {
+    background: #1d1e22;
+    border-color: #3d3d3f;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+.gpttheme_dark .SummaraidGPT-explanation {
+    background: #30343f;
+    border-color: #3d3d3f;
+    color: #F7F7FA;
+}
+
+.gpttheme_dark .SummaraidGPT-title-text {
+    color: #F7F7FA;
+}
+
+.gpttheme_dark #SummaraidGPT-tag {
+    color: #a1a2b8;
+}
+
+/* 基础样式 */
+.post-SummaraidGPT {
+    border-radius: 12px;
+    padding: 8px;
+    line-height: 1.4;
+    margin: 8px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    z-index: 0;
+}
+
+.SummaraidGPT-title {
+    display: flex;
+    border-radius: 8px;
+    align-items: center;
+    padding: 0 12px;
+    cursor: default;
+    position: relative;
+    margin-bottom: 4px;
+}
+
+.SummaraidGPT-title-text {
+    font-weight: 700;
+    margin-left: 8px;
+    line-height: 1;
+    font-size: 16px;
+}
+
+.SummaraidGPT-explanation {
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 1.4;
+    display: block;
+    text-align: justify;
+    margin: 0;
+}
+
+/* 添加新的样式规则 */
+.SummaraidGPT-explanation p {
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+}
+
+.SummaraidGPT-title-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
+}
+
+.SummaraidGPT-title-icon .icon {
+    font-size: 18px;
+}
+
+#SummaraidGPT-tag {
+    position: relative;
+    font-size: 12px;
+    border-radius: 12px;
+    margin-left: auto;
+    line-height: 12px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: .3s;
+    opacity: .9;
+}
+
+/* 修改响应式设计 */
+@media screen and (max-width: 768px) {
+    .post-SummaraidGPT {
+        margin: 8px;
+        padding: 8px;
+    }
+    
+    .SummaraidGPT-explanation {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .SummaraidGPT-explanation p {
+        margin: 0;
+        padding: 0;
+        line-height: 1.4;
+    }
+}
+
+.typing-effect {
+    border-right: 2px solid black; /* 光标效果 */
+    white-space: nowrap; /* 防止换行 */
+    overflow: hidden; /* 隐藏超出部分 */
+    animation: typing 4s steps(30, end), blink-caret 0.75s step-end infinite; /* 动画效果 */
+}
+
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+@keyframes blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: black; }
+} 

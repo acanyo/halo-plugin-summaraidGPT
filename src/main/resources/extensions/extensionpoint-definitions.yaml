@@ -1,0 +1,9 @@
+apiVersion: plugin.halo.run/v1alpha1
+kind: ExtensionDefinition
+metadata:
+  name: post-excerpt-summaraidGPT-generator
+spec:
+  className: com.handsome.summary.extension.PostExcerptAiGenerator
+  extensionPointName: excerpt-generator
+  displayName: 智阅GPT摘要生成器
+  description: "提供AI自动生成摘要的方式扩展"
