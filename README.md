@@ -1,6 +1,9 @@
-<img src="https://www.lik.cc/upload/icon.svg" alt="icon.svg" style="zoom: 200%;" />
-
-
+<img src="https://www.lik.cc/upload/icon.svg" 
+     style="width: 200px;  
+            height: auto;      
+            margin: 0 px;   
+            vertical-align: text-bottom;"
+     alt="LIK 图标">
 
 # 智阅GPT-智能AI摘要
 
