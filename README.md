@@ -90,7 +90,11 @@
 目前仅支持千帆大模型(绝对不是因为他免费)，
 
 > 🔑 密钥获取路径：[千帆控制台](https://console.bce.baidu.com/qianfan/overview) → 应用接入→创建应用→选择服务→ERNIE-Speed-128K→把对应的API Key和Secret Key 填入插件中
+> <img width="1243" alt="Microsoft Edge 2025-02-25 19 28 57" src="https://github.com/user-attachments/assets/0a8f2624-9d7b-4226-a6ba-8de9d1409726" />
+> <img width="1221" alt="image" src="https://github.com/user-attachments/assets/9dcadd90-8cc4-4fb6-9cb4-f0344dbb9297" />
 
+
+[文档地址](https://lik.cc/archives/GPT)
 ## ⚠️ 注意事项
 
 1. **API调用成本**：千帆模型必须是用ERNIE-Speed-128K，因为他是免费的其他的造成经济损失不负责
