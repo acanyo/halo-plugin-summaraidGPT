@@ -67,7 +67,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
             .switchIfEmpty(Mono.error(new RuntimeException("配置不存在")))
             .flatMap(item -> {
                 ChatConfig config = new ChatConfig(
-                    item.path("checkbox").asBoolean(false), // path() 不会返回 null
+                    item.path("enableSummary").asBoolean(false), // path() 不会返回 null
                     item.path("postSelector").asText("article"),
                     item.path("title").asText("文章摘要"),
                     item.path("source").asText("SummaraidGPT"),
