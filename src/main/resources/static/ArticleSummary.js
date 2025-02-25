@@ -22,7 +22,8 @@ class ArticleSummary {
             title: options.title || '文章摘要',
             content: this.cleanContent(options.content) || '',
             source: options.source || 'SummaraidGPT',
-            theme: options.theme || 'default'
+            theme: options.theme || 'default',
+            width: this.processWidth(articleConfig.summaryWidth)
         };
         this.options.theme = this.detectDarkMode() ? 'dark' : (options.theme || 'default');
         if (articleConfig.darkModeSelector) {
@@ -77,11 +78,49 @@ class ArticleSummary {
         return content.replace(/\n\s*\n/g, '\n').trim();
     }
 
-    render() {
-        if (!this.container) return;  // 如果不需要显示，直接返回
+    // 处理宽度值
+    processWidth(width) {
+        if (!width || width === 'null') {
+            return '100%';  // 默认值
+        }
+        
+        // 移除可能存在的引号
+        width = width.replace(/['"]/g, '');
+        
+        // 如果是纯数字
+        if (/^\d+$/.test(width)) {
+            return parseInt(width);
+        }
+        
+        // 如果是百分比或类名,直接返回
+        return width;
+    }
 
+    render() {
+        if (!this.container) return;
+
+        // 处理宽度值
+        let widthStyle = this.options.width;
+        let widthAttr = '';
+        
+        // 设置父容器样式
+        this.container.style.display = 'flex';
+        this.container.style.justifyContent = 'center';
+        this.container.style.width = '100%';
+        
+        // 根据类型处理宽度
+        if (typeof widthStyle === 'number') {
+            widthAttr = `style="width: ${widthStyle}px;"`;
+        } else if (widthStyle.startsWith('.')) {
+            // 如果是类名,添加到class中
+            widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme} ${widthStyle.substring(1)}"`;
+        } else {
+            // 其他情况(如百分比)添加到style中
+            widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme}" style="width: ${widthStyle};"`;
+        }
+        
         const summaryHtml = `
-            <div class="post-SummaraidGPT gpttheme_${this.options.theme}">
+            <div ${widthAttr}>
                 <div class="SummaraidGPT-title">
                     <div class="SummaraidGPT-title-icon">
                         <img src="${this.options.icon}" alt="图标" style="width: 24px; height: 24px;">
@@ -95,11 +134,11 @@ class ArticleSummary {
             </div>
         `;
 
-        // 使用 innerHTML 插入摘要
         this.container.innerHTML = summaryHtml + this.container.innerHTML;
         this.typeText(this.options.content);
     }
-// 检测暗色主题
+
+    // 检测暗色主题
     detectDarkMode() {
         if (!articleConfig.darkModeSelector) {
             return false;
@@ -122,7 +161,7 @@ class ArticleSummary {
         }
     }
 
-// 检测暗色主题
+    // 检测暗色主题
     detectDarkMode() {
         if (!articleConfig.darkModeSelector) {
             return false;
@@ -173,7 +212,7 @@ class ArticleSummary {
         }
     }
 
-// 监听主题变化
+    // 监听主题变化
     observeDarkMode() {
         try {
             // 监听 html 元素的所有相关属性变化
@@ -206,7 +245,7 @@ class ArticleSummary {
         }
     }
 
-// 更新主题
+    // 更新主题
     updateTheme(theme) {
         if (this.options.theme !== theme) {
             this.options.theme = theme;
@@ -217,6 +256,7 @@ class ArticleSummary {
             }
         }
     }
+
     // 打字机效果函数
     typeText(text) {
         const typingTextElement = document.getElementById('typing-text');

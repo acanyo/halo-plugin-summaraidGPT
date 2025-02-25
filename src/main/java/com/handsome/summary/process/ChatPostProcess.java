@@ -3,6 +3,7 @@ package com.handsome.summary.process;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -69,6 +70,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                 ChatConfig config = new ChatConfig(
                     item.path("enableSummary").asBoolean(false), // path() 不会返回 null
                     item.path("postSelector").asText("article"),
+                    item.path("summaryWidth").asText(),
                     item.path("title").asText("文章摘要"),
                     item.path("source").asText("SummaraidGPT"),
                     item.path("summaryStyle").asText(Constant.DEFAULT_CSS),
@@ -107,12 +109,14 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         properties.setProperty("checkbox", config.getCheckbox().toString());
         properties.setProperty("urlPatterns", urlPatterns.toString());
         properties.setProperty("blacklist", blacklist.toString());
-        properties.setProperty("darkModeSelector", config.getDarkModeSelector());
+        properties.setProperty("darkModeSelector",
+            Optional.ofNullable(config.getDarkModeSelector()).orElse("null"));
         properties.setProperty("customizeIco", config.getCustomizeIco());
         properties.setProperty("title", config.getTitle());
         properties.setProperty("summary", processedSummary);  // 使用处理后的文本
         properties.setProperty("source", config.getSource());
-        
+        properties.setProperty("summaryWidth", Optional.of(config.getSummaryWidth()).orElse(null));
+
         String script = """
             <script>
                 const articleConfig = {
@@ -121,6 +125,8 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                     enableSummary: ${checkbox},
                     urlPatterns: ${urlPatterns},
                     blacklist: ${blacklist},
+                    darkModeSelector: '${darkModeSelector}',
+                    summaryWidth: '${summaryWidth}',
                     content: {
                         icon: '${customizeIco}',
                         title: '${title}',
@@ -165,6 +171,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
     static class ChatConfig {
         private Boolean checkbox;
         private String postSelector;
+        private String summaryWidth;
         private String title;
         private String source;
         private String summaryStyle;
