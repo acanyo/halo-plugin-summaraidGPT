@@ -103,20 +103,24 @@ class ArticleSummary {
         let widthStyle = this.options.width;
         let widthAttr = '';
         
-        // 设置父容器样式
-        this.container.style.display = 'flex';
-        this.container.style.justifyContent = 'center';
-        this.container.style.width = '100%';
+        // 创建一个新的外层容器用于居中
+        const wrapperDiv = document.createElement('div');
+        wrapperDiv.style.display = 'flex';
+        wrapperDiv.style.justifyContent = 'center';
+        wrapperDiv.style.alignItems = 'center';
+        wrapperDiv.style.width = '100%';
         
         // 根据类型处理宽度
         if (typeof widthStyle === 'number') {
-            widthAttr = `style="width: ${widthStyle}px;"`;
+            widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme}" style="width: ${widthStyle}px;"`;
         } else if (widthStyle.startsWith('.')) {
-            // 如果是类名,添加到class中
             widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme} ${widthStyle.substring(1)}"`;
-        } else {
-            // 其他情况(如百分比)添加到style中
+        } else if (widthStyle !== '100%') {  // 只有当不是100%时才使用包装容器
             widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme}" style="width: ${widthStyle};"`;
+        } else {
+            // 如果是100%，不需要居中，直接使用原始容器
+            wrapperDiv.style.display = 'block';
+            widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme}" style="width: 100%;"`;
         }
         
         const summaryHtml = `
@@ -134,7 +138,16 @@ class ArticleSummary {
             </div>
         `;
 
-        this.container.innerHTML = summaryHtml + this.container.innerHTML;
+        // 设置包装容器的内容
+        wrapperDiv.innerHTML = summaryHtml;
+        
+        // 将包装容器插入到原容器的开头
+        if (this.container.firstChild) {
+            this.container.insertBefore(wrapperDiv, this.container.firstChild);
+        } else {
+            this.container.appendChild(wrapperDiv);
+        }
+
         this.typeText(this.options.content);
     }
 
