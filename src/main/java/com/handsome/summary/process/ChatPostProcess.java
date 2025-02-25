@@ -36,14 +36,21 @@ public class ChatPostProcess implements TemplateHeadProcessor {
 
     List<String> urlPatterns = new ArrayList<>();
     List<String> blacklist = new ArrayList<>();
-
+    public static String getTemplateId(ITemplateContext context) {
+        try {
+            String  templateName = context.getVariable(Constant.TEMPLATE_ID_VARIABLE).toString();
+            return templateName != null && !templateName.isEmpty() ? templateName : "";
+        }catch (Exception e){
+            return "";
+        }
+    }
     @Override
     public Mono<Void> process(ITemplateContext iTemplateContext, IModel iModel,
         IElementModelStructureHandler iElementModelStructureHandler) {
 
         final IModelFactory modelFactory = iTemplateContext.getModelFactory();
 
-        if (!"post".equals(iTemplateContext.getVariable(Constant.TEMPLATE_ID_VARIABLE))) {
+        if (!"post".equals(getTemplateId(iTemplateContext))) {
             return Mono.empty();
         }
 

@@ -36,8 +36,8 @@ class ArticleSummary {
     // 控制台日志输出
     logMessage() {
         console.log(`\n %c 智阅GPT-智能AI摘要 %c https://www.lik.cc/ \n`,
-            'color: #fadfa3; background: #030307; padding:5px 0;',
-            'background: #fadfa3; padding:5px 0;');
+                'color: #fadfa3; background: #030307; padding:5px 0;',
+                'background: #fadfa3; padding:5px 0;');
     }
 
     // 检查是否在黑名单中
@@ -83,46 +83,37 @@ class ArticleSummary {
         if (!width || width === 'null') {
             return '100%';  // 默认值
         }
-        
+
         // 移除可能存在的引号
         width = width.replace(/['"]/g, '');
-        
-        // 如果是纯数字
+
+        // 如果是纯数字，直接返回100%，让CSS控制宽度
         if (/^\d+$/.test(width)) {
-            return parseInt(width);
+            return '100%';
         }
-        
-        // 如果是百分比或类名,直接返回
-        return width;
+
+        // 如果是类名，直接返回
+        if (width.startsWith('.')) {
+            return width;
+        }
+
+        // 其他情况返回100%，让CSS控制宽度
+        return '100%';
     }
 
     render() {
         if (!this.container) return;
 
-        // 处理宽度值
         let widthStyle = this.options.width;
         let widthAttr = '';
-        
-        // 创建一个新的外层容器用于居中
-        const wrapperDiv = document.createElement('div');
-        wrapperDiv.style.display = 'flex';
-        wrapperDiv.style.justifyContent = 'center';
-        wrapperDiv.style.alignItems = 'center';
-        wrapperDiv.style.width = '100%';
-        
-        // 根据类型处理宽度
-        if (typeof widthStyle === 'number') {
-            widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme}" style="width: ${widthStyle}px;"`;
-        } else if (widthStyle.startsWith('.')) {
+
+        // 简化宽度处理
+        if (widthStyle.startsWith('.')) {
             widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme} ${widthStyle.substring(1)}"`;
-        } else if (widthStyle !== '100%') {  // 只有当不是100%时才使用包装容器
-            widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme}" style="width: ${widthStyle};"`;
         } else {
-            // 如果是100%，不需要居中，直接使用原始容器
-            wrapperDiv.style.display = 'block';
-            widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme}" style="width: 100%;"`;
+            widthAttr = `class="post-SummaraidGPT gpttheme_${this.options.theme}"`;
         }
-        
+
         const summaryHtml = `
             <div ${widthAttr}>
                 <div class="SummaraidGPT-title">
@@ -138,14 +129,11 @@ class ArticleSummary {
             </div>
         `;
 
-        // 设置包装容器的内容
-        wrapperDiv.innerHTML = summaryHtml;
-        
-        // 将包装容器插入到原容器的开头
+        // 直接插入内容，不需要额外的包装容器
         if (this.container.firstChild) {
-            this.container.insertBefore(wrapperDiv, this.container.firstChild);
+            this.container.insertBefore(document.createRange().createContextualFragment(summaryHtml), this.container.firstChild);
         } else {
-            this.container.appendChild(wrapperDiv);
+            this.container.innerHTML = summaryHtml;
         }
 
         this.typeText(this.options.content);

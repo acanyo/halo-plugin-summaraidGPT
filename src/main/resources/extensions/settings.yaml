@@ -40,7 +40,7 @@ spec:
           id: postSelector
           key: postSelector
           value: "article"
-          help: "文章选择器，用于选择文章内容。多个回车"
+          help: "文章选择器，用于选择文章内容。"
         - $formkit: text
           label: 摘要标题
           name: title
@@ -67,7 +67,7 @@ spec:
           name: blacklist
           id: blacklist
           key: blacklist
-          help: "黑名单URL,多个用,隔开注意是英文逗号，如 填写相关的网址地址 如:https://www.lik.cc/archives/1,https://www.lik.cc/archives/2"
+          help: "黑名单URL,多个用,隔开注意是英文逗号，如 填写相关的网址地址多个回车"
         - $formkit: attachment
           label: 自定义图标
           name: customizeIco
@@ -89,13 +89,13 @@ spec:
           key: darkModeSelector
           value: ""
           help: "用于自动判断主题是否暗色模式自动切换,为空默认不切换"
-        - $formkit: text
-          label: 自定义描述宽度
-          name: summaryWidth
-          id: summaryWidth
-          key: summaryWidth
-          value: ""
-          help: "用户文章内宽>内容造成插件溢出问题,建议不修改,为空默认不修改"
+#        - $formkit: text
+#          label: 自定义描述宽度
+#          name: summaryWidth
+#          id: summaryWidth
+#          key: summaryWidth
+#          value: ""
+#          help: "用户文章内宽>内容造成插件溢出问题,建议不修改,为空默认不修改"
         - $formkit: select
           name: summaryTheme
           label: 摘要样式
