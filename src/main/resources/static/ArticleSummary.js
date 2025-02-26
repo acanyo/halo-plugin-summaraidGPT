@@ -17,6 +17,25 @@ class ArticleSummary {
         }
 
         this.container = container;
+        const pageTheme = this.detectPageTheme();
+        
+        // 如果不是特定主题，移除固定宽度
+        if (pageTheme !== 'microimmersion-webjing') {
+            const style = document.createElement('style');
+            style.textContent = `
+                .post-SummaraidGPT {
+                    width: 100% !important;
+                    max-width: none !important;
+                }
+                @media screen and (min-width: 896px) {
+                    .post-SummaraidGPT {
+                        width: 100% !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
         this.options = {
             icon: options.icon || './icon.svg',
             title: options.title || '文章摘要',
@@ -309,6 +328,12 @@ class ArticleSummary {
     updateContent(content) {
         this.options.content = this.cleanContent(content);
         this.render();
+    }
+
+    // 添加主题检测方法
+    detectPageTheme() {
+        const metaTheme = document.querySelector('meta[name="theme-template"]');
+        return metaTheme ? metaTheme.getAttribute('content') : null;
     }
 }
 
