@@ -8,6 +8,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 import com.handsome.summary.Constant;
+import com.handsome.summary.service.InitSummaryService;
 import lombok.*;
 import org.springframework.stereotype.Component;
 import org.springframework.util.PropertyPlaceholderHelper;
@@ -16,6 +17,8 @@ import org.thymeleaf.model.IModel;
 import org.thymeleaf.model.IModelFactory;
 import org.thymeleaf.processor.element.IElementModelStructureHandler;
 import reactor.core.publisher.Mono;
+import run.halo.app.content.ContentWrapper;
+import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.plugin.ReactiveSettingFetcher;
@@ -33,6 +36,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
     private final ReactiveSettingFetcher settingFetcher;
 
     private final ReactiveExtensionClient client;
+    private final InitSummaryService initSvc;
 
     List<String> urlPatterns = new ArrayList<>();
     List<String> blacklist = new ArrayList<>();
@@ -57,6 +61,8 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         return client.fetch(Post.class, iTemplateContext.getVariable("name").toString())
             .flatMap(postContent -> jsConfigTemplate(postContent.getStatus().getExcerpt())
                 .flatMap(jsConfig -> {
+                    if (postContent.getMetadata().getAnnotations() != null
+                        && postContent.getMetadata().getAnnotations().containsKey("isSummary")) {
                     // 生成 CSS 和 JS 标签
                     String cssContent =
                         String.format("<link rel=\"stylesheet\" href=\"%s\" />", CSS_CONTENT);
@@ -65,9 +71,17 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                     // 拼接完整的 HTML 内容
                     String fullScript = cssContent + "\n" + scriptTag + "\n" + jsConfig;
                     iModel.add(modelFactory.createText(fullScript));
+                    }
                     return Mono.empty();
                 })
             );
+    }
+    private Mono<Post> processPost(Post post) {
+        // 校验是否需要处理
+        if (post.getMetadata().getAnnotations() == null
+            || !post.getMetadata().getAnnotations().containsKey("isSummary")) {
+            initSvc.initSummary(post,post.getMetadata().getName());
+        }
     }
 
     public Mono<String> jsConfigTemplate(String postSummary) {
