@@ -3,6 +3,7 @@ package com.handsome.summary.process;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -68,6 +69,8 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                 }
                 return jsConfigTemplate(postContent.getStatus().getExcerpt());
             }).flatMap(jsConfig -> {
+                if (jsConfig == null || Objects.equals(jsConfig, "关闭注入"))
+                    return Mono.empty();
                 // 生成 CSS 和 JS 标签
                 String cssContent =
                     String.format("<link rel=\"stylesheet\" href=\"%s\" />", CSS_CONTENT);
@@ -86,6 +89,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
             .flatMap(item -> {
                 ChatConfig config = new ChatConfig(
                     item.path("enableSummary").asBoolean(false), // path() 不会返回 null
+                    item.path("enableTemplate").asBoolean(false), // path() 不会返回 null
                     item.path("postSelector").asText("article"),
                     item.path("summaryWidth").asText(),
                     item.path("title").asText("文章摘要"),
@@ -117,7 +121,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         CSS_CONTENT = config.getSummaryStyle() != null ? config.getSummaryStyle()
             : Constant.DEFAULT_CSS;
         final Properties properties = new Properties();
-
+        if (Optional.ofNullable(config.getEnableTemplate()).orElse(false)) return "关闭注入";
         // 处理摘要文本
         String processedSummary = processText(config.getPostSummary());
 
@@ -187,6 +191,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
     @AllArgsConstructor
     static class ChatConfig {
         private Boolean checkbox;
+        private Boolean enableTemplate;
         private String postSelector;
         private String summaryWidth;
         private String title;

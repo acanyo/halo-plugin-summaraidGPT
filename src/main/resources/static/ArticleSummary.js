@@ -16,7 +16,8 @@ class ArticleSummary {
             return;
         }
 
-        this.container = container;
+        // 获取目标容器
+        this.container = this.findTargetContainer(container);
         const pageTheme = this.detectPageTheme();
         
         // 如果不是特定主题，移除固定宽度
@@ -334,6 +335,27 @@ class ArticleSummary {
     detectPageTheme() {
         const metaTheme = document.querySelector('meta[name="theme-template"]');
         return metaTheme ? metaTheme.getAttribute('content') : null;
+    }
+
+    // 查找目标容器
+    findTargetContainer(selector) {
+        if (!selector) return null;
+        
+        // 如果已经是DOM元素，直接返回
+        if (selector instanceof Element) {
+            return selector;
+        }
+        
+        // 确保selector是字符串
+        selector = String(selector);
+        
+        // 如果是ID选择器(以#开头)
+        if (selector.startsWith('#')) {
+            return document.getElementById(selector.substring(1));
+        }
+        
+        // 如果是标签选择器
+        return document.querySelector(selector);
     }
 }
 

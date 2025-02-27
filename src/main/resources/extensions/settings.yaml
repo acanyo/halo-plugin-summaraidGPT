@@ -34,13 +34,20 @@ spec:
           key: enableSummary
           value: true
           help: "开启文章摘要需要在基础设置中完成ApiKey和SecretKey"
+        - $formkit: checkbox
+          label: 开启主题适配
+          name: enableTemplate
+          id: enableTemplate
+          key: enableTemplate
+          value: false
+          help: "开启此项后,插件只请求AI摘要,不会植入JS和CSS相关资源"
         - $formkit: text
           label: 文章选择器
           name: postSelector
           id: postSelector
           key: postSelector
           value: "article"
-          help: "文章选择器，用于选择文章内容。"
+          help: "文章选择器，用于选择文章内容。可以填写标签也可以填写标签ID 注意ID需要通过#开头"
         - $formkit: text
           label: 摘要标题
           name: title
