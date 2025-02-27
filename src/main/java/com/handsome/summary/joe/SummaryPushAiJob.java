@@ -36,8 +36,8 @@ public class SummaryPushAiJob {
      * 每30分钟更新一次摘要
      * Handsome
      */
-    @Scheduled(cron = "0 0/30 * * * ?")
-    public void updateSummary() {
-        initSvc.initSummary();
-    }
+    // @Scheduled(cron = "0 0/30 * * * ?")
+    // public void updateSummary() {
+    //     initSvc.initSummary();
+    // }
 }
