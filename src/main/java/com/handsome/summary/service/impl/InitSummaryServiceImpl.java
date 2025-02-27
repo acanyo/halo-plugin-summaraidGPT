@@ -13,8 +13,6 @@ import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.extension.index.query.Query;
-import run.halo.app.extension.index.query.QueryFactory;
 import java.time.Duration;
 
 @Component
@@ -32,37 +30,51 @@ public class InitSummaryServiceImpl implements InitSummaryService {
     }
 
     @Override
-    public Mono<Post> initSummary(Post post,String postName) {
-        Mono<Post> postMono = updatePostSummary(post, postName);
-        return postMono;
+    public Mono<Post> initSummary(Post post) {
+        return pushAi(post.getMetadata().getName())
+            .timeout(Duration.ofSeconds(30))
+            .flatMap(summary -> updatePostSummary(post, summary))
+            .onErrorResume(e -> {
+                log.error("处理文章[{}]失败", post.getMetadata().getName(), e);
+
+                return Mono.just(post);
+            });
     }
 
+
     public void updateSummary() {
-        Query annotationQuery = QueryFactory.isNull("metadata.annotations.isSummary");
+        // 构建查询条件（已优化标签选择器）
         ListOptions listOptions = ListOptions.builder()
-            .fieldQuery(annotationQuery)
+            .labelSelector()
+            .notExists("isSummary")
+            .end()
             .build();
 
         client.listAll(Post.class, listOptions, null)
+            .doOnSubscribe(sub -> log.info("开始查询未摘要文章...")) // 添加开始日志
+            .doOnNext(post -> log.debug("找到待处理文章: {}", post.getMetadata().getName())) // 打印每个找到的文章
+            .doOnComplete(() -> log.info("共发现 {} 篇待处理文章", listOptions.toString())) // 实际数量需要调整实现
             .parallel()
             .runOn(Schedulers.boundedElastic())
             .flatMap(post ->
                 pushAi(post.getMetadata().getName())
                     .timeout(Duration.ofSeconds(30))
                     .flatMap(summary -> updatePostSummary(post, summary))
+                    .doOnSuccess(p -> log.info("文章[{}]处理完成", p.getMetadata().getName())) // 添加成功日志
                     .onErrorResume(e -> {
-                        log.error("处理文章[{}]失败", post.getMetadata().getName(), e);
+                        log.error("处理文章[{}]失败: {}", post.getMetadata().getName(), e.getMessage());
                         return Mono.empty();
                     })
             )
             .subscribe(
                 null,
-                e -> log.error("定时任务异常", e),
-                () -> log.info("定时任务完成")
+                e -> log.error("处理文章整体失败: ", e), // 增强异常日志
+                () -> log.info("处理文章完成，已处理所有待摘要文章")
             );
     }
+
     private Mono<Post> updatePostSummary(Post post, String summary) {
-        post.getMetadata().getAnnotations().put("isSummary", "true");
+        post.getMetadata().getLabels().put("isSummary", "true");
         if (post.getStatus() == null) {
             post.setStatus(new Post.PostStatus());
         }

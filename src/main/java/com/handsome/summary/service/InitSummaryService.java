@@ -5,5 +5,5 @@ import run.halo.app.core.extension.content.Post;
 
 public interface InitSummaryService {
     Mono<Void> initSummary();
-    Mono<Post> initSummary(Post post,String postName);
+    Mono<Post> initSummary(Post post);
 }

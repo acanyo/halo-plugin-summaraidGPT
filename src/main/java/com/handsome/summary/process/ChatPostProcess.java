@@ -17,8 +17,6 @@ import org.thymeleaf.model.IModel;
 import org.thymeleaf.model.IModelFactory;
 import org.thymeleaf.processor.element.IElementModelStructureHandler;
 import reactor.core.publisher.Mono;
-import run.halo.app.content.ContentWrapper;
-import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.plugin.ReactiveSettingFetcher;
@@ -40,14 +38,16 @@ public class ChatPostProcess implements TemplateHeadProcessor {
 
     List<String> urlPatterns = new ArrayList<>();
     List<String> blacklist = new ArrayList<>();
+
     public static String getTemplateId(ITemplateContext context) {
         try {
-            String  templateName = context.getVariable(Constant.TEMPLATE_ID_VARIABLE).toString();
+            String templateName = context.getVariable(Constant.TEMPLATE_ID_VARIABLE).toString();
             return templateName != null && !templateName.isEmpty() ? templateName : "";
-        }catch (Exception e){
+        } catch (Exception e) {
             return "";
         }
     }
+
     @Override
     public Mono<Void> process(ITemplateContext iTemplateContext, IModel iModel,
         IElementModelStructureHandler iElementModelStructureHandler) {
@@ -57,31 +57,27 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         if (!"post".equals(getTemplateId(iTemplateContext))) {
             return Mono.empty();
         }
-
         return client.fetch(Post.class, iTemplateContext.getVariable("name").toString())
-            .flatMap(postContent -> jsConfigTemplate(postContent.getStatus().getExcerpt())
-                .flatMap(jsConfig -> {
-                    if (postContent.getMetadata().getAnnotations() != null
-                        && postContent.getMetadata().getAnnotations().containsKey("isSummary")) {
-                    // 生成 CSS 和 JS 标签
-                    String cssContent =
-                        String.format("<link rel=\"stylesheet\" href=\"%s\" />", CSS_CONTENT);
-                    String scriptTag =
-                        String.format("<script src=\"%s\"></script>", Constant.scriptUrl);
-                    // 拼接完整的 HTML 内容
-                    String fullScript = cssContent + "\n" + scriptTag + "\n" + jsConfig;
-                    iModel.add(modelFactory.createText(fullScript));
-                    }
-                    return Mono.empty();
-                })
-            );
-    }
-    private Mono<Post> processPost(Post post) {
-        // 校验是否需要处理
-        if (post.getMetadata().getAnnotations() == null
-            || !post.getMetadata().getAnnotations().containsKey("isSummary")) {
-            initSvc.initSummary(post,post.getMetadata().getName());
-        }
+            .flatMap(postContent -> {
+                // 判断是否需要初始化摘要
+                if (postContent.getMetadata().getLabels() == null
+                    || !postContent.getMetadata().getLabels().containsKey("isSummary")) {
+                   return initSvc.initSummary(postContent)
+                        .flatMap(updatedPost ->
+                            jsConfigTemplate(updatedPost.getStatus().getExcerpt()));
+                }
+                return jsConfigTemplate(postContent.getStatus().getExcerpt());
+            }).flatMap(jsConfig -> {
+                // 生成 CSS 和 JS 标签
+                String cssContent =
+                    String.format("<link rel=\"stylesheet\" href=\"%s\" />", CSS_CONTENT);
+                String scriptTag =
+                    String.format("<script src=\"%s\"></script>", Constant.scriptUrl);
+                // 拼接完整的 HTML 内容
+                String fullScript = cssContent + "\n" + scriptTag + "\n" + jsConfig;
+                iModel.add(modelFactory.createText(fullScript));
+                return Mono.empty();
+            });
     }
 
     public Mono<String> jsConfigTemplate(String postSummary) {
@@ -121,10 +117,10 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         CSS_CONTENT = config.getSummaryStyle() != null ? config.getSummaryStyle()
             : Constant.DEFAULT_CSS;
         final Properties properties = new Properties();
-        
+
         // 处理摘要文本
         String processedSummary = processText(config.getPostSummary());
-        
+
         properties.setProperty("postSelector", config.getPostSelector());
         properties.setProperty("summaryTheme", config.getSummaryTheme());
         properties.setProperty("checkbox", config.getCheckbox().toString());
@@ -171,7 +167,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         if (text == null) {
             return "";
         }
-        
+
         return text
             // 处理换行和空格
             .replace("\n", " ")
