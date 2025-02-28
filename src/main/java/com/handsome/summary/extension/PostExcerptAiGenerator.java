@@ -1,3 +1,4 @@
+/*
 package com.handsome.summary.extension;
 
 import com.handsome.summary.service.ChatService;
@@ -7,11 +8,13 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 import run.halo.app.content.ExcerptGenerator;
 
+*/
 /**
  * Implementing an Article Summary Interface Generator
  * @author: webjing
  * @date: 2025年02月22日 22:16
- */
+ *//*
+
 @Component
 @AllArgsConstructor
 public class PostExcerptAiGenerator implements ExcerptGenerator {
@@ -23,3 +26,4 @@ public class PostExcerptAiGenerator implements ExcerptGenerator {
         return chatService.getSummary(Jsoup.parse(context.getContent()).text());
     }
 }
+*/
