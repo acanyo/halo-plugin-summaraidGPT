@@ -11,6 +11,9 @@
 >
 > 📦 [GitHub源码]( https://github.com/acanyo/halo-aipost-summaraidGPT)
 
+# 💬交流
+![群.png](https://www.lik.cc/upload/iShot_2025-03-03_16.03.00.png)
+
 # 📍演示站
 
 | 网站名称     | 说明                             | 演示地址                 |
