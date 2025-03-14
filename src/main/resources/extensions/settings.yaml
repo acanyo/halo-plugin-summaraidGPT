@@ -43,6 +43,7 @@ spec:
           help: "开启此项后,插件只请求AI摘要,不会植入JS和CSS相关资源"
         - $formkit: text
           label: 文章选择器
+          if: $get(enableTemplate).value == false
           name: postSelector
           id: postSelector
           key: postSelector
@@ -50,12 +51,14 @@ spec:
           help: "文章选择器，用于选择文章内容。可以填写标签也可以填写标签ID 注意ID需要通过#开头"
         - $formkit: text
           label: 摘要标题
+          if: $get(enableTemplate).value == false
           name: title
           id: title
           key: title
           value: "文章摘要"
           help: "摘要标题，用于显示在摘要顶部的自定义内容"
         - $formkit: attachment
+          if: $get(enableTemplate).value == false
           label: 摘要样式css
           name: summaryStyle
           id: summaryStyle
@@ -77,12 +80,14 @@ spec:
           help: "黑名单URL,多个用,隔开注意是英文逗号，如 填写相关的网址地址多个回车"
         - $formkit: attachment
           label: 自定义图标
+          if: $get(enableTemplate).value == false
           name: customizeIco
           id: customizeIco
           key: customizeIco
           value: "https://www.lik.cc/upload/icon.svg"
           help: 用于显示在摘要顶部的图标,目前支持png,jpg,webp,svg,其他图片格式未测试
         - $formkit: text
+          if: $get(enableTemplate).value == false
           label: 自定义开头语
           name: source
           id: source
@@ -90,6 +95,7 @@ spec:
           value: "LIK.CC-GPT"
           help: "用于显示在摘要顶部的描述"
         - $formkit: text
+          if: $get(enableTemplate).value == false
           label: 样式选择器
           name: darkModeSelector
           id: darkModeSelector
@@ -105,6 +111,9 @@ spec:
 #          help: "用户文章内宽>内容造成插件溢出问题,建议不修改,为空默认不修改"
         - $formkit: select
           name: summaryTheme
+          key: summaryTheme
+          id: summaryTheme
+          if: $get(enableTemplate).value == false
           label: 摘要样式
           sortable: true
           clearable: true
