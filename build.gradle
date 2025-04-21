@@ -23,6 +23,11 @@ dependencies {
     implementation 'cn.hutool:hutool-all:5.8.16'
     testImplementation 'run.halo.app:api'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation 'dev.langchain4j:langchain4j:1.0.0-beta3'
+    implementation 'dev.langchain4j:langchain4j-spring-boot-starter:1.0.0-beta3'
+    implementation 'dev.langchain4j:langchain4j-open-ai:1.0.0-beta3'
+    implementation 'dev.langchain4j:langchain4j-community-zhipu-ai:1.0.0-beta3'
+    implementation 'dev.langchain4j:langchain4j-community-qianfan:1.0.0-beta3'
 }
 
 test {
@@ -55,6 +60,6 @@ build {
 
 halo {
     version = '2.20'
-//    debug = true
-//    suspend = true
+    debug = true
+    suspend = true
 }
