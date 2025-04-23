@@ -1,4 +1,10 @@
 // ArticleSummary.js
+
+
+
+// 添加标记，用于控制日志是否已打印
+let hasLoggedMessage = false;
+
 class ArticleSummary {
     constructor(container, options = {}) {
         // 检查是否启用摘要功能
@@ -14,6 +20,12 @@ class ArticleSummary {
         // 检查当前URL是否符合配置的模式
         if (!this.shouldShowSummary()) {
             return;
+        }
+
+        // 只在首次加载时打印日志
+        if (!hasLoggedMessage) {
+            this.logMessage();
+            hasLoggedMessage = true;
         }
 
         // 获取目标容器
@@ -50,7 +62,6 @@ class ArticleSummary {
             this.observeDarkMode();
         }
         this.render();
-        this.logMessage(); // 添加控制台日志输出
     }
 
     // 控制台日志输出
@@ -549,9 +560,96 @@ document.addEventListener('pjax:error', function() {
     }
 });
 
+// 修改初始化函数
+function initArticleSummary(content = null) {
+    return new Promise((resolve) => {
+        // 检查是否启用摘要功能
+        if (!articleConfig.enableSummary) {
+            resolve();
+            return;
+        }
+        
+        // 先移除所有已存在的摘要组件
+        document.querySelectorAll('.post-SummaraidGPT').forEach(el => el.remove());
+        
+        // 清理旧实例
+        if (window.articleSummary && window.articleSummary.destroy) {
+            window.articleSummary.destroy();
+        }
+
+        // 重新初始化组件
+        const container = document.querySelector(articleConfig.container);
+        if (container) {
+            window.articleSummary = new ArticleSummary(container, {
+                icon: articleConfig.content.icon,
+                title: articleConfig.content.title,
+                content: content || articleConfig.content.text,
+                source: articleConfig.content.source,
+                theme: articleConfig.theme
+            });
+        }
+        resolve();
+    });
+}
+
 // 修改原有的初始化代码
 document.addEventListener('DOMContentLoaded', function() {
-    handlePjax();
+    // 检查是否是Pjax加载
+    if (!window.isPjaxLoading) {
+        initArticleSummary();
+    }
+});
+
+// 修改Pjax更新处理
+document.addEventListener('pjax:start', function() {
+    // 标记Pjax正在加载
+    window.isPjaxLoading = true;
+    
+    // 在页面切换开始时就清理旧实例
+    document.querySelectorAll('.post-SummaraidGPT').forEach(el => el.remove());
+    if (window.articleSummary && window.articleSummary.destroy) {
+        window.articleSummary.destroy();
+    }
+});
+
+document.addEventListener('pjax:complete', function() {
+    // 获取新的摘要内容
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // 查找包含articleConfig的脚本
+            const scripts = doc.querySelectorAll('script:not([src])');
+            let newContent = null;
+            
+            scripts.forEach(script => {
+                if (script.textContent.includes('articleConfig')) {
+                    try {
+                        // 提取content.text
+                        const match = script.textContent.match(/text:\s*['"]([^'"]*)['"]/);
+                        if (match && match[1]) {
+                            newContent = match[1];
+                        }
+                    } catch (e) {
+                        console.error('解析摘要内容失败:', e);
+                    }
+                }
+            });
+            
+            // 使用新内容初始化
+            return initArticleSummary(newContent);
+        })
+        .catch(error => {
+            console.error('获取新摘要内容失败:', error);
+            // 使用现有配置初始化
+            return initArticleSummary();
+        })
+        .finally(() => {
+            // 重置Pjax加载标记
+            window.isPjaxLoading = false;
+        });
 });
 
 // 导出组件
