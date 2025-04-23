@@ -1,8 +1,10 @@
 package com.handsome.summary.service;
 
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import reactor.core.publisher.Mono;
 
 public interface ChatLanguageService {
-    ChatLanguageModel model(String role, String content);
+    Mono<ChatResponse> model(String content);
 
 }
