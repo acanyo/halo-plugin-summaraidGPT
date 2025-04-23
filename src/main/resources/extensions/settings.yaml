@@ -23,11 +23,12 @@ spec:
               value: zhipuAi
             - label: 通义千问
               value: dashScope
-            - label: Ollama
-              value: ollama
+            - label: Gemini
+              value: gemini
+#        千帆大模型
         - $formkit: text
           if: $get(modelType).value == "qianfan"
-          name: clientId
+          name: qianfanClientId
           label: ApiKey
           placeholder: 请输入千帆ModelBuilder的应用介入的ApiKey
           validation: required
@@ -39,6 +40,80 @@ spec:
           placeholder: 请输入千帆ModelBuilder的应用介入的SecretKey
           validation: required
           help: 必填,请前往https://console.bce.baidu.com/qianfan/overview SecretKey
+        - $formkit: text
+          if: $get(modelType).value == "qianfan"
+          name:  qianfanModelName
+          label: 模型名称
+          placeholder: 请输入千帆ModelBuilder的应用应用模型
+          validation: required
+          help: 必填
+#          OpenAi
+        - $formkit: text
+          if: $get(modelType).value == "openAi"
+          name: openAiApiKey
+          label: API密钥
+          placeholder: 请输入openAi的应用介入的ApiKey
+          validation: required
+          help: 必填,请前往 OpenAi 应用介入获取ApiKey
+        - $formkit: text
+          if: $get(modelType).value == "openAi"
+          name: openAiModelName
+          label: 模型名称
+          placeholder: 请输入OpenAi的模型名称
+          validation: required
+          help: 必填,请前往 OpenAi 应用介入获取模型名称
+        - $formkit: text
+          if: $get(modelType).value == "openAi"
+          name: OpenAiUrl
+          label: OpenAiUrl
+          placeholder: 请输入OpenAi的Url
+          validation: required
+          help: 必填
+#          智谱大模型
+        - $formkit: text
+          if: $get(modelType).value == "zhipuAi"
+          name: zhipuAiApiKey
+          label: 智谱API密钥
+          placeholder: 请输入 智谱 的应用介入的ApiKey
+          validation: required
+          help: 必填,请前往 智谱 应用介入获取ApiKey
+        - $formkit: text
+          if: $get(modelType).value == "zhipuAi"
+          name: zhipuAiModelName
+          label: 智谱模型名称
+          placeholder: 请输入智谱的模型名称
+          validation: required
+          help: 必填,请前往 智谱 应用介入获取模型名称
+        #          通义千问
+        - $formkit: text
+          if: $get(modelType).value == "dashScope"
+          name: dashScopeApiKey
+          label: 通义千问API密钥
+          placeholder: 请输入 通义千问 的应用介入的ApiKey
+          validation: required
+          help: 必填,请前往 通义千问 应用介入获取ApiKey
+        - $formkit: text
+          if: $get(modelType).value == "dashScope"
+          name: dashScopeModelName
+          label: 通义千问模型名称
+          placeholder: 请输入 通义千问 的模型名称
+          validation: required
+          help: 必填,请前往 通义千问 应用介入获取模型名称
+        #          Gemini
+        - $formkit: text
+          if: $get(modelType).value == "gemini"
+          name: geminiApiKey
+          label: 通义千问API密钥
+          placeholder: 请输入 Gemini 的应用介入的ApiKey
+          validation: required
+          help: 必填,请前往 Gemini 应用介入获取ApiKey
+        - $formkit: text
+          if: $get(modelType).value == "gemini"
+          name: geminiModelName
+          label: Gemini模型名称
+          placeholder: 请输入 Gemini 的模型名称
+          validation: required
+          help: 必填,请前往 Gemini 应用介入获取模型名称
         - $formkit: text
           name: aiSystem
           label: 模型人设
