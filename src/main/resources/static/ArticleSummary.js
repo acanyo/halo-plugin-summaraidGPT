@@ -70,13 +70,17 @@ class ArticleSummary {
     shouldShowSummary() {
         const currentPath = window.location.pathname;
         return articleConfig.urlPatterns.some(pattern => {
+            // 移除引号
+            pattern = pattern.replace(/['"]/g, '');
+            
             // 处理以 * 开头的模式
             if (pattern.startsWith('*')) {
-                pattern = pattern.substring(1); // 移除开头的 *
+                pattern = pattern.substring(1);
             }
+            
             // 处理以 * 结尾的模式
             if (pattern.endsWith('*')) {
-                pattern = pattern.slice(0, -1); // 移除结尾的 *
+                pattern = pattern.slice(0, -1);
             }
 
             // 将剩余的 * 转换为正则表达式的 .*
@@ -140,7 +144,7 @@ class ArticleSummary {
                     <div class="SummaraidGPT-title-icon">
                         <img src="${this.options.icon}" alt="图标" style="width: 24px; height: 24px;">
                     </div>
-                    <div class="SummaraidGPT-title-text">${this.options.title}</div>
+                    <div class="SummaraidGPT-title-text">${this.options.title || '文章摘要'}</div>
                     <div id="SummaraidGPT-tag">${this.options.source}</div>
                 </div>
                 <div class="SummaraidGPT-explanation">
@@ -357,21 +361,197 @@ class ArticleSummary {
         // 如果是标签选择器
         return document.querySelector(selector);
     }
+
+    destroy() {
+        // 清理事件监听
+        if (this.darkModeObserver) {
+            this.darkModeObserver.disconnect();
+        }
+        
+        // 清理DOM元素
+        const container = document.querySelector('.post-SummaraidGPT');
+        if (container) {
+            container.remove();
+        }
+        
+        // 清理定时器
+        if (this.typingTimer) {
+            clearTimeout(this.typingTimer);
+        }
+        
+        // 清理全局实例
+        if (window.articleSummary === this) {
+            window.articleSummary = null;
+        }
+    }
+
+    // 添加标题处理方法
+    processTitle(title) {
+        if (!title) {
+            return null;
+        }
+
+        // 处理字符串类型
+        if (typeof title === 'string') {
+            return title.trim();
+        }
+
+        // 处理对象类型
+        if (typeof title === 'object') {
+            // 如果title是对象,尝试获取text属性
+            if (title.text) {
+                return title.text.trim();
+            }
+            // 如果title是对象,尝试获取content属性
+            if (title.content) {
+                return title.content.trim();
+            }
+            // 如果title是对象,尝试获取value属性
+            if (title.value) {
+                return title.value.trim();
+            }
+        }
+
+        return null;
+    }
 }
 
-// 确保在 DOM 加载后初始化组件
-document.addEventListener('DOMContentLoaded', function() {
-    const container = document.querySelector(articleConfig.container);
-    const summary = new ArticleSummary(container, {
-        icon: articleConfig.content.icon,
-        title: articleConfig.content.title,
-        content: articleConfig.content.text,
-        source: articleConfig.content.source,
-        theme: articleConfig.theme
-    });
+// 添加防抖函数
+function debounce(func, wait) {
+    let timeout;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            func.apply(context, args);
+        }, wait);
+    };
+}
 
-    // 导出实例到全局作用域（方便调试和扩展）
-    window.articleSummary = summary;
+// 修改Pjax处理函数
+function handlePjax() {
+    try {
+        // 清理旧实例
+        if (window.articleSummary) {
+            window.articleSummary.destroy();
+        }
+        
+        // 检查是否启用摘要功能
+        if (!articleConfig.enableSummary) {
+            return;
+        }
+
+        // 检查当前URL是否在黑名单中
+        const currentUrl = window.location.href;
+        if (articleConfig.blacklist.includes(currentUrl)) {
+            return;
+        }
+
+        // 检查当前URL是否符合配置的模式
+        const currentPath = window.location.pathname;
+        const shouldShow = articleConfig.urlPatterns.some(pattern => {
+            // 移除引号
+            pattern = pattern.replace(/['"]/g, '');
+            
+            // 处理以 * 开头的模式
+            if (pattern.startsWith('*')) {
+                pattern = pattern.substring(1);
+            }
+            
+            // 处理以 * 结尾的模式
+            if (pattern.endsWith('*')) {
+                pattern = pattern.slice(0, -1);
+            }
+
+            // 将剩余的 * 转换为正则表达式的 .*
+            pattern = pattern.replace(/\*/g, '.*');
+
+            // 如果模式不以 / 开头，添加 /
+            if (!pattern.startsWith('/')) {
+                pattern = '/' + pattern;
+            }
+
+            // 创建正则表达式
+            const regex = new RegExp(pattern);
+            return regex.test(currentPath);
+        });
+
+        if (!shouldShow) {
+            return;
+        }
+
+        // 获取文章摘要
+        const articleContent = document.querySelector(articleConfig.container);
+        if (!articleContent) {
+            return;
+        }
+
+        // 从meta标签获取摘要
+        const metaSummary = document.querySelector('meta[name="description"]');
+        const summaryText = metaSummary ? metaSummary.getAttribute('content') : '';
+
+        // 重新初始化组件
+        const container = document.querySelector(articleConfig.container);
+        if (container) {
+            const articleSummaryInstance = new ArticleSummary(container, {
+                icon: articleConfig.content.icon,
+                title: articleConfig.content.title,
+                content: summaryText || articleConfig.content.text,
+                source: articleConfig.content.source,
+                theme: articleConfig.theme
+            });
+            window.articleSummary = articleSummaryInstance;
+        }
+    } catch (error) {
+        console.error('ArticleSummary Pjax处理错误:', error);
+        // 优雅降级处理
+        if (window.articleSummary) {
+            window.articleSummary.destroy();
+        }
+    }
+}
+
+// 添加文章内容处理方法
+function processArticleContent(content) {
+    if (!content) {
+        return '';
+    }
+
+    // 处理换行和空格
+    return content
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// 使用防抖处理Pjax事件
+const debouncedHandlePjax = debounce(handlePjax, 100);
+
+// 监听Pjax事件
+document.addEventListener('DOMContentLoaded', debouncedHandlePjax);
+document.addEventListener('pjax:complete', debouncedHandlePjax);
+document.addEventListener('page:load', debouncedHandlePjax);
+document.addEventListener('turbolinks:load', debouncedHandlePjax);
+
+// 监听Pjax开始事件
+document.addEventListener('pjax:start', function() {
+    if (window.articleSummary) {
+        window.articleSummary.destroy();
+    }
+});
+
+// 监听Pjax错误事件
+document.addEventListener('pjax:error', function() {
+    if (window.articleSummary) {
+        window.articleSummary.destroy();
+    }
+});
+
+// 修改原有的初始化代码
+document.addEventListener('DOMContentLoaded', function() {
+    handlePjax();
 });
 
 // 导出组件

@@ -13,12 +13,12 @@ public enum Constant {
     public static final String TOKEN_URL = "https://aip.baidubce.com/oauth/2.0/token";
 
     public static final String DEFAULT_CSS =
-        "https://www.lik.cc/upload/ArticleSummary.css";
+        "/plugins/summaraidGPT/assets/static/ArticleSummary.css";
 
     public static final String DEFAULT_ICON = "https://www.lik.cc/upload/icon.svg";
 
     public static final String scriptUrl =
-        "https://www.lik.cc/upload/ArticleSummary.js";
+        "/plugins/summaraidGPT/assets/static/ArticleSummary.js";
 
     public static final String TEMPLATE_ID_VARIABLE = "_templateId";
 

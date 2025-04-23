@@ -16,4 +16,10 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
         return settingFetcher.fetch(BasicConfig.GROUP, BasicConfig.class)
             .defaultIfEmpty(new BasicConfig());
     }
+
+    @Override
+    public Mono<ChatConfig> getChatConfig() {
+        return settingFetcher.fetch(ChatConfig.GROUP, ChatConfig.class)
+            .defaultIfEmpty(new ChatConfig());
+    }
 }

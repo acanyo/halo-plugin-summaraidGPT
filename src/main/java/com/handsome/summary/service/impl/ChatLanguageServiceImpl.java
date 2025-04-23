@@ -22,7 +22,6 @@ import run.halo.app.plugin.ReactiveSettingFetcher;
 @RequiredArgsConstructor
 public class ChatLanguageServiceImpl implements ChatLanguageService {
     private final SettingConfigGetter settingConfigGetter;
-    private final ReactiveSettingFetcher settingFetcher;
     private final AiService aiSvc;
     private final ReactiveExtensionClient client;
 
