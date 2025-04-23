@@ -7,13 +7,33 @@ spec:
     - group: basic
       label: 基本设置
       formSchema:
+        - $formkit: select
+          name: modelType
+          key: modelType
+          id: modelType
+          label: 大模型类型
+          searchable: true
+          placeholder: 请选择你的大模型类型
+          options:
+            - label: OpenAi
+              value: openAi
+            - label: 千帆
+              value: qianfan
+            - label: 智谱
+              value: zhipuAi
+            - label: 通义千问
+              value: dashScope
+            - label: Ollama
+              value: ollama
         - $formkit: text
+          if: $get(modelType).value == "qianfan"
           name: clientId
           label: ApiKey
           placeholder: 请输入千帆ModelBuilder的应用介入的ApiKey
           validation: required
           help: 必填,请前往https://console.bce.baidu.com/qianfan/overview 应用介入获取ApiKey
         - $formkit: text
+          if: $get(modelType).value == "qianfan"
           name: clientSecret
           label: SecretKey
           placeholder: 请输入千帆ModelBuilder的应用介入的SecretKey
@@ -27,6 +47,26 @@ spec:
     - group: summary
       label: 摘要设置
       formSchema:
+        - $el: a
+          attrs:
+            href: "https://www.halo.run/store/apps/app-riNgb"
+            class: "py-4 block"
+            style:
+              color: "#1890ff"
+              fontSize: "0.875em"
+              display: "flex"
+              align-items: "center"
+              target: "_blank"
+          children:
+            - $el: span
+              children: "查看 Ink AI 帮助文档"
+            - $el: img
+              attrs:
+                src: "/plugins/ai-assistant/assets/static/link.svg"
+                width: "14px"
+                height: "14px"
+                style:
+                  margin-left: "4px"
         - $formkit: checkbox
           label: 开启文章摘要
           name: enableSummary
@@ -102,13 +142,13 @@ spec:
           key: darkModeSelector
           value: ""
           help: "用于自动判断主题是否暗色模式自动切换,为空默认不切换"
-#        - $formkit: text
-#          label: 自定义描述宽度
-#          name: summaryWidth
-#          id: summaryWidth
-#          key: summaryWidth
-#          value: ""
-#          help: "用户文章内宽>内容造成插件溢出问题,建议不修改,为空默认不修改"
+        #        - $formkit: text
+        #          label: 自定义描述宽度
+        #          name: summaryWidth
+        #          id: summaryWidth
+        #          key: summaryWidth
+        #          value: ""
+        #          help: "用户文章内宽>内容造成插件溢出问题,建议不修改,为空默认不修改"
         - $formkit: select
           name: summaryTheme
           key: summaryTheme

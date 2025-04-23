@@ -1,5 +1,7 @@
 package com.handsome.summary.process;
 
+import com.handsome.summary.Constant;
+import com.handsome.summary.service.InitSummaryService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -7,10 +9,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-
-import com.handsome.summary.Constant;
-import com.handsome.summary.service.InitSummaryService;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.PropertyPlaceholderHelper;
 import org.thymeleaf.context.ITemplateContext;
@@ -131,7 +132,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         properties.setProperty("urlPatterns", urlPatterns.toString());
         properties.setProperty("blacklist", blacklist.toString());
         properties.setProperty("darkModeSelector",
-            Optional.ofNullable(config.getDarkModeSelector()).orElse("null"));
+            String.valueOf(config.getDarkModeSelector()));
         properties.setProperty("customizeIco", config.getCustomizeIco());
         properties.setProperty("title", config.getTitle());
         properties.setProperty("summary", processedSummary);  // 使用处理后的文本

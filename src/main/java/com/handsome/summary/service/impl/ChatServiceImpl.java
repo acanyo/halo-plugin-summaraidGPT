@@ -1,5 +1,8 @@
 package com.handsome.summary.service.impl;
 
+import static run.halo.app.extension.index.query.QueryFactory.and;
+import static run.halo.app.extension.index.query.QueryFactory.equal;
+
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.HexUtil;
@@ -11,6 +14,10 @@ import com.handsome.summary.dto.TokenData;
 import com.handsome.summary.entity.TokenSub;
 import com.handsome.summary.service.ChatService;
 import com.handsome.summary.util.GlobalCacheUtil;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,13 +34,6 @@ import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.Secret;
 import run.halo.app.extension.index.query.Query;
 import run.halo.app.plugin.ReactiveSettingFetcher;
-import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-
-import static run.halo.app.extension.index.query.QueryFactory.and;
-import static run.halo.app.extension.index.query.QueryFactory.equal;
 
 @Component
 @Slf4j

@@ -2,6 +2,7 @@ package com.handsome.summary.service.impl;
 
 import com.handsome.summary.service.ChatService;
 import com.handsome.summary.service.InitSummaryService;
+import java.time.Duration;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -13,7 +14,6 @@ import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.ReactiveExtensionClient;
-import java.time.Duration;
 
 @Component
 @EnableScheduling
