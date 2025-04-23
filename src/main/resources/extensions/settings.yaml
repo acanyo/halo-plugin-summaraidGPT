@@ -27,26 +27,6 @@ spec:
     - group: summary
       label: 摘要设置
       formSchema:
-        - $el: a
-          attrs:
-            href: "https://www.halo.run/store/apps/app-riNgb"
-            class: "py-4 block"
-            style:
-              color: "#1890ff"
-              fontSize: "0.875em"
-              display: "flex"
-              align-items: "center"
-              target: "_blank"
-          children:
-            - $el: span
-              children: "查看 Ink AI 帮助文档"
-            - $el: img
-              attrs:
-                src: "/plugins/ai-assistant/assets/static/link.svg"
-                width: "14px"
-                height: "14px"
-                style:
-                  margin-left: "4px"
         - $formkit: checkbox
           label: 开启文章摘要
           name: enableSummary
