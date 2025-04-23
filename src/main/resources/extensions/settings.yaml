@@ -64,7 +64,7 @@ spec:
           help: 必填,请前往 OpenAi 应用介入获取模型名称
         - $formkit: text
           if: $get(modelType).value == "openAi"
-          name: OpenAiUrl
+          name: openAiUrl
           label: OpenAiUrl
           placeholder: 请输入OpenAi的Url
           validation: required

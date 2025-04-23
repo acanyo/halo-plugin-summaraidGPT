@@ -1,208 +1,208 @@
-package com.handsome.summary.process;
-
-import com.handsome.summary.Constant;
-import com.handsome.summary.service.InitSummaryService;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.stream.Collectors;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import org.springframework.util.PropertyPlaceholderHelper;
-import org.thymeleaf.context.ITemplateContext;
-import org.thymeleaf.model.IModel;
-import org.thymeleaf.model.IModelFactory;
-import org.thymeleaf.processor.element.IElementModelStructureHandler;
-import reactor.core.publisher.Mono;
-import run.halo.app.core.extension.content.Post;
-import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.plugin.ReactiveSettingFetcher;
-import run.halo.app.theme.dialect.TemplateHeadProcessor;
-
-@Component
-@RequiredArgsConstructor
-public class ChatPostProcess implements TemplateHeadProcessor {
-
-    static final PropertyPlaceholderHelper
-        PROPERTY_PLACEHOLDER_HELPER = new PropertyPlaceholderHelper("${", "}");
-
-    private static String CSS_CONTENT = "";
-
-    private final ReactiveSettingFetcher settingFetcher;
-
-    private final ReactiveExtensionClient client;
-    private final InitSummaryService initSvc;
-
-    List<String> urlPatterns = new ArrayList<>();
-    List<String> blacklist = new ArrayList<>();
-
-    public static String getTemplateId(ITemplateContext context) {
-        try {
-            String templateName = context.getVariable(Constant.TEMPLATE_ID_VARIABLE).toString();
-            return templateName != null && !templateName.isEmpty() ? templateName : "";
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    @Override
-    public Mono<Void> process(ITemplateContext iTemplateContext, IModel iModel,
-        IElementModelStructureHandler iElementModelStructureHandler) {
-
-        final IModelFactory modelFactory = iTemplateContext.getModelFactory();
-
-        if (!"post".equals(getTemplateId(iTemplateContext))) {
-            return Mono.empty();
-        }
-        return client.fetch(Post.class, iTemplateContext.getVariable("name").toString())
-            .flatMap(postContent -> {
-                // 判断是否需要初始化摘要
-                if (postContent.getMetadata().getLabels() == null
-                    || !postContent.getMetadata().getLabels().containsKey("isSummary")) {
-                   return initSvc.initSummary(postContent)
-                        .flatMap(updatedPost ->
-                            jsConfigTemplate(updatedPost.getStatus().getExcerpt()));
-                }
-                return jsConfigTemplate(postContent.getStatus().getExcerpt());
-            }).flatMap(jsConfig -> {
-                if (jsConfig == null || Objects.equals(jsConfig, "关闭注入"))
-                    return Mono.empty();
-                // 生成 CSS 和 JS 标签
-                String cssContent =
-                    String.format("<link rel=\"stylesheet\" href=\"%s\" />", CSS_CONTENT);
-                String scriptTag =
-                    String.format("<script src=\"%s\"></script>", Constant.scriptUrl);
-                // 拼接完整的 HTML 内容
-                String fullScript = cssContent + "\n" + scriptTag + "\n" + jsConfig;
-                iModel.add(modelFactory.createText(fullScript));
-                return Mono.empty();
-            });
-    }
-
-    public Mono<String> jsConfigTemplate(String postSummary) {
-        return settingFetcher.get("summary")
-            .switchIfEmpty(Mono.error(new RuntimeException("配置不存在")))
-            .flatMap(item -> {
-                ChatConfig config = new ChatConfig(
-                    item.path("enableSummary").asBoolean(false), // path() 不会返回 null
-                    item.path("enableTemplate").asBoolean(false), // path() 不会返回 null
-                    item.path("postSelector").asText("article"),
-                    item.path("summaryWidth").asText(),
-                    item.path("title").asText("文章摘要"),
-                    item.path("source").asText("SummaraidGPT"),
-                    item.path("summaryStyle").asText(Constant.DEFAULT_CSS),
-                    item.path("darkModeSelector").asText(),
-                    item.path("postURL").asText("*/archives/*"),
-                    item.path("blacklist").asText(""),
-                    item.path("customizeIco").asText(Constant.DEFAULT_ICON),
-                    item.path("summaryTheme").asText("default"),
-                    item.path("postSummary").asText(postSummary)
-                );
-                urlPatterns = Arrays.stream(config.getPostURL().split("\n"))
-                    .map(String::trim)            // 去除首尾空格
-                    .filter(s -> !s.isEmpty())    // 过滤空字符串
-                    .map(s -> "\"" + s + "\"")    // 为每个元素添加双引号（如 "*/archives/*"）
-                    .collect(Collectors.toList());
-                blacklist = Arrays.stream(config.getBlacklist().split("\n"))
-                    .map(String::trim)            // 去除首尾空格
-                    .filter(s -> !s.isEmpty())    // 过滤空字符串
-                    .map(s -> "\"" + s + "\"")    // 为每个元素添加双引号（如 "*/archives/*"）
-                    .collect(Collectors.toList());
-                return Mono.just(config);
-            })
-            .map(this::buildScriptContent);
-    }
-
-    private String buildScriptContent(ChatConfig config) {
-        CSS_CONTENT = config.getSummaryStyle() != null ? config.getSummaryStyle()
-            : Constant.DEFAULT_CSS;
-        final Properties properties = new Properties();
-        if (Optional.ofNullable(config.getEnableTemplate()).orElse(false)) return "关闭注入";
-        // 处理摘要文本
-        String processedSummary = processText(config.getPostSummary());
-
-        properties.setProperty("postSelector", config.getPostSelector());
-        properties.setProperty("summaryTheme", config.getSummaryTheme());
-        properties.setProperty("checkbox", config.getCheckbox().toString());
-        properties.setProperty("urlPatterns", urlPatterns.toString());
-        properties.setProperty("blacklist", blacklist.toString());
-        properties.setProperty("darkModeSelector",
-            String.valueOf(config.getDarkModeSelector()));
-        properties.setProperty("customizeIco", config.getCustomizeIco());
-        properties.setProperty("title", config.getTitle());
-        properties.setProperty("summary", processedSummary);  // 使用处理后的文本
-        properties.setProperty("source", config.getSource());
-        properties.setProperty("summaryWidth", Optional.of(config.getSummaryWidth()).orElse(null));
-
-        String script = """
-            <script>
-                const articleConfig = {
-                    container: '${postSelector}',
-                    theme: '${summaryTheme}',
-                    enableSummary: ${checkbox},
-                    urlPatterns: ${urlPatterns},
-                    blacklist: ${blacklist},
-                    darkModeSelector: '${darkModeSelector}',
-                    summaryWidth: '${summaryWidth}',
-                    content: {
-                        icon: '${customizeIco}',
-                        title: '${title}',
-                        text: '${summary}',
-                        source: '${source}'
-                    },
-                    responsive: {
-                        mobile: {
-                            maxWidth: '768px',
-                            fontSize: '13px',
-                            padding: '12px'
-                        }
-                    }
-                };
-            </script>
-            """;
-        return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(script, properties);
-    }
-
-    private String processText(String text) {
-        if (text == null) {
-            return "";
-        }
-
-        return text
-            // 处理换行和空格
-            .replace("\n", " ")
-            .replace("\r", " ")
-            .replaceAll("\\s+", " ")
-            .trim()
-            // 处理JavaScript特殊字符
-            .replace("\\", "\\\\")  // 必须先处理反斜杠
-            .replace("\"", "\\\"")
-            .replace("'", "\\'")
-            .replace("\b", "\\b")
-            .replace("\f", "\\f")
-            .replace("\t", "\\t");
-    }
-
-    @Data
-    @AllArgsConstructor
-    static class ChatConfig {
-        private Boolean checkbox;
-        private Boolean enableTemplate;
-        private String postSelector;
-        private String summaryWidth;
-        private String title;
-        private String source;
-        private String summaryStyle;
-        private String darkModeSelector;
-        private String postURL;
-        private String blacklist;
-        private String customizeIco;
-        private String summaryTheme;
-        private String postSummary;
-    }
-}
+// package com.handsome.summary.process;
+//
+// import com.handsome.summary.Constant;
+// import com.handsome.summary.service.InitSummaryService;
+// import java.util.ArrayList;
+// import java.util.Arrays;
+// import java.util.List;
+// import java.util.Objects;
+// import java.util.Optional;
+// import java.util.Properties;
+// import java.util.stream.Collectors;
+// import lombok.AllArgsConstructor;
+// import lombok.Data;
+// import lombok.RequiredArgsConstructor;
+// import org.springframework.stereotype.Component;
+// import org.springframework.util.PropertyPlaceholderHelper;
+// import org.thymeleaf.context.ITemplateContext;
+// import org.thymeleaf.model.IModel;
+// import org.thymeleaf.model.IModelFactory;
+// import org.thymeleaf.processor.element.IElementModelStructureHandler;
+// import reactor.core.publisher.Mono;
+// import run.halo.app.core.extension.content.Post;
+// import run.halo.app.extension.ReactiveExtensionClient;
+// import run.halo.app.plugin.ReactiveSettingFetcher;
+// import run.halo.app.theme.dialect.TemplateHeadProcessor;
+//
+// @Component
+// @RequiredArgsConstructor
+// public class ChatPostProcess implements TemplateHeadProcessor {
+//
+//     static final PropertyPlaceholderHelper
+//         PROPERTY_PLACEHOLDER_HELPER = new PropertyPlaceholderHelper("${", "}");
+//
+//     private static String CSS_CONTENT = "";
+//
+//     private final ReactiveSettingFetcher settingFetcher;
+//
+//     private final ReactiveExtensionClient client;
+//     private final InitSummaryService initSvc;
+//
+//     List<String> urlPatterns = new ArrayList<>();
+//     List<String> blacklist = new ArrayList<>();
+//
+//     public static String getTemplateId(ITemplateContext context) {
+//         try {
+//             String templateName = context.getVariable(Constant.TEMPLATE_ID_VARIABLE).toString();
+//             return templateName != null && !templateName.isEmpty() ? templateName : "";
+//         } catch (Exception e) {
+//             return "";
+//         }
+//     }
+//
+//     @Override
+//     public Mono<Void> process(ITemplateContext iTemplateContext, IModel iModel,
+//         IElementModelStructureHandler iElementModelStructureHandler) {
+//
+//         final IModelFactory modelFactory = iTemplateContext.getModelFactory();
+//
+//         if (!"post".equals(getTemplateId(iTemplateContext))) {
+//             return Mono.empty();
+//         }
+//         return client.fetch(Post.class, iTemplateContext.getVariable("name").toString())
+//             .flatMap(postContent -> {
+//                 // 判断是否需要初始化摘要
+//                 if (postContent.getMetadata().getLabels() == null
+//                     || !postContent.getMetadata().getLabels().containsKey("isSummary")) {
+//                    return initSvc.initSummary(postContent)
+//                         .flatMap(updatedPost ->
+//                             jsConfigTemplate(updatedPost.getStatus().getExcerpt()));
+//                 }
+//                 return jsConfigTemplate(postContent.getStatus().getExcerpt());
+//             }).flatMap(jsConfig -> {
+//                 if (jsConfig == null || Objects.equals(jsConfig, "关闭注入"))
+//                     return Mono.empty();
+//                 // 生成 CSS 和 JS 标签
+//                 String cssContent =
+//                     String.format("<link rel=\"stylesheet\" href=\"%s\" />", CSS_CONTENT);
+//                 String scriptTag =
+//                     String.format("<script src=\"%s\"></script>", Constant.scriptUrl);
+//                 // 拼接完整的 HTML 内容
+//                 String fullScript = cssContent + "\n" + scriptTag + "\n" + jsConfig;
+//                 iModel.add(modelFactory.createText(fullScript));
+//                 return Mono.empty();
+//             });
+//     }
+//
+//     public Mono<String> jsConfigTemplate(String postSummary) {
+//         return settingFetcher.get("summary")
+//             .switchIfEmpty(Mono.error(new RuntimeException("配置不存在")))
+//             .flatMap(item -> {
+//                 ChatConfig config = new ChatConfig(
+//                     item.path("enableSummary").asBoolean(false), // path() 不会返回 null
+//                     item.path("enableTemplate").asBoolean(false), // path() 不会返回 null
+//                     item.path("postSelector").asText("article"),
+//                     item.path("summaryWidth").asText(),
+//                     item.path("title").asText("文章摘要"),
+//                     item.path("source").asText("SummaraidGPT"),
+//                     item.path("summaryStyle").asText(Constant.DEFAULT_CSS),
+//                     item.path("darkModeSelector").asText(),
+//                     item.path("postURL").asText("*/archives/*"),
+//                     item.path("blacklist").asText(""),
+//                     item.path("customizeIco").asText(Constant.DEFAULT_ICON),
+//                     item.path("summaryTheme").asText("default"),
+//                     item.path("postSummary").asText(postSummary)
+//                 );
+//                 urlPatterns = Arrays.stream(config.getPostURL().split("\n"))
+//                     .map(String::trim)            // 去除首尾空格
+//                     .filter(s -> !s.isEmpty())    // 过滤空字符串
+//                     .map(s -> "\"" + s + "\"")    // 为每个元素添加双引号（如 "*/archives/*"）
+//                     .collect(Collectors.toList());
+//                 blacklist = Arrays.stream(config.getBlacklist().split("\n"))
+//                     .map(String::trim)            // 去除首尾空格
+//                     .filter(s -> !s.isEmpty())    // 过滤空字符串
+//                     .map(s -> "\"" + s + "\"")    // 为每个元素添加双引号（如 "*/archives/*"）
+//                     .collect(Collectors.toList());
+//                 return Mono.just(config);
+//             })
+//             .map(this::buildScriptContent);
+//     }
+//
+//     private String buildScriptContent(ChatConfig config) {
+//         CSS_CONTENT = config.getSummaryStyle() != null ? config.getSummaryStyle()
+//             : Constant.DEFAULT_CSS;
+//         final Properties properties = new Properties();
+//         if (Optional.ofNullable(config.getEnableTemplate()).orElse(false)) return "关闭注入";
+//         // 处理摘要文本
+//         String processedSummary = processText(config.getPostSummary());
+//
+//         properties.setProperty("postSelector", config.getPostSelector());
+//         properties.setProperty("summaryTheme", config.getSummaryTheme());
+//         properties.setProperty("checkbox", config.getCheckbox().toString());
+//         properties.setProperty("urlPatterns", urlPatterns.toString());
+//         properties.setProperty("blacklist", blacklist.toString());
+//         properties.setProperty("darkModeSelector",
+//             String.valueOf(config.getDarkModeSelector()));
+//         properties.setProperty("customizeIco", config.getCustomizeIco());
+//         properties.setProperty("title", config.getTitle());
+//         properties.setProperty("summary", processedSummary);  // 使用处理后的文本
+//         properties.setProperty("source", config.getSource());
+//         properties.setProperty("summaryWidth", Optional.of(config.getSummaryWidth()).orElse(null));
+//
+//         String script = """
+//             <script>
+//                 const articleConfig = {
+//                     container: '${postSelector}',
+//                     theme: '${summaryTheme}',
+//                     enableSummary: ${checkbox},
+//                     urlPatterns: ${urlPatterns},
+//                     blacklist: ${blacklist},
+//                     darkModeSelector: '${darkModeSelector}',
+//                     summaryWidth: '${summaryWidth}',
+//                     content: {
+//                         icon: '${customizeIco}',
+//                         title: '${title}',
+//                         text: '${summary}',
+//                         source: '${source}'
+//                     },
+//                     responsive: {
+//                         mobile: {
+//                             maxWidth: '768px',
+//                             fontSize: '13px',
+//                             padding: '12px'
+//                         }
+//                     }
+//                 };
+//             </script>
+//             """;
+//         return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(script, properties);
+//     }
+//
+//     private String processText(String text) {
+//         if (text == null) {
+//             return "";
+//         }
+//
+//         return text
+//             // 处理换行和空格
+//             .replace("\n", " ")
+//             .replace("\r", " ")
+//             .replaceAll("\\s+", " ")
+//             .trim()
+//             // 处理JavaScript特殊字符
+//             .replace("\\", "\\\\")  // 必须先处理反斜杠
+//             .replace("\"", "\\\"")
+//             .replace("'", "\\'")
+//             .replace("\b", "\\b")
+//             .replace("\f", "\\f")
+//             .replace("\t", "\\t");
+//     }
+//
+//     @Data
+//     @AllArgsConstructor
+//     static class ChatConfig {
+//         private Boolean checkbox;
+//         private Boolean enableTemplate;
+//         private String postSelector;
+//         private String summaryWidth;
+//         private String title;
+//         private String source;
+//         private String summaryStyle;
+//         private String darkModeSelector;
+//         private String postURL;
+//         private String blacklist;
+//         private String customizeIco;
+//         private String summaryTheme;
+//         private String postSummary;
+//     }
+// }

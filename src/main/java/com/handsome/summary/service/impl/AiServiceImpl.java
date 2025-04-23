@@ -31,13 +31,11 @@ public class AiServiceImpl implements AiService {
         try {
             validateParams(apiKey, modelName, role, content);
             log.debug("开始调用OpenAI API, model: {}, role: {}", modelName, role);
-
             OpenAiChatModel openAiChatModel = OpenAiChatModel.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(modelName)
                 .build();
-
             UserMessage userMessage = createUserMessage(role, content);
             ChatResponse response = openAiChatModel.chat(userMessage);
 

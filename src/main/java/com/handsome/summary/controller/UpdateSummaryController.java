@@ -37,7 +37,7 @@ public class UpdateSummaryController {
             .flatMap(contentWrapper -> {
                 String articleContent = Jsoup.parse(contentWrapper.getContent()).text();
                 log.info("获取到文章内容, 长度: {}", articleContent.length());
-                return chatLanguageSvc.model(articleContent);
+                return chatLanguageSvc.model(articleContent,post);
             }).then();
     }
 }
