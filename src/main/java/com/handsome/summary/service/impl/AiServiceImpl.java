@@ -13,6 +13,7 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+import java.time.Duration;
 
 /**
  * AI服务实现类
@@ -60,8 +61,9 @@ public class AiServiceImpl implements AiService {
                 .secretKey(secretKey)
                 .modelName(modelName)
                 .build();
-
-            UserMessage userMessage = createUserMessage(role, content);
+            UserMessage userMessage =  UserMessage.from(
+                TextContent.from(role+content)
+            );
             ChatResponse response = qianfanChatModel.chat(userMessage);
 
             log.debug("千帆API调用成功");
@@ -81,6 +83,10 @@ public class AiServiceImpl implements AiService {
             ZhipuAiChatModel zhipuAiChatModel = ZhipuAiChatModel.builder()
                 .apiKey(apiKey)
                 .model(modelName)
+                .callTimeout(Duration.ofSeconds(60))
+                .connectTimeout(Duration.ofSeconds(60))
+                .writeTimeout(Duration.ofSeconds(60))
+                .readTimeout(Duration.ofSeconds(60))
                 .build();
 
             UserMessage userMessage = createUserMessage(role, content);
