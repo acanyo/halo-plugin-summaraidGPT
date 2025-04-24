@@ -178,7 +178,7 @@ spec:
           name: summaryStyle
           id: summaryStyle
           key: summaryStyle
-          value: "https://www.lik.cc/upload/ArticleSummary.css"
+          value: "/plugins/summaraidGPT/assets/static/ArticleSummary.js"
           help: "摘要样式css地址，可以通过https://github.com/acanyo/halo-aipost-summaraidGPT 给我提交PR，欢迎你的共建"
         - $formkit: textarea
           label: 文章路由
