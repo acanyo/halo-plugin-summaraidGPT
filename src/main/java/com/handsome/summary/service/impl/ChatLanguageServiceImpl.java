@@ -6,10 +6,10 @@ import com.handsome.summary.service.SettingConfigGetter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.plugin.ReactiveSettingFetcher;
 
 /**
  * 聊天语言服务实现类
@@ -33,8 +33,6 @@ public class ChatLanguageServiceImpl implements ChatLanguageService {
                 try {
                     String modelType = config.getModelType();
                     String aiSystem = config.getAiSystem();
-                    log.info("使用模型类型: {}, 系统提示: {}", modelType, aiSystem);
-                    
                     return switch (modelType) {
                         case "openAi" -> handleOpenAI(config, aiSystem, content, post);
                         case "qianfan" -> handleQianfan(config, aiSystem, content, post);
@@ -44,12 +42,11 @@ public class ChatLanguageServiceImpl implements ChatLanguageService {
                         default -> {
                             String errorMsg = String.format("不支持的模型类型: %s", modelType);
                             log.info(errorMsg);
-                            yield Mono.error(new IllegalArgumentException(errorMsg));
+                            yield Mono.error(new ServerWebInputException(errorMsg));
                         }
                     };
                 } catch (Exception e) {
-                    log.error("处理配置时发生错误", e);
-                    return Mono.error(e);
+                    return Mono.error(() -> new ServerWebInputException("处理配置时发生错误"));
                 }
             });
     }
@@ -74,7 +71,6 @@ public class ChatLanguageServiceImpl implements ChatLanguageService {
             String openAiApiKey = config.getOpenAiApiKey();
             String openAiModelName = config.getOpenAiModelName();
             String openAiUrl = config.getOpenAiUrl();
-            
             log.info("调用OpenAI API, 模型: {}", openAiModelName);
             return Mono.just(aiSvc.openAiChat(openAiApiKey, openAiModelName, openAiUrl, aiSystem, content))
                 .flatMap(response -> updatePostSummary(post, response.aiMessage().text()));
