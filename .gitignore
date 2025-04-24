@@ -73,4 +73,3 @@ application-local.properties
 /ui/node_modules/
 /workplace/
 /src/main/resources/console/
-gradlew
