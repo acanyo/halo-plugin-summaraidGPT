@@ -1,9 +1,21 @@
-// ArticleSummary.js
-
-
 
 // 添加标记，用于控制日志是否已打印
 let hasLoggedMessage = false;
+
+// 防抖函数声明
+const Handsomedebounce = (function() {
+    let timeout;
+    return function(func, wait) {
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                func.apply(context, args);
+            }, wait);
+        };
+    };
+})();
 
 class ArticleSummary {
     constructor(container, options = {}) {
@@ -404,19 +416,6 @@ class ArticleSummary {
     }
 }
 
-// 添加防抖函数
-function debounce(func, wait) {
-    let timeout;
-    return function() {
-        const context = this;
-        const args = arguments;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            func.apply(context, args);
-        }, wait);
-    };
-}
-
 // 修改Pjax处理函数
 function handlePjax() {
     try {
@@ -515,7 +514,7 @@ function processArticleContent(content) {
 }
 
 // 使用防抖处理Pjax事件
-const debouncedHandlePjax = debounce(handlePjax, 100);
+const debouncedHandlePjax = Handsomedebounce(handlePjax, 100);
 
 // 监听Pjax事件
 document.addEventListener('DOMContentLoaded', debouncedHandlePjax);
@@ -691,4 +690,4 @@ style.innerHTML = `
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
 }`;
-document.head.appendChild(style); 
+document.head.appendChild(style);
