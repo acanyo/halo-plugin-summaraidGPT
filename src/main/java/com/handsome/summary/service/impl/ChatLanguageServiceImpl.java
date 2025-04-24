@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebInputException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.app.content.ExcerptGenerator;
 import run.halo.app.core.extension.content.Post;
@@ -31,14 +32,16 @@ public class ChatLanguageServiceImpl implements ChatLanguageService {
 
     @Override
     public Mono<Void> model(String content, Post post) {
-        Mono<ExcerptGenerator> searchEngine = searchSvc.getSearchEngine();
+        Flux<ExcerptGenerator> searchEngine = searchSvc.getSearchEngine();
+        System.out.println("准备获取搜索引擎...");
         return searchEngine
+            .next() // 只取第一个元素
             .switchIfEmpty(Mono.defer(() -> {
-                System.out.println("搜索引擎未启用，跳过摘要处理");
+                System.out.println("摘要引擎未启用，跳过摘要处理");
                 return Mono.empty();
             }))
             .flatMap(search -> {
-                System.out.println("搜索引擎"+search.getClass().getName());
+                System.out.println("获取到搜索引擎: " + search.getClass().getName());
                 return settingConfigGetter.getBasicConfig()
                     .switchIfEmpty(Mono.error(new RuntimeException("无法获取基本配置")))
                     .flatMap(config -> {
