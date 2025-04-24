@@ -11,12 +11,12 @@ spec:
           attrs:
             href: "https://docs.lik.cc"
             class: "py-4 block"
+            target: "_blank"
             style:
               color: "#1890ff"
               fontSize: "0.875em"
               display: "flex"
               align-items: "center"
-              target: "_blank"
           children:
             - $el: span
               children: "查看 Ink AI 帮助文档"
