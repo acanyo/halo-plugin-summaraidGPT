@@ -31,6 +31,7 @@ public interface SettingConfigGetter {
     class ChatConfig {
         public static final String GROUP = "summary";
         private Boolean enableSummary;
+        private Boolean enableTypewriter;
         private String enableTemplate;
         private String postSelector;
         private String title;

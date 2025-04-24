@@ -176,6 +176,13 @@ spec:
           value: true
           help: "开启文章摘要需要在基础设置中完成ApiKey和SecretKey"
         - $formkit: checkbox
+          label: 开启打字机效果
+          name: enableTypewriter
+          id: enableTypewriter
+          key: enableTypewriter
+          value: true
+          help: "开启文字打字机效果"
+        - $formkit: checkbox
           label: 开启主题适配
           name: enableTemplate
           id: enableTemplate

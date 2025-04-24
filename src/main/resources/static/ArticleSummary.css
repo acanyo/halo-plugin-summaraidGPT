@@ -209,6 +209,36 @@
     justify-content: center;
     transition: .3s;
     opacity: .9;
+    overflow: hidden; /* 添加溢出隐藏 */
+}
+
+/* 添加扫光动画效果 */
+#SummaraidGPT-tag::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255, 255, 255, 0.6),
+        transparent
+    );
+    animation: shine 3s infinite linear;
+}
+
+@keyframes shine {
+    0% {
+        left: -100%;
+    }
+    20% {
+        left: 100%;
+    }
+    100% {
+        left: 100%;
+    }
 }
 
 /* 响应式布局优化 */

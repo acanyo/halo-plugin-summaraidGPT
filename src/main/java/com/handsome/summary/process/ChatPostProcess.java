@@ -116,6 +116,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         String processedSummary = processText(config.getPostSummary());
 
         properties.setProperty("postSelector", config.getPostSelector());
+        properties.setProperty("enableTypewriter", config.getEnableTypewriter().toString());
         properties.setProperty("summaryTheme", config.getSummaryTheme());
         properties.setProperty("checkbox", config.getEnableSummary().toString());
         properties.setProperty("urlPatterns", urlPatterns.toString());
@@ -133,6 +134,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                     container: '${postSelector}',
                     theme: '${summaryTheme}',
                     enableSummary: ${checkbox},
+                    enableTypewriter: ${enableTypewriter},
                     urlPatterns: ${urlPatterns},
                     blacklist: ${blacklist},
                     darkModeSelector: '${darkModeSelector}',

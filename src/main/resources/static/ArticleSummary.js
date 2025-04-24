@@ -1,4 +1,3 @@
-
 // 添加标记，用于控制日志是否已打印
 let hasLoggedMessage = false;
 
@@ -286,24 +285,36 @@ class ArticleSummary {
     typeText(text) {
         const typingTextElement = document.getElementById('typing-text');
         typingTextElement.innerHTML = '';
+        
+        // 检查是否启用打字机效果
+        if (!articleConfig.enableTypewriter) {
+            typingTextElement.innerHTML = text;
+            return;
+        }
+
         let index = 0;
-        const typingSpeed = 50;
+        const baseSpeed = 50; // 基础打字速度
         const cursorElement = document.createElement('span');
         cursorElement.innerHTML = '|';
         cursorElement.style.animation = 'blink 0.7s step-end infinite';
+        cursorElement.style.color = 'var(--handsome-main)';
+        cursorElement.style.fontWeight = 'bold';
+        cursorElement.style.marginLeft = '2px';
 
-        // 添加光标淡出动画样式
-        const fadeOutStyle = document.createElement('style');
-        fadeOutStyle.innerHTML = `
-            @keyframes fadeOut {
-                from { opacity: 1; }
-                to { opacity: 0; }
-            }
-            .cursor-fadeout {
-                animation: fadeOut 0.5s forwards;
-            }
-        `;
-        document.head.appendChild(fadeOutStyle);
+        // 随机延迟函数
+        const getRandomDelay = () => {
+            return baseSpeed + Math.random() * 50;
+        };
+
+        // 打字完成回调
+        const onTypingComplete = () => {
+            cursorElement.style.animation = 'none';
+            cursorElement.style.opacity = '0';
+            cursorElement.style.transition = 'opacity 0.5s ease';
+            
+            // 添加完成动画
+            typingTextElement.style.animation = 'typingComplete 0.5s ease';
+        };
 
         const type = () => {
             if (index <= text.length) {
@@ -312,21 +323,27 @@ class ArticleSummary {
                 typingTextElement.appendChild(cursorElement);
 
                 if (index === text.length) {
-                    // 添加淡出动画后移除光标
-                    setTimeout(() => {
-                        cursorElement.classList.add('cursor-fadeout');
-                        setTimeout(() => {
-                            cursorElement.remove();
-                            fadeOutStyle.remove();  // 清理动画样式
-                        }, 500);
-                    }, 500);
+                    setTimeout(onTypingComplete, 500);
                 } else {
                     index++;
-                    const randomDelay = typingSpeed + Math.random() * 50;
-                    setTimeout(type, randomDelay);
+                    const delay = getRandomDelay();
+                    setTimeout(type, delay);
                 }
             }
         };
+
+        // 添加完成动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes typingComplete {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.02); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 开始打字效果
         type();
     }
 
