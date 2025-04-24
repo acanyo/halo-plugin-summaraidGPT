@@ -19,8 +19,6 @@ import org.thymeleaf.model.IModel;
 import org.thymeleaf.model.IModelFactory;
 import org.thymeleaf.processor.element.IElementModelStructureHandler;
 import reactor.core.publisher.Mono;
-import run.halo.app.content.ContentWrapper;
-import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.plugin.ReactiveSettingFetcher;
@@ -41,38 +39,28 @@ public class ChatPostProcess implements TemplateHeadProcessor {
     private final SettingConfigGetter settingConfigGetter;
     List<String> urlPatterns = new ArrayList<>();
     List<String> blacklist = new ArrayList<>();
-    public static String getTemplateId(ITemplateContext context) {
-        try {
-            String  templateName = context.getVariable(Constant.TEMPLATE_ID_VARIABLE).toString();
-            return templateName != null && !templateName.isEmpty() ? templateName : "";
-        }catch (Exception e){
-            return "";
-        }
-    }
     @Override
     public Mono<Void> process(ITemplateContext iTemplateContext, IModel iModel,
         IElementModelStructureHandler iElementModelStructureHandler) {
 
         final IModelFactory modelFactory = iTemplateContext.getModelFactory();
 
-        // if (!"post".equals(getTemplateId(iTemplateContext))) {
-        //     return Mono.empty();
-        // }
         String name = iTemplateContext.getVariable("name") == null ? null : iTemplateContext.getVariable("name").toString();
         if (name!= null && !name.isEmpty()) {
             return client.fetch(Post.class,name)
                 .flatMap(postContent -> insertJsAndCss(postContent.getStatus().getExcerpt(), iModel,
-                    modelFactory)
+                    modelFactory, Boolean.valueOf(
+                        postContent.getMetadata().getAnnotations().get("enableBlacklist")))
                 );
         }else {
-           return insertJsAndCss("非文章页面不载入摘要", iModel, modelFactory);
+           return insertJsAndCss("非文章页面不载入摘要", iModel, modelFactory,true);
         }
     }
 
     @NotNull
     private Mono<Void> insertJsAndCss(String postContent, IModel iModel,
-        IModelFactory modelFactory) {
-        return jsConfigTemplate(postContent)
+        IModelFactory modelFactory,Boolean isBlacklist) {
+        return jsConfigTemplate(postContent,isBlacklist)
             .flatMap(jsConfig -> {
                 // 生成 CSS 和 JS 标签
                 String cssContent =
@@ -88,11 +76,12 @@ public class ChatPostProcess implements TemplateHeadProcessor {
 
  
 
-    public Mono<String> jsConfigTemplate(String postSummary) {
+    public Mono<String> jsConfigTemplate(String postSummary,Boolean isBlacklist) {
         return  settingConfigGetter.getChatConfig()
             .switchIfEmpty(Mono.error(new RuntimeException("无法获取摘要配置")))
             .flatMap(config -> {
-                if (postSummary !=null && Objects.equals("非文章页面不载入摘要",postSummary)){
+                if ((postSummary !=null && Objects.equals("非文章页面不载入摘要",postSummary))
+                    || Boolean.TRUE.equals(isBlacklist)){
                     config.setEnableSummary(false);
                 }
                 config.setPostSummary(postSummary);

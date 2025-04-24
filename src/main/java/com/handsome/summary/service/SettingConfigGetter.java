@@ -1,6 +1,5 @@
 package com.handsome.summary.service;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import reactor.core.publisher.Mono;
 
@@ -12,6 +11,7 @@ public interface SettingConfigGetter {
     @Data
     class BasicConfig {
         public static final String GROUP = "basic";
+        private Boolean enableAi;
         private String modelType;
         private String qianfanClientId;
         private String clientSecret;

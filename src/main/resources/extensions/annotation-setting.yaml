@@ -1,0 +1,12 @@
+apiVersion: v1alpha1
+kind: AnnotationSetting
+metadata:
+  name: my-annotation-setting
+spec:
+  targetRef:
+    group: content.halo.run
+    kind: Post
+  formSchema:
+    - $formkit: "checkbox"
+      name: "enableBlacklist"
+      label: "禁用AI摘要-智阅GPT"

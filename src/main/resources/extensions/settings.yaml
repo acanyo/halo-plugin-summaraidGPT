@@ -7,6 +7,42 @@ spec:
     - group: basic
       label: 基本设置
       formSchema:
+        - $el: a
+          attrs:
+            href: "https://docs.lik.cc"
+            class: "py-4 block"
+            style:
+              color: "#1890ff"
+              fontSize: "0.875em"
+              display: "flex"
+              align-items: "center"
+              target: "_blank"
+          children:
+            - $el: span
+              children: "查看 Ink AI 帮助文档"
+            - $el: img
+              attrs:
+                src: "/plugins/summaraidGPT/assets/static/img/link.svg"
+                width: "14px"
+                height: "14px"
+                style:
+                  margin-left: "4px"
+        - $el: span
+          children: "Halo交流群"
+        - $el: img
+          attrs:
+            src: "https://www.lik.cc/upload/iShot_2025-03-03_16.03.00.png"
+            width: "100px"
+            height: "120px"
+            style:
+              margin-left: "80px"
+        - $formkit: checkbox
+          label: 关闭全局摘要
+          name: enableAi
+          id: enableAi
+          key: enableAi
+          value: false
+          help: "关闭后不再产生AI摘要"
         - $formkit: select
           name: modelType
           key: modelType
@@ -122,26 +158,6 @@ spec:
     - group: summary
       label: 摘要设置
       formSchema:
-        - $el: a
-          attrs:
-            href: "https://www.halo.run/store/apps/app-riNgb"
-            class: "py-4 block"
-            style:
-              color: "#1890ff"
-              fontSize: "0.875em"
-              display: "flex"
-              align-items: "center"
-              target: "_blank"
-          children:
-            - $el: span
-              children: "查看 Ink AI 帮助文档"
-            - $el: img
-              attrs:
-                src: "/plugins/ai-assistant/assets/static/link.svg"
-                width: "14px"
-                height: "14px"
-                style:
-                  margin-left: "4px"
         - $formkit: checkbox
           label: 开启文章摘要
           name: enableSummary
