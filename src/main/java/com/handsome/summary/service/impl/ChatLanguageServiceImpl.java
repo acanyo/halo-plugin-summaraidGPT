@@ -2,14 +2,17 @@ package com.handsome.summary.service.impl;
 
 import com.handsome.summary.service.AiService;
 import com.handsome.summary.service.ChatLanguageService;
+import com.handsome.summary.service.SearchService;
 import com.handsome.summary.service.SettingConfigGetter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
+import run.halo.app.content.ExcerptGenerator;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ReactiveExtensionClient;
+import run.halo.app.search.SearchEngine;
 
 /**
  * 聊天语言服务实现类
@@ -24,30 +27,40 @@ public class ChatLanguageServiceImpl implements ChatLanguageService {
     private final SettingConfigGetter settingConfigGetter;
     private final AiService aiSvc;
     private final ReactiveExtensionClient client;
+    private final SearchService searchSvc;
 
     @Override
     public Mono<Void> model(String content, Post post) {
-        return settingConfigGetter.getBasicConfig()
-            .switchIfEmpty(Mono.error(new RuntimeException("无法获取基本配置")))
-            .flatMap(config -> {
-                try {
-                    String modelType = config.getModelType();
-                    String aiSystem = config.getAiSystem();
-                    return switch (modelType) {
-                        case "openAi" -> handleOpenAI(config, aiSystem, content, post);
-                        case "qianfan" -> handleQianfan(config, aiSystem, content, post);
-                        case "zhipuAi" -> handleZhipuAI(config, aiSystem, content, post);
-                        case "dashScope" -> handleDashScope(config, aiSystem, content, post);
-                        case "gemini" -> handleGemini(config, aiSystem, content, post);
-                        default -> {
-                            String errorMsg = String.format("不支持的模型类型: %s", modelType);
-                            log.info(errorMsg);
-                            yield Mono.error(new ServerWebInputException(errorMsg));
+        Mono<ExcerptGenerator> searchEngine = searchSvc.getSearchEngine();
+        return searchEngine
+            .switchIfEmpty(Mono.defer(() -> {
+                System.out.println("搜索引擎未启用，跳过摘要处理");
+                return Mono.empty();
+            }))
+            .flatMap(search -> {
+                System.out.println("搜索引擎"+search.getClass().getName());
+                return settingConfigGetter.getBasicConfig()
+                    .switchIfEmpty(Mono.error(new RuntimeException("无法获取基本配置")))
+                    .flatMap(config -> {
+                        try {
+                            String modelType = config.getModelType();
+                            String aiSystem = config.getAiSystem();
+                            return switch (modelType) {
+                                case "openAi" -> handleOpenAI(config, aiSystem, content, post);
+                                case "qianfan" -> handleQianfan(config, aiSystem, content, post);
+                                case "zhipuAi" -> handleZhipuAI(config, aiSystem, content, post);
+                                case "dashScope" -> handleDashScope(config, aiSystem, content, post);
+                                case "gemini" -> handleGemini(config, aiSystem, content, post);
+                                default -> {
+                                    String errorMsg = String.format("不支持的模型类型: %s", modelType);
+                                    log.info(errorMsg);
+                                    yield Mono.error(new ServerWebInputException(errorMsg));
+                                }
+                            };
+                        } catch (Exception e) {
+                            return Mono.error(() -> new ServerWebInputException("处理配置时发生错误"));
                         }
-                    };
-                } catch (Exception e) {
-                    return Mono.error(() -> new ServerWebInputException("处理配置时发生错误"));
-                }
+                    });
             });
     }
     

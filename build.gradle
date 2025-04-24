@@ -4,7 +4,7 @@ plugins {
     id "io.freefair.lombok" version "8.0.1"
     id "run.halo.plugin.devtools" version "0.2.0"
 }
-group 'run.handsome.summary'
+group 'com.handsome.summary'
 sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
