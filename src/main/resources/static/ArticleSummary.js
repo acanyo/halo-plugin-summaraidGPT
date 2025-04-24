@@ -181,29 +181,6 @@ class ArticleSummary {
         }
 
         try {
-            const selector = articleConfig.darkModeSelector.trim();
-            if (!selector) return false;
-
-            if (selector.includes('=')) {
-                const [attr, value] = selector.split('=').map(s => s.trim());
-                const cleanValue = value.replace(/['"]/g, '');
-                return document.documentElement.getAttribute(attr) === cleanValue;
-            } else {
-                return document.documentElement.hasAttribute(selector);
-            }
-        } catch (error) {
-            console.error('Dark mode detection error:', error);
-            return false;
-        }
-    }
-
-    // 检测暗色主题
-    detectDarkMode() {
-        if (!articleConfig.darkModeSelector) {
-            return false;
-        }
-
-        try {
             const html = document.documentElement;
             const selector = articleConfig.darkModeSelector.trim();
 
@@ -623,6 +600,7 @@ document.addEventListener('pjax:complete', function() {
             // 查找包含articleConfig的脚本
             const scripts = doc.querySelectorAll('script:not([src])');
             let newContent = null;
+            let newConfig = null;
             
             scripts.forEach(script => {
                 if (script.textContent.includes('articleConfig')) {
@@ -631,6 +609,13 @@ document.addEventListener('pjax:complete', function() {
                         const match = script.textContent.match(/text:\s*['"]([^'"]*)['"]/);
                         if (match && match[1]) {
                             newContent = match[1];
+                        }
+                        
+                        // 提取enableSummary配置
+                        const enableMatch = script.textContent.match(/enableSummary:\s*(true|false)/);
+                        if (enableMatch && enableMatch[1]) {
+                            // 更新全局配置
+                            articleConfig.enableSummary = enableMatch[1] === 'true';
                         }
                     } catch (e) {
                         console.error('解析摘要内容失败:', e);
@@ -650,6 +635,48 @@ document.addEventListener('pjax:complete', function() {
             // 重置Pjax加载标记
             window.isPjaxLoading = false;
         });
+});
+
+// 监听popstate事件（浏览器前进/后退）
+window.addEventListener('popstate', function() {
+    // 重新检查配置并初始化
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // 查找包含articleConfig的脚本
+            const scripts = doc.querySelectorAll('script:not([src])');
+            
+            scripts.forEach(script => {
+                if (script.textContent.includes('articleConfig')) {
+                    try {
+                        // 提取enableSummary配置
+                        const enableMatch = script.textContent.match(/enableSummary:\s*(true|false)/);
+                        if (enableMatch && enableMatch[1]) {
+                            // 更新全局配置
+                            articleConfig.enableSummary = enableMatch[1] === 'true';
+                        }
+                    } catch (e) {
+                        console.error('解析配置失败:', e);
+                    }
+                }
+            });
+            
+            // 重新初始化
+            initArticleSummary();
+        })
+        .catch(error => {
+            console.error('获取配置失败:', error);
+            initArticleSummary();
+        });
+});
+
+// 监听hashchange事件（URL哈希变化）
+window.addEventListener('hashchange', function() {
+    // 重新检查配置并初始化
+    initArticleSummary();
 });
 
 // 导出组件
