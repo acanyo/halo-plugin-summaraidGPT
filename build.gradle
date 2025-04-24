@@ -23,11 +23,9 @@ ext {
 dependencies {
     implementation platform('run.halo.tools.platform:plugin:2.20.0-SNAPSHOT')
     compileOnly 'run.halo.app:api'
-    implementation 'cn.hutool:hutool-all:5.8.16'
     testImplementation 'run.halo.app:api'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     implementation "dev.langchain4j:langchain4j:${langchain4jVersion}"
-//    implementation "dev.langchain4j:langchain4j-spring-boot-starter:${langchain4jVersion}"
     implementation "dev.langchain4j:langchain4j-open-ai:${langchain4jVersion}"
     implementation "dev.langchain4j:langchain4j-community:${langchain4jVersion}"
     implementation "dev.langchain4j:langchain4j-community-zhipu-ai:${langchain4jVersion}"
