@@ -211,8 +211,8 @@ spec:
           name: summaryStyle
           id: summaryStyle
           key: summaryStyle
-          value: "/plugins/summaraidGPT/assets/static/ArticleSummary.js"
-          help: "摘要样式css地址，可以通过https://github.com/acanyo/halo-aipost-summaraidGPT 给我提交PR，欢迎你的共建"
+          value: "/plugins/summaraidGPT/assets/static/ArticleSummary.css"
+          help: "摘要样式css地址，如果没有CSS 就改成/plugins/summaraidGPT/assets/static/ArticleSummary.css"
         - $formkit: textarea
           label: 文章路由
           name: postURL
