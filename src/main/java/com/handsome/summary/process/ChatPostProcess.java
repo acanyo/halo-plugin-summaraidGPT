@@ -1,5 +1,7 @@
 package com.handsome.summary.process;
 
+import com.handsome.summary.Constant;
+import com.handsome.summary.service.SettingConfigGetter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -7,10 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
-
-import com.handsome.summary.Constant;
-import com.handsome.summary.service.SettingConfigGetter;
-import lombok.*;
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.PropertyPlaceholderHelper;

@@ -2,7 +2,6 @@ package com.handsome.summary.service.impl;
 
 import com.handsome.summary.service.AiService;
 import com.handsome.summary.service.ChatLanguageService;
-import com.handsome.summary.service.SearchService;
 import com.handsome.summary.service.SettingConfigGetter;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,6 @@ public class ChatLanguageServiceImpl implements ChatLanguageService {
     private final SettingConfigGetter settingConfigGetter;
     private final AiService aiSvc;
     private final ReactiveExtensionClient client;
-    private final SearchService searchSvc;
 
     @Override
     public Mono<Void> model(String content, Post post) {

@@ -1,9 +1,8 @@
-import type { ListedPost } from "@halo-dev/api-client";
+import type {ListedPost} from "@halo-dev/api-client";
 import {Dialog, Toast, VDropdownDivider, VDropdownItem} from "@halo-dev/components";
-import { definePlugin } from "@halo-dev/console-shared";
+import {definePlugin} from "@halo-dev/console-shared";
 import axios, {AxiosError} from "axios";
-import { markRaw } from "vue";
-import type { Ref } from "vue";
+import {markRaw} from "vue";
 
 
 export default definePlugin({

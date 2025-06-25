@@ -147,7 +147,7 @@ spec:
           if: $get(modelType).value == "gemini"
           name: geminiApiKey
           key: geminiApiKey
-          label: 通义千问API密钥
+          label: Gemini API密钥
           placeholder: 请输入 Gemini 的应用介入的ApiKey
           validation: required
           help: 必填,请前往 Gemini 应用介入获取ApiKey
@@ -232,7 +232,7 @@ spec:
           name: customizeIco
           id: customizeIco
           key: customizeIco
-          value: "https://www.lik.cc/upload/icon.svg"
+          value: "/plugins/summaraidGPT/assets/static/icon.svg"
           help: 用于显示在摘要顶部的图标,目前支持png,jpg,webp,svg,其他图片格式未测试
         - $formkit: text
           if: $get(enableTemplate).value == false
@@ -266,6 +266,8 @@ spec:
           sortable: true
           clearable: true
           searchable: true
+          validation: required
+          value: "default"
           placeholder: 请选择你的主题
           options:
             - label: 默认主题
