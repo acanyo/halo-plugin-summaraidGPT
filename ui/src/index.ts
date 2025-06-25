@@ -48,7 +48,7 @@ export default definePlugin({
                         Toast.error(error.response?.data.detail || '同步失败，请重试');
                       }
                     }
-                    
+
                   },
                 });
               },

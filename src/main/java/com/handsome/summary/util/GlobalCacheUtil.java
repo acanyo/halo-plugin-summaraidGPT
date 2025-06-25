@@ -37,6 +37,6 @@ public class GlobalCacheUtil {
      * 清理所有过期缓存
      */
     public static void cleanupExpired() {
-        PUSH_CACHE.entrySet().clear();
+        PUSH_CACHE.clear();
     }
 }
