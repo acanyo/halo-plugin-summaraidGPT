@@ -19,7 +19,7 @@ spec:
               align-items: "center"
           children:
             - $el: span
-              children: "查看 Ink AI 帮助文档"
+              children: "查看 Ink 智阅GPT 帮助文档"
             - $el: img
               attrs:
                 src: "/plugins/summaraidGPT/assets/static/img/link.svg"
@@ -169,114 +169,179 @@ spec:
       label: 摘要设置
       formSchema:
         - $formkit: checkbox
-          label: 开启文章摘要
-          name: enableSummary
-          id: enableSummary
-          key: enableSummary
+          label: 启用AI摘要框
+          name: enable
+          id: enable
+          key: enable
           value: true
-          help: "开启文章摘要需要在基础设置中完成ApiKey和SecretKey"
-        - $formkit: checkbox
-          label: 开启打字机效果
-          name: enableTypewriter
-          id: enableTypewriter
-          key: enableTypewriter
-          value: true
-          help: "开启文字打字机效果"
-        - $formkit: checkbox
-          label: 开启主题适配
-          name: enableTemplate
-          id: enableTemplate
-          key: enableTemplate
-          value: false
-          help: "开启此项后,插件只请求AI摘要,不会植入JS和CSS相关资源"
+          help: "是否启用AI摘要框功能"
         - $formkit: text
-          label: 文章选择器
-          if: $get(enableTemplate).value == false
-          name: postSelector
-          id: postSelector
-          key: postSelector
-          value: "article"
-          help: "文章选择器，用于选择文章内容。可以填写标签也可以填写标签ID 注意ID需要通过#开头"
-        - $formkit: text
-          label: 摘要标题
-          if: $get(enableTemplate).value == false
-          name: title
-          id: title
-          key: title
+          label: 摘要框标题
+          name: summaryTitle
+          id: summaryTitle
+          key: summaryTitle
           value: "文章摘要"
-          help: "摘要标题，用于显示在摘要顶部的自定义内容"
-        - $formkit: attachment
-          if: $get(enableTemplate).value == false
-          label: 摘要样式css
-          name: summaryStyle
-          id: summaryStyle
-          key: summaryStyle
-          value: "/plugins/summaraidGPT/assets/static/ArticleSummary.css"
-          help: "摘要样式css地址，如果没有CSS 就改成/plugins/summaraidGPT/assets/static/ArticleSummary.css"
+          help: "摘要框显示的标题"
+        - $formkit: text
+          label: AI模型名称
+          name: gptName
+          id: gptName
+          key: gptName
+          value: "智阅GPT"
+          help: "AI模型名称，显示在摘要框中"
+        - $formkit: text
+          label: 目标元素选择器
+          name: target
+          id: target
+          key: target
+          value: ".article-content"
+          help: "摘要框插入的目标元素选择器"
         - $formkit: textarea
           label: 文章路由
-          name: postURL
-          id: postURL
-          key: postURL
-          value: "*/archives/*"
-          help: "在符合url条件的网页执行文章摘要功能，通常清况下，绝大多数Halo网站使用默认配置即可，无需调整"
-        - $formkit: textarea
-          label: 黑名单
-          name: blacklist
-          id: blacklist
-          key: blacklist
-          help: "黑名单URL,多个用,隔开注意是英文逗号，如 填写相关的网址地址多个回车"
-        - $formkit: attachment
-          label: 自定义图标
-          if: $get(enableTemplate).value == false
-          name: customizeIco
-          id: customizeIco
-          key: customizeIco
-          value: "/plugins/summaraidGPT/assets/static/icon.svg"
-          help: 用于显示在摘要顶部的图标,目前支持png,jpg,webp,svg,其他图片格式未测试
+          name: whitelist
+          id: whitelist
+          key: whitelist
+          value: "*/post/*"
+          help: "只在指定路径下显示摘要框，多个路径用逗号分隔"
         - $formkit: text
-          if: $get(enableTemplate).value == false
-          label: 自定义开头语
-          name: source
-          id: source
-          key: source
-          value: "LIK.CC-GPT"
-          help: "用于显示在摘要顶部的描述"
-        - $formkit: text
-          if: $get(enableTemplate).value == false
-          label: 样式选择器
-          name: darkModeSelector
-          id: darkModeSelector
-          key: darkModeSelector
-          value: ""
-          help: "用于自动判断主题是否暗色模式自动切换,为空默认不切换"
-        #        - $formkit: text
-        #          label: 自定义描述宽度
-        #          name: summaryWidth
-        #          id: summaryWidth
-        #          key: summaryWidth
-        #          value: ""
-        #          help: "用户文章内宽>内容造成插件溢出问题,建议不修改,为空默认不修改"
+          label: 深色模式选择器
+          name: darkSelector
+          id: darkSelector
+          key: darkSelector
+          value: "data-theme=dark"
+          help: "用于自动判断深色模式的选择器"
+        - $formkit: number
+          label: 打字机速度
+          name: typeSpeed
+          id: typeSpeed
+          key: typeSpeed
+          value: 20
+          help: "打字机动画速度（毫秒/字符）"
+        - $formkit: checkbox
+          label: 启用打字机效果
+          name: typewriter
+          id: typewriter
+          key: typewriter
+          value: true
+          help: "是否启用打字机效果"
+    - group: style
+      label: 样式设置
+      formSchema:
         - $formkit: select
-          name: summaryTheme
-          key: summaryTheme
-          id: summaryTheme
-          if: $get(enableTemplate).value == false
-          label: 摘要样式
-          sortable: true
-          clearable: true
-          searchable: true
-          validation: required
-          value: "default"
-          placeholder: 请选择你的主题
+          name: themeName
+          key: themeName
+          id: themeName
+          label: 主题选择
+          value: "custom"
+          placeholder: "请选择主题"
           options:
+            - label: 自定义主题
+              value: custom
+            - label: 蓝色主题
+              value: blue
             - label: 默认主题
               value: default
-            - label: 精简主题
-              value: simple
-            - label: 七彩主题
-              value: yanzhi
-            - label: 模糊主题
-              value: menghuan
             - label: 暗色主题
               value: dark
+            - label: 绿色主题
+              value: green
+          help: "选择主题类型，自定义主题使用下方配色设置"
+        - $formkit: attachment
+          label: Logo图片
+          name: logo
+          id: logo
+          key: logo
+          value: "/plugins/summaraidGPT/assets/static/icon.svg"
+          help: "摘要框Logo图片路径"
+        - $formkit: text
+          label: 背景色
+          if: $get(themeName).value == "custom"
+          name: themeBg
+          id: themeBg
+          key: themeBg
+          value: "#f7f9fe"
+          help: "摘要框背景色，支持纯色和渐变色，如：linear-gradient(45deg, #f7f9fe, #e3e8f7)"
+        - $el: div
+          attrs:
+            class: "formkit-help text-xs text-gray-500"
+            innerHTML: "<a href='https://pxlab.cn/color/index.html' title='前往获取渐变色' target='_blank' class='text-blue-500 hover:text-blue-700'>获取渐变色</a>"
+        - $formkit: color
+          label: 主色调
+          if: $get(themeName).value == "custom"
+          name: themeMain
+          id: themeMain
+          key: themeMain
+          value: "#4F8DFD"
+          help: "主色调，用于边框和强调"
+        - $formkit: color
+          label: 标题颜色
+          if: $get(themeName).value == "custom"
+          name: themeTitle
+          id: themeTitle
+          key: themeTitle
+          value: "#3A5A8C"
+          help: "标题文字颜色"
+        - $formkit: color
+          label: 内容颜色
+          if: $get(themeName).value == "custom"
+          name: themeContent
+          id: themeContent
+          key: themeContent
+          value: "#222"
+          help: "内容文字颜色"
+        - $formkit: color
+          label: AI名称颜色
+          if: $get(themeName).value == "custom"
+          name: themeGptName
+          id: themeGptName
+          key: themeGptName
+          value: "#7B88A8"
+          help: "AI模型名称颜色"
+        - $formkit: color
+          label: 内容背景色
+          if: $get(themeName).value == "custom"
+          name: themeContentBg
+          id: themeContentBg
+          key: themeContentBg
+          value: "#fff"
+          help: "内容区域背景色"
+        - $formkit: color
+          label: 边框颜色
+          if: $get(themeName).value == "custom"
+          name: themeBorder
+          id: themeBorder
+          key: themeBorder
+          value: "#e3e8f7"
+          help: "边框颜色"
+        - $formkit: text
+          label: 阴影效果
+          if: $get(themeName).value == "custom"
+          name: themeShadow
+          id: themeShadow
+          key: themeShadow
+          value: "0 2px 12px 0 rgba(60,80,180,0.08)"
+          help: "阴影效果CSS值"
+        - $formkit: color
+          label: 标签背景色
+          if: $get(themeName).value == "custom"
+          name: themeTagBg
+          id: themeTagBg
+          key: themeTagBg
+          value: "#f0f4ff"
+          help: "标签背景色"
+        - $formkit: color
+          label: 光标颜色
+          if: $get(themeName).value == "custom"
+          name: themeCursor
+          id: themeCursor
+          key: themeCursor
+          value: "#4F8DFD"
+          help: "打字机光标颜色"
+        - $formkit: text
+          label: 内容字体大小
+          if: $get(themeName).value == "custom"
+          name: themeContentFontSize
+          id: themeContentFontSize
+          key: themeContentFontSize
+          value: "16px"
+          help: "内容文字字体大小"

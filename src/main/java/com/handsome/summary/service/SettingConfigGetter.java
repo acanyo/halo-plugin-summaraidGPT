@@ -5,8 +5,8 @@ import reactor.core.publisher.Mono;
 
 public interface SettingConfigGetter {
     Mono<BasicConfig> getBasicConfig();
-    Mono<ChatConfig> getChatConfig();
-
+    Mono<SummaryConfig> getSummaryConfig();
+    Mono<StyleConfig> getStyleConfig();
 
     @Data
     class BasicConfig {
@@ -27,21 +27,35 @@ public interface SettingConfigGetter {
         private String geminiModelName;
         private String aiSystem;
     }
+
     @Data
-    class ChatConfig {
+    class SummaryConfig {
         public static final String GROUP = "summary";
-        private Boolean enableSummary;
-        private Boolean enableTypewriter;
-        private String enableTemplate;
-        private String postSelector;
-        private String title;
-        private String summaryStyle;
-        private String postURL;
-        private String blacklist;
-        private String customizeIco;
-        private String source;
-        private String darkModeSelector;
-        private String summaryTheme;
-        private String postSummary;
+        private Boolean enable;
+        private String summaryTitle;
+        private String gptName;
+        private String target;
+        private String whitelist;
+        private String darkSelector;
+        private Integer typeSpeed;
+        private Boolean typewriter;
+    }
+
+    @Data
+    class StyleConfig {
+        public static final String GROUP = "style";
+        private String themeName;
+        private String logo;
+        private String themeBg;
+        private String themeMain;
+        private String themeTitle;
+        private String themeContent;
+        private String themeGptName;
+        private String themeContentBg;
+        private String themeBorder;
+        private String themeShadow;
+        private String themeTagBg;
+        private String themeCursor;
+        private String themeContentFontSize;
     }
 }
