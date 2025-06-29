@@ -1,6 +1,7 @@
 package com.handsome.summary.service;
 
 import lombok.Builder;
+import lombok.Data;
 import lombok.Value;
 
 /**
@@ -10,6 +11,7 @@ import lombok.Value;
  */
 @Value
 @Builder
+@Data
 public class AiChatResponse {
     String content;
     String modelName;

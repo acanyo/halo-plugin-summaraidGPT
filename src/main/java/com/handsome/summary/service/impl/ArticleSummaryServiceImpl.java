@@ -6,10 +6,13 @@ import com.handsome.summary.service.ArticleSummaryService;
 import com.handsome.summary.service.SettingConfigGetter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
+import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
+import run.halo.app.extension.Metadata;
 import run.halo.app.extension.ReactiveExtensionClient;
 
 import java.util.Optional;
@@ -29,6 +32,7 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
     private final SettingConfigGetter settingConfigGetter;
     private final AiService aiService;
     private final ReactiveExtensionClient client;
+    private final PostContentService postContentService;
 
     @Override
     public Mono<String> generateSummary(String content) {
@@ -84,23 +88,40 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
             });
     }
 
+    @Override
+    public Mono<String> generateSummaryByPostName(String postName) {
+        if (!StringUtils.hasText(postName)) {
+            return Mono.error(new IllegalArgumentException("文章名称不能为空"));
+        }
+
+        return client.fetch(Post.class, postName)
+            .switchIfEmpty(Mono.error(new RuntimeException("文章不存在: " + postName)))
+            .flatMap(post -> {
+                // 获取文章内容并生成摘要
+                return postContentService.getReleaseContent(postName)
+                    .flatMap(contentWrapper -> {
+                        String articleContent = Jsoup.parse(contentWrapper.getContent()).text();
+                        log.info("获取到文章[{}]内容，长度: {}", postName, articleContent.length());
+                        return generateSummary(articleContent);
+                    })
+                    .onErrorResume(e -> {
+                        log.error("获取文章内容失败: {}", e.getMessage(), e);
+                        return Mono.just("获取文章内容失败: " + e.getMessage());
+                    });
+            });
+    }
+
     /**
      * 将摘要保存到Summary表
      */
     private Mono<Void> saveSummaryToTable(String summary, Post post) {
         try {
-            Summary summaryEntity = new Summary();
-            
-            // 设置元数据
-            summaryEntity.setMetadata(new run.halo.app.extension.Metadata());
-            summaryEntity.getMetadata().setName(UUID.randomUUID().toString());
-            
-            // 设置摘要数据
+            var summaryEntity = new Summary();
+            summaryEntity.setMetadata(new Metadata());
+            summaryEntity.getMetadata().setGenerateName("summary-");
+            summaryEntity.setPostSummary(summary);
             summaryEntity.setPostMetadataName(post.getMetadata().getName());
             summaryEntity.setPostUrl(post.getStatus().getPermalink());
-            summaryEntity.setPostSummary(summary);
-            summaryEntity.setAiFlag("true");
-            
             return client.create(summaryEntity)
                 .doOnSuccess(s -> log.info("摘要已保存到Summary表，文章: {}", post.getMetadata().getName()))
                 .doOnError(e -> log.error("保存摘要到Summary表失败: {}", e.getMessage(), e))

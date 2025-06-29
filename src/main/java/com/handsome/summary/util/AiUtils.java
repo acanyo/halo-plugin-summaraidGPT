@@ -2,14 +2,9 @@ package com.handsome.summary.util;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.StructuredTaskScope;
-import java.util.concurrent.TimeoutException;
 
 /**
  * AI工具类
@@ -26,52 +21,6 @@ public class AiUtils {
     public static CompletableFuture<String> executeWithVirtualThread(Runnable task) {
         return CompletableFuture.runAsync(task, Executors.newVirtualThreadPerTaskExecutor())
             .thenApply(v -> "任务执行完成");
-    }
-
-    /**
-     * 使用结构化并发处理多个AI请求
-     */
-    public static List<String> processMultipleAiRequests(List<String> contents) throws InterruptedException, ExecutionException {
-        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            var futures = contents.stream()
-                .map(content -> scope.fork(() -> processAiContent(content)))
-                .toList();
-
-            scope.join();
-            scope.throwIfFailed();
-
-            return futures.stream()
-                .map(StructuredTaskScope.Subtask::get)
-                .toList();
-        }
-    }
-
-    /**
-     * 使用结构化并发处理AI请求（带超时）
-     */
-    public static String processAiWithTimeout(String content, Duration timeout) throws InterruptedException, ExecutionException, TimeoutException {
-        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            var future = scope.fork(() -> processAiContent(content));
-            
-            scope.joinUntil(Instant.now().plus(timeout));
-            scope.throwIfFailed();
-
-            return future.get();
-        }
-    }
-
-    /**
-     * 处理AI内容（模拟）
-     */
-    private static String processAiContent(String content) {
-        try {
-            // 模拟AI处理时间
-            Thread.sleep(100);
-            return "处理结果: " + content;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("处理被中断", e);
-        }
     }
 
     /**

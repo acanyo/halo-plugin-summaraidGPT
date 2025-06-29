@@ -27,4 +27,12 @@ public interface ArticleSummaryService {
      * @return 摘要内容
      */
     Mono<String> generateSummaryAndSave(String content, Post post);
+
+    /**
+     * 根据文章名称查找内容并生成摘要
+     *
+     * @param postName 文章名称
+     * @return 摘要内容
+     */
+    Mono<String> generateSummaryByPostName(String postName);
 } 

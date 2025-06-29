@@ -28,6 +28,4 @@ public class Summary extends AbstractExtension {
     private String postUrl;
     @Schema(requiredMode = REQUIRED)
     private String postSummary;
-    @Schema(requiredMode = REQUIRED)
-    private String aiFlag;
 }
