@@ -53,36 +53,10 @@ spec:
           options:
             - label: OpenAi
               value: openAi
-            - label: 千帆
-              value: qianfan
             - label: 智谱
               value: zhipuAi
             - label: 通义千问
               value: dashScope
-            - label: Gemini
-              value: gemini
-#        千帆大模型
-        - $formkit: text
-          if: $get(modelType).value == "qianfan"
-          name: qianfanClientId
-          label: ApiKey
-          placeholder: 请输入千帆ModelBuilder的应用介入的ApiKey
-          validation: required
-          help: 必填,请前往https://console.bce.baidu.com/qianfan/overview 应用介入获取ApiKey
-        - $formkit: text
-          if: $get(modelType).value == "qianfan"
-          name: clientSecret
-          label: SecretKey
-          placeholder: 请输入千帆ModelBuilder的应用介入的SecretKey
-          validation: required
-          help: 必填,请前往https://console.bce.baidu.com/qianfan/overview SecretKey
-        - $formkit: text
-          if: $get(modelType).value == "qianfan"
-          name:  qianfanModelName
-          label: 模型名称
-          placeholder: 请输入千帆ModelBuilder的应用应用模型
-          validation: required
-          help: 必填
 #          OpenAi
         - $formkit: text
           if: $get(modelType).value == "openAi"
@@ -102,12 +76,11 @@ spec:
           help: 必填,请前往 OpenAi 应用介入获取模型名称
         - $formkit: text
           if: $get(modelType).value == "openAi"
-          name: openAiUrl
-          key: openAiUrl
-          label: OpenAiUrl
-          placeholder: 请输入OpenAi的Url
-          validation: required
-          help: 必填
+          name: baseUrl
+          key: baseUrl
+          label: API地址
+          placeholder: https://api.openai.com/v1/chat/completions
+          help: OpenAI API地址，需要配置完整的API端点，例如：https://api.openai.com/v1/chat/completions
 #          智谱大模型
         - $formkit: text
           if: $get(modelType).value == "zhipuAi"
@@ -142,23 +115,6 @@ spec:
           placeholder: 请输入 通义千问 的模型名称
           validation: required
           help: 必填,请前往 通义千问 应用介入获取模型名称
-        #          Gemini
-        - $formkit: text
-          if: $get(modelType).value == "gemini"
-          name: geminiApiKey
-          key: geminiApiKey
-          label: Gemini API密钥
-          placeholder: 请输入 Gemini 的应用介入的ApiKey
-          validation: required
-          help: 必填,请前往 Gemini 应用介入获取ApiKey
-        - $formkit: text
-          if: $get(modelType).value == "gemini"
-          name: geminiModelName
-          key: geminiModelName
-          label: Gemini模型名称
-          placeholder: 请输入 Gemini 的模型名称
-          validation: required
-          help: 必填,请前往 Gemini 应用介入获取模型名称
         - $formkit: text
           name: aiSystem
           key: aiSystem
@@ -168,13 +124,6 @@ spec:
     - group: summary
       label: 摘要设置
       formSchema:
-        - $formkit: checkbox
-          label: 启用AI摘要框
-          name: enable
-          id: enable
-          key: enable
-          value: true
-          help: "是否启用AI摘要框功能"
         - $formkit: text
           label: 摘要框标题
           name: summaryTitle
@@ -260,11 +209,11 @@ spec:
           id: themeBg
           key: themeBg
           value: "#f7f9fe"
-          help: "摘要框背景色，支持纯色和渐变色，如：linear-gradient(45deg, #f7f9fe, #e3e8f7)"
         - $el: div
+          if: $get(themeName).value == "custom"
           attrs:
             class: "formkit-help text-xs text-gray-500"
-            innerHTML: "<a href='https://pxlab.cn/color/index.html' title='前往获取渐变色' target='_blank' class='text-blue-500 hover:text-blue-700'>获取渐变色</a>"
+            innerHTML: "摘要框背景色，支持纯色和渐变色，如：linear-gradient(45deg, #f7f9fe, #e3e8f7)<a href='https://pxlab.cn/color/index.html' title='前往获取渐变色' target='_blank' class='text-blue-500 hover:text-blue-700'>获取渐变色</a>"
         - $formkit: color
           label: 主色调
           if: $get(themeName).value == "custom"

@@ -13,9 +13,6 @@ public interface SettingConfigGetter {
         public static final String GROUP = "basic";
         private Boolean enableAi;
         private String modelType;
-        private String qianfanClientId;
-        private String clientSecret;
-        private String qianfanModelName;
         private String openAiApiKey;
         private String openAiModelName;
         private String openAiUrl;
@@ -23,8 +20,6 @@ public interface SettingConfigGetter {
         private String zhipuAiModelName;
         private String dashScopeApiKey;
         private String dashScopeModelName;
-        private String geminiApiKey;
-        private String geminiModelName;
         private String aiSystem;
     }
 
