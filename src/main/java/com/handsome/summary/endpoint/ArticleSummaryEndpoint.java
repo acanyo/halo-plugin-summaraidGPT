@@ -1,11 +1,13 @@
 package com.handsome.summary.endpoint;
 
-import com.handsome.summary.service.ArticleSummaryService;
+import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
+import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
+
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springdoc.core.fn.builders.schema.Builder;
+import org.jsoup.Jsoup;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -14,12 +16,11 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
-import run.halo.app.core.extension.endpoint.CustomEndpoint;
+import run.halo.app.content.PostContentService;
+import run.halo.app.core.extension.content.Post;
+import run.halo.app.extension.ExtensionClient;
 import run.halo.app.extension.GroupVersion;
-
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
-import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
-import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
+import run.halo.app.core.extension.endpoint.CustomEndpoint;
 
 /**
  * 文章摘要端点
@@ -33,6 +34,8 @@ import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
 public class ArticleSummaryEndpoint implements CustomEndpoint {
 
     private final ArticleSummaryService articleSummaryService;
+    private final ExtensionClient extensionClient;
+    private final PostContentService postContentService;
 
     @Override
     public RouterFunction<ServerResponse> endpoint() {
@@ -57,7 +60,20 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
         if (postName.trim().isEmpty()) {
             throw new ServerWebInputException("postName不能为空");
         }
-        return articleSummaryService.generateSummaryByPostName(postName)
+        return extensionClient.fetch(Post.class, postName)
+            .flatMap(opt -> {
+                if (opt.isPresent()) {
+                    return Mono.just(opt.get());
+                } else {
+                    return Mono.error(new ServerWebInputException("文章不存在: " + postName));
+                }
+            })
+            .flatMap(post -> postContentService.getReleaseContent(postName)
+                .flatMap(contentWrapper -> {
+                    String content = Jsoup.parse(contentWrapper.getContent()).text();
+                    return articleSummaryService.generateSummary(content, post);
+                })
+            )
             .map(summary -> new GenerateSummaryResponse(true, summary, "摘要生成成功"))
             .onErrorResume(e -> {
                 log.error("生成摘要失败: {}", e.getMessage(), e);

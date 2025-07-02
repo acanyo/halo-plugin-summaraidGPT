@@ -1,6 +1,9 @@
 package com.handsome.summary.extension;
 
 
+import static com.handsome.summary.extension.Summary.KIND;
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -8,10 +11,6 @@ import lombok.ToString;
 import run.halo.app.core.extension.attachment.Constant;
 import run.halo.app.extension.AbstractExtension;
 import run.halo.app.extension.GVK;
-import java.util.UUID;
-
-import static com.handsome.summary.extension.Summary.KIND;
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 @Data
 @ToString(callSuper = true)
