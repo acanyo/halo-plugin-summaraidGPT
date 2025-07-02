@@ -1,5 +1,7 @@
 package com.handsome.summary.service;
 
+import com.handsome.summary.service.SettingConfigGetter.BasicConfig;
+
 /**
  * AI服务接口
  * 提供多种AI模型的聊天功能
@@ -7,6 +9,16 @@ package com.handsome.summary.service;
  * @author handsome
  */
 public interface AiService {
+
+    /**
+     * 统一的AI聊天接口
+     * 根据配置自动选择对应的AI模型
+     *
+     * @param config 基础配置
+     * @param content 聊天内容
+     * @return 聊天响应
+     */
+    AiChatResponse chat(BasicConfig config, String content);
 
     /**
      * OpenAI聊天接口

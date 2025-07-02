@@ -80,7 +80,7 @@ public class ChatLanguageServiceImpl implements ChatLanguageService {
             var result = new AiProcessResult(
                 config.getOpenAiModelName(),
                 config.getOpenAiApiKey(),
-                config.getOpenAiUrl()
+                config.getBaseUrl()
             );
             
             log.info("调用OpenAI API, 模型: {}", result.modelName());

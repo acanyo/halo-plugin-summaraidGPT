@@ -35,4 +35,18 @@ public interface ArticleSummaryService {
      * @return 摘要内容
      */
     Mono<String> generateSummaryByPostName(String postName);
+
+    /**
+     * 检查AI功能是否启用
+     *
+     * @return 是否启用
+     */
+    Mono<Boolean> isAiEnabled();
+
+    /**
+     * 获取当前配置的AI模型类型
+     *
+     * @return 模型类型
+     */
+    Mono<String> getCurrentModelType();
 } 

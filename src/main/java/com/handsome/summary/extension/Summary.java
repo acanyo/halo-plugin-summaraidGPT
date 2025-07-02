@@ -21,11 +21,15 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 public class Summary extends AbstractExtension {
 
     public static final String KIND = "Summary";
-
     @Schema(requiredMode = REQUIRED)
-    private String postMetadataName;
-    @Schema(requiredMode = REQUIRED)
-    private String postUrl;
-    @Schema(requiredMode = REQUIRED)
-    private String postSummary;
+    private SummarySpec summarySpec;
+    @Data
+    public static class SummarySpec {
+        @Schema(requiredMode = REQUIRED)
+        private String postMetadataName;
+        @Schema(requiredMode = REQUIRED)
+        private String postUrl;
+        @Schema(requiredMode = REQUIRED)
+        private String postSummary;
+    }
 }

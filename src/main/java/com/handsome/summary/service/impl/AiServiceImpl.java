@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.handsome.summary.service.AiChatResponse;
 import com.handsome.summary.service.AiService;
+import com.handsome.summary.service.SettingConfigGetter.BasicConfig;
+import com.handsome.summary.util.AiConfigValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -32,6 +34,37 @@ public class AiServiceImpl implements AiService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    public AiChatResponse chat(BasicConfig config, String content) {
+        // 验证配置
+        AiConfigValidator.validateBasicConfig(config);
+        AiConfigValidator.validateContent(content);
+
+        // 根据模型类型调用对应的API
+        return switch (config.getModelType()) {
+            case "openAi" -> openAiChat(
+                config.getOpenAiApiKey(),
+                config.getOpenAiModelName(),
+                config.getBaseUrl(),
+                config.getAiSystem(),
+                content
+            );
+            case "zhipuAi" -> zhipuAiChat(
+                config.getZhipuAiApiKey(),
+                config.getZhipuAiModelName(),
+                config.getAiSystem(),
+                content
+            );
+            case "dashScope" -> qwenAiChat(
+                config.getDashScopeApiKey(),
+                config.getDashScopeModelName(),
+                config.getAiSystem(),
+                content
+            );
+            default -> throw new IllegalArgumentException("不支持的模型类型: " + config.getModelType());
+        };
+    }
 
     @Override
     public AiChatResponse openAiChat(String apiKey, String modelName, String baseUrl, String role,
@@ -166,6 +199,8 @@ public class AiServiceImpl implements AiService {
             throw new RuntimeException("通义千问API调用失败", e);
         }
     }
+
+
 
     /**
      * 响应数据记录类

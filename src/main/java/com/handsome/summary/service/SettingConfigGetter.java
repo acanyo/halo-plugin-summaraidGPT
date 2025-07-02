@@ -15,7 +15,7 @@ public interface SettingConfigGetter {
         private String modelType;
         private String openAiApiKey;
         private String openAiModelName;
-        private String openAiUrl;
+        private String baseUrl;
         private String zhipuAiApiKey;
         private String zhipuAiModelName;
         private String dashScopeApiKey;

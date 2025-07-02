@@ -4,6 +4,7 @@ import com.handsome.summary.extension.Summary;
 import com.handsome.summary.service.AiService;
 import com.handsome.summary.service.ArticleSummaryService;
 import com.handsome.summary.service.SettingConfigGetter;
+import com.handsome.summary.util.AiConfigValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -16,7 +17,6 @@ import run.halo.app.extension.Metadata;
 import run.halo.app.extension.ReactiveExtensionClient;
 
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * 文章摘要服务实现类
@@ -44,30 +44,31 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
             .switchIfEmpty(Mono.error(new RuntimeException("无法获取基本配置")))
             .flatMap(config -> {
                 try {
-                    if (Optional.ofNullable(config.getEnableAi()).orElse(false)) {
+                    // 检查AI功能是否启用
+                    if (!AiConfigValidator.isAiEnabled(config)) {
+                        log.info("AI功能已禁用");
                         return Mono.just("AI功能已禁用");
                     }
 
-                    String modelType = config.getModelType();
-                    String aiSystem = config.getAiSystem();
-                    
                     // 构建摘要提示词
-                    String summaryPrompt = buildSummaryPrompt(content, aiSystem);
+                    String summaryPrompt = buildSummaryPrompt(content, config.getAiSystem());
                     
-                    return switch (modelType) {
-                        case "openAi" -> handleOpenAISummary(config, summaryPrompt);
-                        case "zhipuAi" -> handleZhipuAISummary(config, summaryPrompt);
-                        case "dashScope" -> handleDashScopeSummary(config, summaryPrompt);
-                        default -> {
-                            String errorMsg = "不支持的模型类型: %s".formatted(modelType);
-                            log.warn(errorMsg);
-                            yield Mono.just("不支持的AI模型类型");
-                        }
-                    };
+                    // 使用统一的AI接口
+                    var response = aiService.chat(config, summaryPrompt);
+                    log.info("AI摘要生成成功，模型: {} ({}), Token使用: {}", 
+                        AiConfigValidator.getModelTypeDescription(config.getModelType()),
+                        response.getModelName(), 
+                        response.getTokenUsage());
+                    
+                    return Mono.just(response.getContent());
                 } catch (Exception e) {
                     log.error("生成摘要时发生错误", e);
                     return Mono.just("生成摘要时发生错误: " + e.getMessage());
                 }
+            })
+            .onErrorResume(e -> {
+                log.error("摘要生成失败", e);
+                return Mono.just("摘要生成失败: " + e.getMessage());
             });
     }
 
@@ -111,6 +112,20 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
             });
     }
 
+    @Override
+    public Mono<Boolean> isAiEnabled() {
+        return settingConfigGetter.getBasicConfig()
+            .map(config -> !Boolean.TRUE.equals(config.getEnableAi()))
+            .defaultIfEmpty(false);
+    }
+
+    @Override
+    public Mono<String> getCurrentModelType() {
+        return settingConfigGetter.getBasicConfig()
+            .map(config -> config.getModelType())
+            .defaultIfEmpty("未配置");
+    }
+
     /**
      * 将摘要保存到Summary表
      */
@@ -119,9 +134,9 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
             var summaryEntity = new Summary();
             summaryEntity.setMetadata(new Metadata());
             summaryEntity.getMetadata().setGenerateName("summary-");
-            summaryEntity.setPostSummary(summary);
-            summaryEntity.setPostMetadataName(post.getMetadata().getName());
-            summaryEntity.setPostUrl(post.getStatus().getPermalink());
+            summaryEntity.getSummarySpec().setPostSummary(summary);
+            summaryEntity.getSummarySpec().setPostMetadataName(post.getMetadata().getName());
+            summaryEntity.getSummarySpec().setPostUrl(post.getStatus().getPermalink());
             return client.create(summaryEntity)
                 .doOnSuccess(s -> log.info("摘要已保存到Summary表，文章: {}", post.getMetadata().getName()))
                 .doOnError(e -> log.error("保存摘要到Summary表失败: {}", e.getMessage(), e))
@@ -149,64 +164,9 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
         
         String systemPrompt = StringUtils.hasText(aiSystem) ? aiSystem : defaultSystem;
         
-        return "请根据以下文章内容生成摘要：\n\n" +
+        return systemPrompt + "\n\n" +
                "文章内容：\n" +
                truncatedContent + "\n\n" +
                "请生成摘要：";
-    }
-
-    /**
-     * 处理OpenAI摘要生成
-     */
-    private Mono<String> handleOpenAISummary(SettingConfigGetter.BasicConfig config, String prompt) {
-        try {
-            var response = aiService.openAiChat(
-                config.getOpenAiApiKey(),
-                config.getOpenAiModelName(),
-                config.getOpenAiUrl(),
-                "你是一个专业的文章摘要生成助手",
-                prompt
-            );
-            return Mono.just(response.getContent());
-        } catch (Exception e) {
-            log.error("OpenAI摘要生成失败", e);
-            return Mono.just("OpenAI摘要生成失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 处理智谱AI摘要生成
-     */
-    private Mono<String> handleZhipuAISummary(SettingConfigGetter.BasicConfig config, String prompt) {
-        try {
-            var response = aiService.zhipuAiChat(
-                config.getZhipuAiApiKey(),
-                config.getZhipuAiModelName(),
-                "你是一个专业的文章摘要生成助手",
-                prompt
-            );
-            return Mono.just(response.getContent());
-        } catch (Exception e) {
-            log.error("智谱AI摘要生成失败", e);
-            return Mono.just("智谱AI摘要生成失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 处理通义千问摘要生成
-     */
-    private Mono<String> handleDashScopeSummary(SettingConfigGetter.BasicConfig config, String prompt) {
-        try {
-            var response = aiService.qwenAiChat(
-                config.getDashScopeApiKey(),
-                config.getDashScopeModelName(),
-                "你是一个专业的文章摘要生成助手",
-                prompt
-            );
-            return Mono.just(response.getContent());
-        } catch (Exception e) {
-            log.error("通义千问摘要生成失败", e);
-            return Mono.just("通义千问摘要生成失败: " + e.getMessage());
-        }
     }
 } 
