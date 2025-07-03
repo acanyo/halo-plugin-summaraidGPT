@@ -43,20 +43,17 @@ public class SummaraidGPTPlugin extends BasePlugin {
             indexSpecs.add(new IndexSpec()
                 .setName("postMetadataName")
                 .setIndexFunc(simpleAttribute(Summary.class,
-                    selectedComment -> defaultIfNull(selectedComment.getSummarySpec().getPostSummary(),
-                        selectedComment.getMetadata().getCreationTimestamp()).toString())
+                    selectedComment -> selectedComment.getSummarySpec().getPostSummary())
                 ));
             indexSpecs.add(new IndexSpec()
                 .setName("postUrl")
                 .setIndexFunc(simpleAttribute(Summary.class,
-                    selectedComment -> defaultIfNull(selectedComment.getSummarySpec().getPostUrl(),
-                        selectedComment.getMetadata().getCreationTimestamp()).toString())
+                    selectedComment -> selectedComment.getSummarySpec().getPostUrl())
                 ));
             indexSpecs.add(new IndexSpec()
                 .setName("postSummary")
                 .setIndexFunc(simpleAttribute(Summary.class,
-                    selectedComment -> defaultIfNull(selectedComment.getSummarySpec().getPostSummary(),
-                        selectedComment.getMetadata().getCreationTimestamp()).toString())
+                    selectedComment -> selectedComment.getSummarySpec().getPostSummary())
                 ));
         });
     }
