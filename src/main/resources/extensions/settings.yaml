@@ -57,6 +57,8 @@ spec:
               value: zhipuAi
             - label: 通义千问
               value: dashScope
+            - label: API加速站
+              value: codesphere
 #          OpenAi
         - $formkit: text
           if: $get(modelType).value == "openAi"
@@ -71,7 +73,7 @@ spec:
           name: openAiModelName
           key: openAiModelName
           label: 模型名称
-          placeholder: 请输入OpenAi的模型名称
+          placeholder: 请输入Openai的模型名称
           validation: required
           help: 必填,请前往 OpenAi 应用介入获取模型名称
         - $formkit: text
@@ -79,8 +81,8 @@ spec:
           name: baseUrl
           key: baseUrl
           label: API地址
-          placeholder: https://api.openai.com/v1/chat/completions
-          help: OpenAI API地址，需要配置完整的API端点，例如：https://api.openai.com/v1/chat/completions
+          placeholder: https://api.openai.com/
+          help: 只需填写基础API地址，系统会自动拼接端点路径
 #          智谱大模型
         - $formkit: text
           if: $get(modelType).value == "zhipuAi"

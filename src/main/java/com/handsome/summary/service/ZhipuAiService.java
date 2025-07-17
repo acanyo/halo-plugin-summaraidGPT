@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.handsome.summary.service.SettingConfigGetter.BasicConfig;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +22,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class ZhipuAiService implements AiService {
+    final OpenAiService openAiService;
     /**
      * @return 返回AI类型标识（zhipuAi），用于工厂分发
      */
@@ -67,19 +67,7 @@ public class ZhipuAiService implements AiService {
             message.put("role", "user");
             message.put("content", prompt);
             String body = mapper.writeValueAsString(root);
-
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(body.getBytes());
-            }
-
-            StringBuilder response = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    response.append(line);
-                }
-            }
-            return response.toString();
+            return openAiService.getOutputStream(conn, body);
         } catch (Exception e) {
             String errorMsg = e.getMessage();
             if (conn != null) {
@@ -89,7 +77,7 @@ public class ZhipuAiService implements AiService {
                     while ((line = br.readLine()) != null) {
                         errorResponse.append(line);
                     }
-                    errorMsg += " | " + errorResponse.toString();
+                    errorMsg += " | " + errorResponse;
                 } catch (Exception ignore) {}
             }
             return "[智谱AI 摘要生成异常：" + errorMsg + "]";

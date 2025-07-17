@@ -2,12 +2,14 @@ package com.handsome.summary.service;
 
 import com.handsome.summary.service.SettingConfigGetter.BasicConfig;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 /**
@@ -48,7 +50,17 @@ public class OpenAiService implements AiService {
     @Override
     public String chatCompletionRaw(String prompt, BasicConfig config) {
         try {
-            String apiUrl = config.getBaseUrl() != null ? config.getBaseUrl() : "https://api.openai.com/v1/chat/completions";
+            String apiUrl;
+            if (config.getBaseUrl() != null && !config.getBaseUrl().isBlank()) {
+                String base = config.getBaseUrl().replaceAll("/+$", "");
+                if (!base.endsWith("/v1/chat/completions")) {
+                    apiUrl = base + "/v1/chat/completions";
+                } else {
+                    apiUrl = base;
+                }
+            } else {
+                apiUrl = "https://api.openai.com/v1/chat/completions";
+            }
             URL url = URI.create(apiUrl).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
@@ -57,20 +69,25 @@ public class OpenAiService implements AiService {
             conn.setDoOutput(true);
 
             String body = "{\"model\":\"" + config.getOpenAiModelName() + "\",\"messages\":[{\"role\":\"user\",\"content\":\"" + prompt + "\"}]}";
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(body.getBytes());
-            }
-
-            StringBuilder response = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    response.append(line);
-                }
-            }
-            return response.toString();
+            return getOutputStream(conn, body);
         } catch (Exception e) {
             return "[OpenAi 摘要生成异常：" + e.getMessage() + "]";
         }
+    }
+
+    @NotNull
+    public String getOutputStream(HttpURLConnection conn, String body) throws IOException {
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(body.getBytes());
+        }
+
+        StringBuilder response = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                response.append(line);
+            }
+        }
+        return response.toString();
     }
 } 

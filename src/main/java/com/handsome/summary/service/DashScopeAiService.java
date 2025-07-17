@@ -1,9 +1,6 @@
 package com.handsome.summary.service;
 
 import com.handsome.summary.service.SettingConfigGetter.BasicConfig;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -21,6 +18,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class DashScopeAiService implements AiService {
+     final OpenAiService openAiService;
     /**
      * @return 返回AI类型标识（dashScope），用于工厂分发
      */
@@ -57,18 +55,7 @@ public class DashScopeAiService implements AiService {
             conn.setDoOutput(true);
 
             String body = "{\"model\":\"" + config.getDashScopeModelName() + "\",\"input\":{\"prompt\":\"" + prompt + "\"}}";
-            try (OutputStream os = conn.getOutputStream()) {
-                os.write(body.getBytes());
-            }
-
-            StringBuilder response = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    response.append(line);
-                }
-            }
-            return response.toString();
+            return openAiService.getOutputStream(conn, body);
         } catch (Exception e) {
             return "[通义千问 摘要生成异常：" + e.getMessage() + "]";
         }
