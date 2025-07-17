@@ -60,7 +60,30 @@ spec:
             - label: API加速站
               value: codesphere
 #          OpenAi
+        - $formkit: password
+          if: $get(modelType).value === "codesphere"
+          name: codesphereKey
+          id: codesphereKey
+          key: codesphereKey
+          label: Codesphere密钥
+        - $el: div
+          if: $get(modelType).value === "codesphere"
+          attrs:
+            class: "formkit-help text-xs text-gray-500"
+            innerHTML: "国内加速站 <a href='https://api.codesphere.chat/register?aff=76JI' title='前往 Codesphere 免费获取 Key' target='_blank' class='text-blue-500 hover:text-blue-700'>Codesphere 注册并获取专属免费 Key</a>，解锁更快的响应速度。"
         - $formkit: text
+          if: $get(modelType).value === "codesphere"
+          name: codesphereType
+          id: codesphereType
+          key: codesphereType
+          label: Codesphere模型类型
+        - $el: div
+          if: $get(modelType).value === "codesphere"
+          attrs:
+            class: "formkit-help text-xs text-gray-500"
+            innerHTML: "国内加速站 <a href='https://api.codesphere.chat/pricing' title='前往 Codesphere 模型' target='_blank' class='text-blue-500 hover:text-blue-700'>Codesphere 模型类型</a>，推荐免费的智普推理模型。"
+
+        - $formkit: password
           if: $get(modelType).value == "openAi"
           name: openAiApiKey
           key: openAiApiKey
@@ -84,7 +107,7 @@ spec:
           placeholder: https://api.openai.com/
           help: 只需填写基础API地址，系统会自动拼接端点路径
 #          智谱大模型
-        - $formkit: text
+        - $formkit: password
           if: $get(modelType).value == "zhipuAi"
           name: zhipuAiApiKey
           key: zhipuAiApiKey
@@ -101,7 +124,7 @@ spec:
           validation: required
           help: 必填,请前往 智谱 应用介入获取模型名称
         #          通义千问
-        - $formkit: text
+        - $formkit: password
           if: $get(modelType).value == "dashScope"
           name: dashScopeApiKey
           key: dashScopeApiKey

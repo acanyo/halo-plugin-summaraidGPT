@@ -1,5 +1,8 @@
 package com.handsome.summary.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.handsome.summary.service.SettingConfigGetter.BasicConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -34,11 +37,6 @@ public class OpenAiService implements AiService {
      * role: 消息角色（如user/assistant），content: 消息内容。
      */
     record Message(String role, String content) {}
-    /**
-     * 用于构造OpenAI请求体。
-     * model: 模型名，messages: 消息数组。
-     */
-    record OpenAiRequest(String model, Message[] messages) {}
 
     /**
      * 调用OpenAI服务，返回完整原始响应JSON字符串。
@@ -49,10 +47,25 @@ public class OpenAiService implements AiService {
      */
     @Override
     public String chatCompletionRaw(String prompt, BasicConfig config) {
+        String modelType = null;
         try {
+            // 判断 codesphere 适配
+            modelType = config.getModelType();
+            String apiKey;
+            String modelName;
+            String baseUrl;
+            if ("codesphere".equalsIgnoreCase(modelType)) {
+                apiKey = config.getCodesphereKey();
+                modelName = config.getCodesphereType();
+                baseUrl = "https://api.master-jsx.top";
+            } else {
+                apiKey = config.getOpenAiApiKey();
+                modelName = config.getOpenAiModelName();
+                baseUrl = config.getBaseUrl();
+            }
             String apiUrl;
-            if (config.getBaseUrl() != null && !config.getBaseUrl().isBlank()) {
-                String base = config.getBaseUrl().replaceAll("/+$", "");
+            if (baseUrl != null && !baseUrl.isBlank()) {
+                String base = baseUrl.replaceAll("/+$", "");
                 if (!base.endsWith("/v1/chat/completions")) {
                     apiUrl = base + "/v1/chat/completions";
                 } else {
@@ -64,14 +77,23 @@ public class OpenAiService implements AiService {
             URL url = URI.create(apiUrl).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + config.getOpenAiApiKey());
+            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
             conn.setRequestProperty("Content-Type", "application/json");
+            if ("codesphere".equalsIgnoreCase(modelType)) {
+                conn.setRequestProperty("Accept", "application/json");
+            }
             conn.setDoOutput(true);
-
-            String body = "{\"model\":\"" + config.getOpenAiModelName() + "\",\"messages\":[{\"role\":\"user\",\"content\":\"" + prompt + "\"}]}";
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode root = mapper.createObjectNode();
+            root.put("model", modelName);
+            ArrayNode messages = root.putArray("messages");
+            ObjectNode message = messages.addObject();
+            message.put("role", "user");
+            message.put("content", prompt);
+            String body = mapper.writeValueAsString(root);
             return getOutputStream(conn, body);
         } catch (Exception e) {
-            return "[OpenAi 摘要生成异常：" + e.getMessage() + "]";
+            return "[" + modelType + " 摘要生成异常：" + e.getMessage() + "]";
         }
     }
 

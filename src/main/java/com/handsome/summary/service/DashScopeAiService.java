@@ -1,5 +1,7 @@
 package com.handsome.summary.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.handsome.summary.service.SettingConfigGetter.BasicConfig;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -26,17 +28,6 @@ public class DashScopeAiService implements AiService {
     public String getType() { return "dashScope"; }
 
     /**
-     * 用于构造DashScope请求体的输入结构。
-     * prompt: 用户输入的提示词。
-     */
-    record DashScopeInput(String prompt) {}
-    /**
-     * 用于构造DashScope请求体。
-     * model: 模型名，input: 输入结构体。
-     */
-    record DashScopeRequest(String model, DashScopeInput input) {}
-
-    /**
      * 调用通义千问服务，返回完整原始响应JSON字符串。
      * @param prompt 用户输入的提示词
      * @param config 当前AI相关配置（API Key、模型名等）
@@ -53,8 +44,12 @@ public class DashScopeAiService implements AiService {
             conn.setRequestProperty("Authorization", "Bearer " + config.getDashScopeApiKey());
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
-
-            String body = "{\"model\":\"" + config.getDashScopeModelName() + "\",\"input\":{\"prompt\":\"" + prompt + "\"}}";
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode root = mapper.createObjectNode();
+            root.put("model", config.getDashScopeModelName());
+            ObjectNode input = root.putObject("input");
+            input.put("prompt", prompt);
+            String body = mapper.writeValueAsString(root);
             return openAiService.getOutputStream(conn, body);
         } catch (Exception e) {
             return "[通义千问 摘要生成异常：" + e.getMessage() + "]";

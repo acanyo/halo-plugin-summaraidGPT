@@ -51,7 +51,7 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
                 .flatMap(contentWrapper -> {
                     String aiSystem = config.getAiSystem() != null ? config.getAiSystem() : "你是专业摘要助手，请为以下文章生成简明摘要：";
                     var aiService = aiServiceFactory.getService(config.getModelType());
-                    String prompt = aiSystem + "\n" + contentWrapper.getContent();
+                    String prompt = aiSystem + "\n" + contentWrapper.getRaw();
                     return Mono.fromCallable(() -> aiService.chatCompletionRaw(prompt, config));
                 })
             )

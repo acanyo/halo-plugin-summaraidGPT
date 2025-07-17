@@ -21,6 +21,9 @@ public interface SettingConfigGetter {
         private String dashScopeApiKey;
         private String dashScopeModelName;
         private String aiSystem;
+        // Codesphere 相关字段
+        private String codesphereKey;
+        private String codesphereType;
     }
 
     @Data

@@ -34,11 +34,6 @@ public class ZhipuAiService implements AiService {
      * role: 消息角色（如user/assistant），content: 消息内容。
      */
     record Message(String role, String content) {}
-    /**
-     * 用于构造智谱API请求体。
-     * model: 模型名，messages: 消息数组。
-     */
-    record ZhipuRequest(String model, Message[] messages) {}
 
     /**
      * 调用智谱AI服务，返回完整原始响应JSON字符串。
