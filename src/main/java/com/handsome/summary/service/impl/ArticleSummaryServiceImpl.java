@@ -1,29 +1,26 @@
 package com.handsome.summary.service.impl;
 
-import com.handsome.summary.service.ArticleSummaryService;
+import static run.halo.app.extension.index.query.QueryFactory.and;
+import static run.halo.app.extension.index.query.QueryFactory.equal;
+import static run.halo.app.extension.index.query.QueryFactory.isNotNull;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.handsome.summary.extension.Summary;
 import com.handsome.summary.service.AiServiceFactory;
+import com.handsome.summary.service.ArticleSummaryService;
 import com.handsome.summary.service.SettingConfigGetter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import run.halo.app.content.ContentWrapper;
 import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.Metadata;
 import run.halo.app.extension.ReactiveExtensionClient;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import run.halo.app.extension.index.query.QueryFactory;
 import run.halo.app.extension.router.selector.FieldSelector;
-
-import static run.halo.app.extension.index.query.QueryFactory.and;
-import static run.halo.app.extension.index.query.QueryFactory.equal;
-import static run.halo.app.extension.index.query.QueryFactory.isNotNull;
-import static run.halo.app.extension.index.query.QueryFactory.isNull;
 
 /**
  * 文章摘要服务实现。
@@ -91,8 +88,8 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
         String postMetadataName = post.getMetadata().getName();
         var listOptions = new ListOptions();
         listOptions.setFieldSelector(FieldSelector.of(
-            and(equal("postMetadataName", postMetadataName),
-                isNotNull("postSummary"))
+            and(equal("summarySpec.postMetadataName", postMetadataName),
+                isNotNull("summarySpec.postSummary"))
         ));
         return client.listAll(Summary.class, listOptions, Sort.unsorted())
             .collectList()

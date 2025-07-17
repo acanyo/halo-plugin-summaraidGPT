@@ -1,6 +1,5 @@
 package com.handsome.summary;
 
-import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 import static run.halo.app.extension.index.IndexAttributeFactory.simpleAttribute;
 
 import com.handsome.summary.extension.Summary;
@@ -41,17 +40,17 @@ public class SummaraidGPTPlugin extends BasePlugin {
     private void registerScheme() {
         schemeManager.register(Summary.class, indexSpecs -> {
             indexSpecs.add(new IndexSpec()
-                .setName("postMetadataName")
+                .setName("summarySpec.postMetadataName")
                 .setIndexFunc(simpleAttribute(Summary.class,
                     selectedComment -> selectedComment.getSummarySpec().getPostSummary())
                 ));
             indexSpecs.add(new IndexSpec()
-                .setName("postUrl")
+                .setName("summarySpec.postUrl")
                 .setIndexFunc(simpleAttribute(Summary.class,
                     selectedComment -> selectedComment.getSummarySpec().getPostUrl())
                 ));
             indexSpecs.add(new IndexSpec()
-                .setName("postSummary")
+                .setName("summarySpec.postSummary")
                 .setIndexFunc(simpleAttribute(Summary.class,
                     selectedComment -> selectedComment.getSummarySpec().getPostSummary())
                 ));

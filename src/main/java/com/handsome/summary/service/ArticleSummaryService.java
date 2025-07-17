@@ -1,7 +1,7 @@
 package com.handsome.summary.service;
 
-import run.halo.app.core.extension.content.Post;
 import reactor.core.publisher.Mono;
+import run.halo.app.core.extension.content.Post;
 
 /**
  * 文章摘要服务接口。

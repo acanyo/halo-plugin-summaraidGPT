@@ -1,17 +1,14 @@
 package com.handsome.summary.service;
 
-import org.springframework.stereotype.Component;
-import lombok.RequiredArgsConstructor;
 import com.handsome.summary.service.SettingConfigGetter.BasicConfig;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.net.URI;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URL;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 /**
  * 通义千问（DashScope）服务实现。

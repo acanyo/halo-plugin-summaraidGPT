@@ -3,11 +3,10 @@ package com.handsome.summary.endpoint;
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
 
+import com.handsome.summary.service.ArticleSummaryService;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -18,10 +17,8 @@ import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
-import run.halo.app.extension.ExtensionClient;
-import run.halo.app.extension.GroupVersion;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
-import com.handsome.summary.service.ArticleSummaryService;
+import run.halo.app.extension.GroupVersion;
 import run.halo.app.extension.ReactiveExtensionClient;
 
 /**
