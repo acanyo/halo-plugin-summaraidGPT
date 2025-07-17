@@ -42,7 +42,7 @@ public class SummaraidGPTPlugin extends BasePlugin {
             indexSpecs.add(new IndexSpec()
                 .setName("summarySpec.postMetadataName")
                 .setIndexFunc(simpleAttribute(Summary.class,
-                    selectedComment -> selectedComment.getSummarySpec().getPostSummary())
+                    selectedComment -> selectedComment.getSummarySpec().getPostMetadataName())
                 ));
             indexSpecs.add(new IndexSpec()
                 .setName("summarySpec.postUrl")
