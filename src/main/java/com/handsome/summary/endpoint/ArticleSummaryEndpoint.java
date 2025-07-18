@@ -34,8 +34,6 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
 
     private final ArticleSummaryService articleSummaryService;
     private final ReactiveExtensionClient extensionClient;
-    private final PostContentService postContentService;
-
     @Override
     public RouterFunction<ServerResponse> endpoint() {
         final var tag = "api.summary.summaraidgpt.lik.cc/v1alpha1/ArticleSummary";
@@ -45,6 +43,15 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
                 builder -> builder.operationId("GenerateSummaryByPostName")
                     .tag(tag)
                     .description("根据文章名称生成摘要并保存")
+                    .parameter(
+                        parameterBuilder().name("postName").in(ParameterIn.PATH).required(true)
+                            .implementation(String.class))
+                    .response(responseBuilder().implementation(String.class))
+            )
+            .GET("/findSummaries/{postName}", this::findSummaryByPostName,
+                builder -> builder.operationId("FindSummaryByPostName")
+                    .tag(tag)
+                    .description("根据文章名称获取摘要")
                     .parameter(
                         parameterBuilder().name("postName").in(ParameterIn.PATH).required(true)
                             .implementation(String.class))
@@ -68,6 +75,19 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
             .flatMap(summary -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(summary));
+    }
+
+
+    private Mono<ServerResponse> findSummaryByPostName(ServerRequest request) {
+        String postName = request.pathVariable("postName");
+        if (postName.trim().isEmpty()) {
+            throw new ServerWebInputException("postName不能为空");
+        }
+        return articleSummaryService.findSummaryByPostName(postName)
+            .collectList()
+            .flatMap(list -> ServerResponse.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(list));
     }
 
     @Override

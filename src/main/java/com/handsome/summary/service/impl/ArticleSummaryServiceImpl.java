@@ -12,8 +12,10 @@ import com.handsome.summary.service.ArticleSummaryService;
 import com.handsome.summary.service.SettingConfigGetter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
@@ -74,7 +76,6 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
                     return content.asText();
                 }
             }
-            // 其它AI格式可在此补充
         } catch (Exception e) {
             log.error("解析AI摘要JSON失败: {}", e.getMessage(), e);
         }
@@ -86,12 +87,8 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
      */
     private Mono<Void> saveSummaryToTable(String summary, Post post) {
         String postMetadataName = post.getMetadata().getName();
-        var listOptions = new ListOptions();
-        listOptions.setFieldSelector(FieldSelector.of(
-            and(equal("summarySpec.postMetadataName", postMetadataName),
-                isNotNull("summarySpec.postSummary"))
-        ));
-        return client.listAll(Summary.class, listOptions, Sort.unsorted())
+        var summaryFlux = findSummaryByPostName(postMetadataName);
+        return summaryFlux
             .collectList()
             .flatMap(list -> {
                 if (!list.isEmpty()) {
@@ -116,5 +113,15 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
                         .then();
                 }
             });
+    }
+
+    @Override
+    public Flux<Summary> findSummaryByPostName(String postMetadataName) {
+        var listOptions = new ListOptions();
+        listOptions.setFieldSelector(FieldSelector.of(
+            and(equal("summarySpec.postMetadataName", postMetadataName),
+                isNotNull("summarySpec.postSummary"))
+        ));
+        return client.listAll(Summary.class, listOptions, Sort.unsorted());
     }
 } 

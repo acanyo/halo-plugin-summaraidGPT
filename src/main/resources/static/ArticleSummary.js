@@ -13,9 +13,9 @@
 
   // 检查CSS是否已加载
   function likcc_summaraidGPT_checkCSS() {
-    const linkElement = document.querySelector('link[href*="likcc-summaraidGPT-summary.css"]');
+    const linkElement = document.querySelector('link[href*="ArticleSummary.css"]');
     if (!linkElement) {
-      console.warn('likcc-summaraidGPT-summary.css 未找到，请确保CSS文件已正确引入');
+      console.warn('ArticleSummary.css 未找到，请确保CSS文件已正确引入');
     }
   }
 
@@ -49,7 +49,7 @@
             <div class="likcc-summaraidGPT-summary-container">
                 <div class="likcc-summaraidGPT-summary-header">
                     <div class="likcc-summaraidGPT-header-left">
-                        <img class="likcc-summaraidGPT-logo" src="${config.logo || ''}" alt="AI Logo">
+                        <img class="likcc-summaraidGPT-logo  not-prose" src="${config.logo || ''}" alt="AI Logo">
                         <span class="likcc-summaraidGPT-summary-title">${config.summaryTitle || 'AI摘要'}</span>
                     </div>
                     <span class="likcc-summaraidGPT-gpt-name">${config.gptName || 'LikccGPT'}</span>
@@ -90,37 +90,76 @@
     );
   }
 
+  // 公共主题切换函数
+  function updateSummaryTheme(isDark) {
+    document.querySelectorAll('.likcc-summaraidGPT-summary-container').forEach(container => {
+      container.classList.remove(
+              'likcc-summaraidGPT-summary--dark',
+              'likcc-summaraidGPT-summary--blue',
+              'likcc-summaraidGPT-summary--green',
+              'likcc-summaraidGPT-summary--default'
+      );
+      container.classList.add(isDark ? 'likcc-summaraidGPT-summary--dark' : 'likcc-summaraidGPT-summary--default');
+    });
+  }
+
+  // 精简后的实时监听深色模式切换
+  function observeDarkSelector(selector) {
+    const html = document.documentElement;
+    const body = document.body;
+    if (!selector) return;
+
+    const dataAttrMatch = selector.match(/^data-([\w-]+)=(.+)$/);
+    const classMatch = selector.match(/^class=(.+)$/);
+
+    let checkIsDark;
+    let obsConfig = { attributes: true, attributeFilter: ['class'] };
+
+    if (dataAttrMatch) {
+      const attr = 'data-' + dataAttrMatch[1];
+      const val = dataAttrMatch[2];
+      checkIsDark = () => (html.getAttribute(attr) === val || body.getAttribute(attr) === val);
+      obsConfig.attributeFilter.push(attr);
+    } else if (classMatch) {
+      const className = classMatch[1];
+      checkIsDark = () => (html.classList.contains(className) || body.classList.contains(className));
+    } else {
+      const className = selector;
+      checkIsDark = () => (html.classList.contains(className) || body.classList.contains(className));
+    }
+
+    const callback = () => updateSummaryTheme(checkIsDark());
+
+    new MutationObserver(callback).observe(html, obsConfig);
+    new MutationObserver(callback).observe(body, obsConfig);
+    callback(); // 保证初始状态
+  }
+
   // 主初始化函数
   window.likcc_summaraidGPT_initSummaryBox = function(config) {
     likcc_summaraidGPT_checkCSS();
 
-    // 新增：全局开关，enable为false时不渲染AI摘要框
     if (config.hasOwnProperty('enable') && config.enable === false) {
       return null;
     }
-    // 白名单判断（优先于黑名单）
-    if (Array.isArray(config.whitelist) && config.whitelist.length > 0) {
-      var path = window.location.pathname;
-      var isWhitelisted = config.whitelist.some(function(item) {
-        if (typeof item === 'string') {
-          // 支持*通配符
-          if (item.includes('*')) {
-            var pattern = '^' + item.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*') + '$';
-            var regex = new RegExp(pattern);
-            return regex.test(path);
-          } else {
-            return path.indexOf(item) !== -1;
-          }
-        } else if (item instanceof RegExp) {
-          return item.test(path);
-        }
-        return false;
-      });
-      if (!isWhitelisted) return null;
+    // 严格白名单判断，支持 * 结尾做前缀匹配
+    if (typeof config.whitelist !== 'string' || config.whitelist.length === 0) {
+      return null;
+    }
+    var path = window.location.pathname;
+    if (config.whitelist.endsWith('*')) {
+      // 通配符前缀匹配
+      var prefix = config.whitelist.slice(0, -1);
+      if (!path.startsWith(prefix)) {
+        return null;
+      }
+    } else {
+      if (path.indexOf(config.whitelist) === -1) {
+        return null;
+      }
     }
 
     let finalThemeName = '';
-    // 日志：主题优先级判断
     if (config.darkSelector && isDarkBySelector(config.darkSelector)) {
       finalThemeName = 'dark';
     } else if (config.themeName === 'custom') {
@@ -186,6 +225,10 @@
       themeClass = 'likcc-summaraidGPT-summary--default';
     }
     summaryContainer.classList.add(themeClass);
+    // 集成实时深色模式监听
+    if (config.darkSelector) {
+      observeDarkSelector(config.darkSelector);
+    }
     // 获取内容元素并输出摘要
     const contentElement = summaryContainer.querySelector('.likcc-summaraidGPT-summary-content');
     // 先显示骨架loading

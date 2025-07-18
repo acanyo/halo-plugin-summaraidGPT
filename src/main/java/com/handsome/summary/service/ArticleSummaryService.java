@@ -1,5 +1,7 @@
 package com.handsome.summary.service;
 
+import com.handsome.summary.extension.Summary;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.content.Post;
 
@@ -16,4 +18,8 @@ public interface ArticleSummaryService {
      * @return Mono包裹的AI生成的文章摘要内容（可为纯文本或结构化JSON，具体由实现决定）
      */
     Mono<String> getSummary(Post post);
+    /**
+     * 根据 postMetadataName 查询摘要（只查不生成）
+     */
+    Flux<Summary> findSummaryByPostName(String postMetadataName);
 } 

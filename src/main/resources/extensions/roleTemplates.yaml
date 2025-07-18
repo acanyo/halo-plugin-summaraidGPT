@@ -1,36 +1,12 @@
-kind: Role
 apiVersion: v1alpha1
+kind: "Role"
 metadata:
-  name: role-template-summaraidGPT-manage
+  name: role-template-manage-summaraidGPT
   labels:
     halo.run/role-template: "true"
-  annotations:
-    rbac.authorization.halo.run/ui-permissions: |
-      ["plugin:summaraidGPT:manage"]
-    rbac.authorization.halo.run/display-name: "AI文章描述权限"
-    rbac.authorization.halo.run/module: "AI文章描述权限"
-rules:
-  - apiGroups:
-      - handsome.lik.cc
-    resources:
-      - tokensub
-    verbs:
-      - create
-      - list
----
-kind: Role
-apiVersion: v1alpha1
-metadata:
-  name: role-template-summaraidGPT-anonymous
-  labels:
     halo.run/hidden: "true"
-    halo.run/role-template: "true"
     rbac.authorization.halo.run/aggregate-to-anonymous: "true"
-  annotations:
-    rbac.authorization.halo.run/module: "智阅GPT摘要生成器权限"
-    rbac.authorization.halo.run/display-name: "summaraidGPT Anonymous AccessRole"
 rules:
-  - apiGroups:
-      - handsome.lik.cc
-    resources: [ "*" ]
-    verbs: [ "*" ]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["findSummaries"]
+    verbs: ["get"]

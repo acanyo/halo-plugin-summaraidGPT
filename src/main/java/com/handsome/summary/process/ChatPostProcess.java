@@ -1,14 +1,7 @@
 package com.handsome.summary.process;
 
-import com.handsome.summary.Constant;
 import com.handsome.summary.service.SettingConfigGetter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
@@ -30,8 +23,6 @@ public class ChatPostProcess implements TemplateHeadProcessor {
     static final PropertyPlaceholderHelper
         PROPERTY_PLACEHOLDER_HELPER = new PropertyPlaceholderHelper("${", "}");
 
-    private static String CSS_CONTENT = "";
-
     private final ReactiveSettingFetcher settingFetcher;
 
     private final ReactiveExtensionClient client;
@@ -49,7 +40,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                         settingConfigGetter.getStyleConfig(),
                         settingConfigGetter.getBasicConfig()
                     )
-                    .map(tuple -> buildLikccSummaryBoxScript(tuple.getT1(), tuple.getT2(), tuple.getT3()))
+                    .map(tuple -> buildLikccSummaryBoxScript(tuple.getT1(), tuple.getT2(), tuple.getT3(),true))
                     .flatMap(jsContent -> insertJsAndCss(jsContent, iModel, modelFactory))
                 );
         } else {
@@ -58,39 +49,88 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                     settingConfigGetter.getStyleConfig(),
                     settingConfigGetter.getBasicConfig()
                 )
-                .map(tuple -> buildLikccSummaryBoxScript(tuple.getT1(), tuple.getT2(), tuple.getT3()))
+                .map(tuple -> buildLikccSummaryBoxScript(tuple.getT1(), tuple.getT2(), tuple.getT3(),false))
                 .flatMap(jsContent -> insertJsAndCss(jsContent, iModel, modelFactory));
         }
     }
 
+    /**
+     * 向页面插入摘要框所需的 CSS、主 JS 脚本和动态初始化 JS。
+     */
     private Mono<Void> insertJsAndCss(String jsContent, IModel iModel, IModelFactory modelFactory) {
-        // 1. 插入 CSS
-        String cssTag = "<link rel=\"stylesheet\" href=\"/plugins/summaraidGPT/assets/static/summary.css\" />";
-        // 2. 插入主 JS 脚本
-        String mainJsTag = "<script src=\"/plugins/summaraidGPT/assets/static/summary.js\"></script>";
-        // 3. 插入你的动态 JS
-        String fullScript = cssTag + "\n" + mainJsTag + "\n" + jsContent;
+        // 插入 CSS
+        String cssTag = "<link rel=\"stylesheet\" href=\"/plugins/summaraidGPT/assets/static/ArticleSummary.css\" />";
+        // 插入主 JS 脚本
+        String mainJsTag = "<script src=\"/plugins/summaraidGPT/assets/static/ArticleSummary.js\"></script>";
+        // 拼接完整 HTML 内容
+        String fullScript = String.join("\n", cssTag, mainJsTag, jsContent);
         iModel.add(modelFactory.createText(fullScript));
         return Mono.empty();
     }
 
+    /**
+     * 构建 likcc 摘要框的动态 JS 初始化代码。
+     * 参数全部动态化，模板结构优雅，便于维护。
+     */
     private String buildLikccSummaryBoxScript(
             SettingConfigGetter.SummaryConfig summaryConfig,
             SettingConfigGetter.StyleConfig styleConfig,
-            SettingConfigGetter.BasicConfig basicConfig) {
+            SettingConfigGetter.BasicConfig basicConfig,Boolean isPost) {
+        final Properties properties = getProperties(summaryConfig, styleConfig,basicConfig,isPost);
+
+        // JS 初始化模板
+        String script = """
+            <script>
+                // 摘要框渲染函数
+                function showLikccSummaryBox() {
+                    likcc_summaraidGPT_initSummaryBox({
+                        enable: ${enable},
+                        logo: '${logo}', // Logo图片路径
+                        summaryTitle: '${summaryTitle}',
+                        gptName: '${gptName}', // AI模型名称
+                        content: '${content}',
+                        typeSpeed: ${typeSpeed}, // 打字机动画速度（毫秒/字符）
+                        target: '${target}', // 摘要框插入目标元素选择器
+                        darkSelector: '${darkSelector}', // 跟随网站深色模式自动切换
+                        // 主题选择：
+                        // 1. themeName: 'custom' + theme: {...} 用自定义配色
+                        // 2. themeName: 'blue' | 'default' | 'green' 用内置主题
+                        // 3. darkSelector 命中时自动切换 dark 主题
+                        themeName: '${themeName}', // 'custom' 用 theme 配色，'blue' 用内置主题
+                        theme: ${theme},
+                        typewriter: ${typewriter}, // 是否启用打字机效果
+                        whitelist: '${whitelist}' // 只在 /post/ 路径下显示
+                    });
+                }
+                document.addEventListener('DOMContentLoaded', showLikccSummaryBox, { once: true });
+                document.addEventListener('pjax:success', showLikccSummaryBox);
+                document.addEventListener('pjax:complete', showLikccSummaryBox);
+            </script>
+            """;
+        return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(script, properties);
+    }
+
+    @NotNull
+    private Properties getProperties(SettingConfigGetter.SummaryConfig summaryConfig,
+        SettingConfigGetter.StyleConfig styleConfig, SettingConfigGetter.BasicConfig basicConfig,
+        Boolean isPost) {
         final Properties properties = new Properties();
-        properties.setProperty("enable", "true");
+        // 动态参数填充
+        properties.setProperty("enable", String.valueOf(!basicConfig.getEnableAi() && isPost));
         properties.setProperty("logo", nvl(styleConfig.getLogo(), "icon.svg"));
         properties.setProperty("summaryTitle", nvl(summaryConfig.getSummaryTitle(), "文章摘要"));
         properties.setProperty("gptName", nvl(summaryConfig.getGptName(), "智阅GPT"));
         properties.setProperty("content", nvl(summaryConfig.getGptName(), "近年来，深度学习和大模型的发展极大提升了AI的感知与推理能力。以GPT-4为代表的生成式AI，能够自动撰写文章、生成代码，甚至进行复杂的逻辑推理。这些能力不仅提升了生产效率，也为内容创作、教育、科研等领域带来了革命性的变革。"));
-        properties.setProperty("typeSpeed", String.valueOf(summaryConfig.getTypeSpeed() != null ? summaryConfig.getTypeSpeed() : 20));
+        properties.setProperty("typeSpeed", String.valueOf(
+            summaryConfig.getTypeSpeed() != null ? summaryConfig.getTypeSpeed() : 20));
         properties.setProperty("target", nvl(summaryConfig.getTarget(), ".article-content"));
-        properties.setProperty("darkSelector", nvl(summaryConfig.getDarkSelector(), "data-theme=dark"));
+        properties.setProperty("darkSelector", nvl(summaryConfig.getDarkSelector(), ""));
         properties.setProperty("themeName", nvl(styleConfig.getThemeName(), "custom"));
-        properties.setProperty("typewriter", String.valueOf(summaryConfig.getTypewriter() != null ? summaryConfig.getTypewriter() : true));
-        properties.setProperty("whitelist", summaryConfig.getWhitelist() != null ? summaryConfig.getWhitelist() : "[]");
-        // 主题对象
+        properties.setProperty("typewriter", String.valueOf(
+            summaryConfig.getTypewriter() != null ? summaryConfig.getTypewriter() : true));
+        // whitelist 直接用字符串
+        properties.setProperty("whitelist", summaryConfig.getWhitelist() != null ? summaryConfig.getWhitelist() : "/archives/*");
+        // 主题对象动态组装
         String theme = String.format("{bg: '%s', main: '%s', contentFontSize: '%s', title: '%s', content: '%s', gptName: '%s', contentBg: '%s', border: '%s', shadow: '%s', tagBg: '%s', cursor: '%s'}",
             nvl(styleConfig.getThemeBg(), "#f7f9fe"),
             nvl(styleConfig.getThemeMain(), "#4F8DFD"),
@@ -105,34 +145,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
             nvl(styleConfig.getThemeCursor(), "#4F8DFD")
         );
         properties.setProperty("theme", theme);
-        String script = """
-            <script>
-                // 摘要框渲染函数
-                function showLikccSummaryBox() {
-                    likcc_summaraidGPT_initSummaryBox({
-                        enable: ${enable}, // 是否启用AI摘要框
-                        logo: '${logo}', // Logo图片路径
-                        summaryTitle: '${summaryTitle}', // 摘要框标题
-                        gptName: '${gptName}', // AI模型名称
-                        content: '${content}',
-                        typeSpeed: ${typeSpeed}, // 打字机动画速度（毫秒/字符）
-                        target: '${target}', // 摘要框插入目标元素选择器
-                        darkSelector: '${darkSelector}', // 跟随网站深色模式自动切换
-                        // 主题选择：
-                        // 1. themeName: 'custom' + theme: {...} 用自定义配色
-                        // 2. themeName: 'blue' | 'default' | 'green' 用内置主题
-                        // 3. darkSelector 命中时自动切换 dark 主题
-                        themeName: '${themeName}', // 'custom' 用 theme 配色，'blue' 用内置主题
-                        theme: ${theme},
-                        typewriter: ${typewriter}, // 是否启用打字机效果
-                        whitelist: ${whitelist} // 只在 /post/ 路径下显示
-                    });
-                }
-                document.addEventListener('DOMContentLoaded', showLikccSummaryBox, { once: true });
-                document.addEventListener('pjax:success', showLikccSummaryBox);
-            </script>
-            """;
-        return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(script, properties);
+        return properties;
     }
 
     private String nvl(String value, String defaultValue) {

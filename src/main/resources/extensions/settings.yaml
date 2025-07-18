@@ -170,12 +170,12 @@ spec:
           key: target
           value: ".article-content"
           help: "摘要框插入的目标元素选择器"
-        - $formkit: textarea
+        - $formkit: text
           label: 文章路由
           name: whitelist
           id: whitelist
           key: whitelist
-          value: "*/post/*"
+          value: "/archives/*"
           help: "只在指定路径下显示摘要框，多个路径用逗号分隔"
         - $formkit: text
           label: 深色模式选择器
