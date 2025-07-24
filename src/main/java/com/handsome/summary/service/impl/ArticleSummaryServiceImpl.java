@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.util.Map;
+import java.util.HashMap;
 import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ListOptions;
@@ -43,6 +44,18 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
     private final ReactiveExtensionClient client;
     public static final String AI_SUMMARY_UPDATED = "summary.lik.cc/ai-summary-updated";
     public static final String ENABLE_BLACK_LIST = "summary.lik.cc/enable-black-list";
+    
+    /**
+     * 构建统一的响应结果
+     */
+    private Map<String, Object> buildResponse(boolean success, String message, String summaryContent, boolean blackList) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", success);
+        response.put("message", message);
+        response.put("summaryContent", summaryContent != null ? summaryContent : "");
+        response.put("blackList", blackList);
+        return response;
+    }
     /**
      * 获取指定文章的AI摘要（响应式）。
      * @param post 文章对象（包含ID、内容、标题等）
@@ -51,8 +64,6 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
     @Override
     public Mono<String> getSummary(Post post) {
         return settingConfigGetter.getBasicConfig()
-            .filter(config -> Boolean.FALSE.equals(config.getEnableAi()))
-            .switchIfEmpty(Mono.error(new IllegalStateException("AI未启用或配置缺失")))
             .flatMap(config -> postContentService.getReleaseContent(post.getMetadata().getName())
                 .flatMap(contentWrapper -> {
                     String aiSystem = config.getAiSystem() != null ? config.getAiSystem() : "你是专业摘要助手，请为以下文章生成简明摘要：";
@@ -131,40 +142,55 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
 
     @Override
     public Mono<Map<String, Object>> updatePostContentWithSummary(String postMetadataName) {
-        // 1. 查找摘要
+        // 1. 查找摘要 - 使用 hasElements() 来检查是否有数据
         return findSummaryByPostName(postMetadataName)
-            .next()
-            .flatMap(summary -> {
-                if (summary == null || summary.getSummarySpec() == null) {
-                    return Mono.error(new IllegalStateException("未找到摘要内容"));
+            .hasElements()
+            .flatMap(hasElements -> {
+                if (!hasElements) {
+                    log.info("未找到摘要数据，返回错误响应");
+                    return Mono.just(buildResponse(false,"未找到摘要内容","未找到摘要内容",false));
                 }
-                String summaryContent = summary.getSummarySpec().getPostSummary();
-                // 2. 查找文章
-                return client.fetch(Post.class, postMetadataName)
-                    .flatMap(post -> {
-                        var annotations = nullSafeAnnotations(post);
-                        var newPost = annotations.getOrDefault(AI_SUMMARY_UPDATED,"false");
-                        var blackList = annotations.getOrDefault(ENABLE_BLACK_LIST,"false");
-                        boolean enabled = !(Boolean.parseBoolean(String.valueOf(newPost))
-                            || Boolean.parseBoolean(String.valueOf(blackList)));
-                        if (!enabled) {
-                            log.info("文章摘要已更新或黑名单，跳过更新正文: {}", postMetadataName);
-                            return Mono.just(Map.of(
-                                "summaryContent", summaryContent,
-                                "blackList", blackList
-                            ));
-                        }
-                        post.getSpec().getExcerpt().setRaw(summaryContent);
-                        post.getSpec().getExcerpt().setAutoGenerate(false);
-                        post.getStatus().setExcerpt(summaryContent);
-                        annotations.put(AI_SUMMARY_UPDATED,"true");
-                        return client.update(post)
-                            .doOnSuccess(p -> log.info("已将摘要写入文章正文: {}", post.getStatus().getExcerpt()))
-                            .thenReturn(Map.of(
-                                "summaryContent", summaryContent,
-                                "blackList", blackList
-                            ));
+                return findSummaryByPostName(postMetadataName)
+                    .next()
+                    .flatMap(summary -> {
+                        String summaryContent = summary.getSummarySpec().getPostSummary();
+                        log.info("找到摘要内容: {}", summaryContent);
+                        return client.fetch(Post.class, postMetadataName)
+                            .flatMap(post -> updatePostWithSummary(post, summaryContent, postMetadataName))
+                            .onErrorResume(e -> {
+                                log.error("更新文章摘要时发生错误: {}", e.getMessage(), e);
+                                return Mono.just(buildResponse(false, "更新文章摘要时发生错误: " + e.getMessage(), summaryContent, false));
+                            });
                     });
+            })
+            .onErrorResume(e -> {
+                log.error("updatePostContentWithSummary 异常: {}", e.getMessage(), e);
+                return Mono.just(buildResponse(false,"未找到摘要内容","未找到摘要内容",false));
             });
+    }
+    
+    /**
+     * 更新文章摘要的具体逻辑
+     */
+    private Mono<Map<String, Object>> updatePostWithSummary(Post post, String summaryContent, String postMetadataName) {
+        var annotations = nullSafeAnnotations(post);
+        var newPost = annotations.getOrDefault(AI_SUMMARY_UPDATED, "false");
+        boolean blackList = Boolean.parseBoolean(annotations.getOrDefault(ENABLE_BLACK_LIST, "false"));
+        boolean enabled = !(Boolean.parseBoolean(String.valueOf(newPost)) || blackList);
+        
+        if (!enabled) {
+            log.info("文章摘要已更新或黑名单，跳过更新正文: {}", postMetadataName);
+            return Mono.just(buildResponse(false, "文章摘要已更新或在黑名单中", summaryContent, blackList));
+        }
+        
+        // 更新文章摘要
+        post.getSpec().getExcerpt().setRaw(summaryContent);
+        post.getSpec().getExcerpt().setAutoGenerate(false);
+        post.getStatus().setExcerpt(summaryContent);
+        annotations.put(AI_SUMMARY_UPDATED, "true");
+        
+        return client.update(post)
+            .doOnSuccess(p -> log.info("已将摘要写入文章正文: {}", post.getStatus().getExcerpt()))
+            .then(Mono.just(buildResponse(true,"成功",summaryContent,false)));
     }
 } 

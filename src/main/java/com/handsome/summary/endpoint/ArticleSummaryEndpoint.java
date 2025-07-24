@@ -20,6 +20,8 @@ import run.halo.app.core.extension.content.Post;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.extension.ReactiveExtensionClient;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * 文章摘要端点
@@ -109,8 +111,16 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
         }
         return articleSummaryService.updatePostContentWithSummary(postName)
             .flatMap(resultMap -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(resultMap))
-            .onErrorResume(e -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(java.util.Collections.emptyMap()));
+            .onErrorResume(e -> {
+                log.error("更新文章摘要API调用失败: {}", e.getMessage(), e);
+                Map<String, Object> errorMap = new HashMap<>();
+                errorMap.put("success", false);
+                errorMap.put("message", "API调用失败: " + e.getMessage());
+                errorMap.put("summaryContent", "");
+                errorMap.put("blackList", false);
+                return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(errorMap);
+            });
     }
 
     @Override
