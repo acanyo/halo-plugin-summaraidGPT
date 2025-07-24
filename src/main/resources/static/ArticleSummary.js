@@ -158,7 +158,7 @@
         return null;
       }
     }
-
+    document.querySelectorAll('.likcc-summaraidGPT-summary-container').forEach(el => el.remove());
     let finalThemeName = '';
     if (config.darkSelector && isDarkBySelector(config.darkSelector)) {
       finalThemeName = 'dark';

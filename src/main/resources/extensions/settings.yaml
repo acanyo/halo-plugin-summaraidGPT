@@ -36,13 +36,13 @@ spec:
             height: "120px"
             style:
               margin-left: "80px"
-        - $formkit: checkbox
-          label: 关闭全局摘要
-          name: enableAi
-          id: enableAi
-          key: enableAi
-          value: false
-          help: "关闭后不再产生AI摘要"
+#        - $formkit: checkbox
+#          label: 关闭全局摘要
+#          name: enableAi
+#          id: enableAi
+#          key: enableAi
+#          value: false
+#          help: "关闭后不再产生AI摘要"
         - $formkit: select
           name: modelType
           key: modelType

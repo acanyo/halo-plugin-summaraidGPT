@@ -57,6 +57,15 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
                             .implementation(String.class))
                     .response(responseBuilder().implementation(String.class))
             )
+            .POST("/updateContent/{postName}", this::updatePostContentWithSummary,
+                builder -> builder.operationId("UpdatePostContentWithSummary")
+                    .tag(tag)
+                    .description("根据摘要内容更新文章正文")
+                    .parameter(
+                        parameterBuilder().name("postName").in(ParameterIn.PATH).required(true)
+                            .implementation(String.class))
+                    .response(responseBuilder().implementation(String.class))
+            )
             .build();
     }
 
@@ -88,6 +97,20 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
             .flatMap(list -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(list));
+    }
+
+    /**
+     * 根据摘要内容更新文章正文
+     */
+    private Mono<ServerResponse> updatePostContentWithSummary(ServerRequest request) {
+        String postName = request.pathVariable("postName");
+        if (postName.trim().isEmpty()) {
+            throw new ServerWebInputException("postName不能为空");
+        }
+        return articleSummaryService.updatePostContentWithSummary(postName)
+            .flatMap(resultMap -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(resultMap))
+            .onErrorResume(e -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Collections.emptyMap()));
     }
 
     @Override

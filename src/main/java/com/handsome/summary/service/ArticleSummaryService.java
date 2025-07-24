@@ -1,8 +1,10 @@
 package com.handsome.summary.service;
 
 import com.handsome.summary.extension.Summary;
+import com.handsome.summary.service.impl.ArticleSummaryServiceImpl;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import java.util.Map;
 import run.halo.app.core.extension.content.Post;
 
 /**
@@ -22,4 +24,20 @@ public interface ArticleSummaryService {
      * 根据 postMetadataName 查询摘要（只查不生成）
      */
     Flux<Summary> findSummaryByPostName(String postMetadataName);
+    /**
+     * 根据摘要内容更新文章正文
+     * @param postMetadataName 文章唯一标识
+     * @return Mono<Void>
+     */
+    @lombok.Data
+    @lombok.EqualsAndHashCode
+    class UpdateSummaryResult {
+        private boolean enabled;
+        private String summary;
+        public UpdateSummaryResult(boolean enabled, String summary) {
+            this.enabled = enabled;
+            this.summary = summary;
+        }
+    }
+    Mono<Map<String, Object>> updatePostContentWithSummary(String postMetadataName);
 } 

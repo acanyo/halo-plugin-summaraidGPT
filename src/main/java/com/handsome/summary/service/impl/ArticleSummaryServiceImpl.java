@@ -1,5 +1,6 @@
 package com.handsome.summary.service.impl;
 
+import static run.halo.app.extension.MetadataUtil.nullSafeAnnotations;
 import static run.halo.app.extension.index.query.QueryFactory.and;
 import static run.halo.app.extension.index.query.QueryFactory.equal;
 import static run.halo.app.extension.index.query.QueryFactory.isNotNull;
@@ -10,13 +11,15 @@ import com.handsome.summary.extension.Summary;
 import com.handsome.summary.service.AiServiceFactory;
 import com.handsome.summary.service.ArticleSummaryService;
 import com.handsome.summary.service.SettingConfigGetter;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import java.util.Map;
 import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ListOptions;
@@ -39,6 +42,7 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
     private final PostContentService postContentService;
     private final ReactiveExtensionClient client;
     public static final String AI_SUMMARY_UPDATED = "summary.lik.cc/ai-summary-updated";
+    public static final String ENABLE_BLACK_LIST = "summary.lik.cc/enable-black-list";
     /**
      * 获取指定文章的AI摘要（响应式）。
      * @param post 文章对象（包含ID、内容、标题等）
@@ -123,5 +127,44 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
                 isNotNull("summarySpec.postSummary"))
         ));
         return client.listAll(Summary.class, listOptions, Sort.unsorted());
+    }
+
+    @Override
+    public Mono<Map<String, Object>> updatePostContentWithSummary(String postMetadataName) {
+        // 1. 查找摘要
+        return findSummaryByPostName(postMetadataName)
+            .next()
+            .flatMap(summary -> {
+                if (summary == null || summary.getSummarySpec() == null) {
+                    return Mono.error(new IllegalStateException("未找到摘要内容"));
+                }
+                String summaryContent = summary.getSummarySpec().getPostSummary();
+                // 2. 查找文章
+                return client.fetch(Post.class, postMetadataName)
+                    .flatMap(post -> {
+                        var annotations = nullSafeAnnotations(post);
+                        var newPost = annotations.getOrDefault(AI_SUMMARY_UPDATED,"false");
+                        var blackList = annotations.getOrDefault(ENABLE_BLACK_LIST,"false");
+                        boolean enabled = !(Boolean.parseBoolean(String.valueOf(newPost))
+                            || Boolean.parseBoolean(String.valueOf(blackList)));
+                        if (!enabled) {
+                            log.info("文章摘要已更新或黑名单，跳过更新正文: {}", postMetadataName);
+                            return Mono.just(Map.of(
+                                "summaryContent", summaryContent,
+                                "blackList", blackList
+                            ));
+                        }
+                        post.getSpec().getExcerpt().setRaw(summaryContent);
+                        post.getSpec().getExcerpt().setAutoGenerate(false);
+                        post.getStatus().setExcerpt(summaryContent);
+                        annotations.put(AI_SUMMARY_UPDATED,"true");
+                        return client.update(post)
+                            .doOnSuccess(p -> log.info("已将摘要写入文章正文: {}", post.getStatus().getExcerpt()))
+                            .thenReturn(Map.of(
+                                "summaryContent", summaryContent,
+                                "blackList", blackList
+                            ));
+                    });
+            });
     }
 } 
