@@ -135,13 +135,42 @@
     callback(); // 保证初始状态
   }
 
+  // 通过API获取摘要内容
+  function fetchSummaryContent(permalink, contentElement, config) {
+    // 将permalink中的/替换为__以适配API
+    const encodedPermalink = permalink.replace(/\//g, '__');
+    const apiUrl = `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/updateContent/${encodedPermalink}`;
+
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      const content = data.summaryContent || '暂无摘要内容';
+      if (config.typewriter) {
+        likcc_summaraidGPT_typeWriter(contentElement, content, config.typeSpeed);
+      } else {
+        contentElement.innerHTML = content;
+      }
+    })
+    .catch(error => {
+      console.warn('获取摘要失败:', error);
+      contentElement.innerHTML = '摘要加载失败，请稍后重试';
+    });
+  }
+
   // 主初始化函数
   window.likcc_summaraidGPT_initSummaryBox = function(config) {
     likcc_summaraidGPT_checkCSS();
 
-    if (config.hasOwnProperty('enable') && config.enable === false) {
-      return null;
-    }
     // 严格白名单判断，支持 * 结尾做前缀匹配
     if (typeof config.whitelist !== 'string' || config.whitelist.length === 0) {
       return null;
@@ -158,6 +187,7 @@
         return null;
       }
     }
+
     document.querySelectorAll('.likcc-summaraidGPT-summary-container').forEach(el => el.remove());
     let finalThemeName = '';
     if (config.darkSelector && isDarkBySelector(config.darkSelector)) {
@@ -175,7 +205,6 @@
       logo: '',
       summaryTitle: 'AI摘要',
       gptName: 'TianliGPT',
-      content: '这是一个AI生成的摘要内容...',
       typeSpeed: 50,
       target: 'body', // 默认插入到body
       /**
@@ -229,17 +258,14 @@
     if (config.darkSelector) {
       observeDarkSelector(config.darkSelector);
     }
-    // 获取内容元素并输出摘要
+
+    // 获取内容元素并通过API动态获取摘要
     const contentElement = summaryContainer.querySelector('.likcc-summaraidGPT-summary-content');
-    // 先显示骨架loading
+    // 先显示loading状态
     contentElement.innerHTML = '<span style="color:#bbb;">正在生成摘要...</span>';
-    setTimeout(() => {
-      if(finalConfig.typewriter) {
-        likcc_summaraidGPT_typeWriter(contentElement, finalConfig.content, finalConfig.typeSpeed);
-      } else {
-        contentElement.innerHTML = finalConfig.content;
-      }
-    }, 300);
+
+    // 通过API获取摘要内容
+    fetchSummaryContent(window.location.pathname, contentElement, finalConfig);
     return summaryContainer;
   };
 

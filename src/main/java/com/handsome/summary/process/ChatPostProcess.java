@@ -79,16 +79,15 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         final Properties properties = getProperties(summaryConfig, styleConfig,basicConfig,isPost);
 
         // JS 初始化模板
+        // JS 初始化模板
         String script = """
             <script>
                 // 摘要框渲染函数
                 function showLikccSummaryBox() {
                     likcc_summaraidGPT_initSummaryBox({
-                        enable: ${enable},
                         logo: '${logo}', // Logo图片路径
                         summaryTitle: '${summaryTitle}',
                         gptName: '${gptName}', // AI模型名称
-                        content: '${content}',
                         typeSpeed: ${typeSpeed}, // 打字机动画速度（毫秒/字符）
                         target: '${target}', // 摘要框插入目标元素选择器
                         darkSelector: '${darkSelector}', // 跟随网站深色模式自动切换
@@ -99,7 +98,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                         themeName: '${themeName}', // 'custom' 用 theme 配色，'blue' 用内置主题
                         theme: ${theme},
                         typewriter: ${typewriter}, // 是否启用打字机效果
-                        whitelist: '${whitelist}' // 只在 /post/ 路径下显示
+                        whitelist: '${whitelist}' // 只在指定路径下显示
                     });
                 }
                 document.addEventListener('DOMContentLoaded', showLikccSummaryBox, { once: true });
@@ -116,11 +115,10 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         Boolean isPost) {
         final Properties properties = new Properties();
         // 动态参数填充
-        properties.setProperty("enable", String.valueOf(!basicConfig.getEnableAi() && isPost));
+        // 动态参数填充
         properties.setProperty("logo", nvl(styleConfig.getLogo(), "icon.svg"));
         properties.setProperty("summaryTitle", nvl(summaryConfig.getSummaryTitle(), "文章摘要"));
         properties.setProperty("gptName", nvl(summaryConfig.getGptName(), "智阅GPT"));
-        properties.setProperty("content", nvl(summaryConfig.getGptName(), "近年来，深度学习和大模型的发展极大提升了AI的感知与推理能力。以GPT-4为代表的生成式AI，能够自动撰写文章、生成代码，甚至进行复杂的逻辑推理。这些能力不仅提升了生产效率，也为内容创作、教育、科研等领域带来了革命性的变革。"));
         properties.setProperty("typeSpeed", String.valueOf(
             summaryConfig.getTypeSpeed() != null ? summaryConfig.getTypeSpeed() : 20));
         properties.setProperty("target", nvl(summaryConfig.getTarget(), ".article-content"));
