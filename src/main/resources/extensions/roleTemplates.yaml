@@ -9,4 +9,4 @@ metadata:
 rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["updateContent"]
-    verbs: ["get", "update", "create"]
+    verbs: ["update", "create"]

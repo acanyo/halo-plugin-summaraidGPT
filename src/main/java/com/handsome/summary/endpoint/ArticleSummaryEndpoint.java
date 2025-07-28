@@ -4,6 +4,7 @@ import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder
 import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
 
 import com.handsome.summary.service.ArticleSummaryService;
+import com.handsome.summary.service.SettingConfigGetter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -74,10 +75,10 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
                     .response(responseBuilder().implementation(String.class))
             )
 
-            .POST("/updateContent/{permalink}", this::updateContent,
+            .POST("/updateContent", this::updateContent,
                 builder -> builder.operationId("UpdateContent")
-                    .tag(tag).description("更新文章内容")
-                    .parameter(parameterBuilder().name("permalink").in(ParameterIn.PATH).required(true))
+                    .tag(tag)
+                    .description("根据 permalink 更新文章内容")
                     .response(responseBuilder().implementation(String.class))
             )
             .build();
@@ -123,10 +124,9 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
      * 更新文章内容
      */
     private Mono<ServerResponse> updateContent(ServerRequest request) {
-        var permalink = request.pathVariable("permalink");
-        var actualPermalink = normalizePermalink(permalink);
-
-        return findSummaryByPermalink(actualPermalink)
+        return request.bodyToMono(String.class)
+            .map(this::normalizePermalink)
+            .flatMap(this::findSummaryByPermalink)
             .flatMap(this::processUpdateRequest)
             .flatMap(response -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -136,7 +136,10 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
 
     // 规范化permalink处理
     private String normalizePermalink(String permalink) {
-        var processed = permalink.replace("__", "/");
+        if (permalink == null || permalink.trim().isEmpty()) {
+            throw new IllegalArgumentException("permalink不能为空");
+        }
+        var processed = permalink.trim().replace("__", "/");
         return processed.startsWith("/") ? processed : "/" + processed;
     }
 
@@ -198,6 +201,7 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
             return ApiResponse.error(message, summaryContent, blackList != null ? blackList : false);
         }
     }
+
 
     @Override
     public GroupVersion groupVersion() {

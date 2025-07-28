@@ -136,15 +136,16 @@
 
   // 通过API获取摘要内容
   function fetchSummaryContent(permalink, contentElement, config) {
+    const apiUrl = `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/updateContent`;
     // 将permalink中的/替换为__以适配API
     const encodedPermalink = permalink.replace(/\//g, '__');
-    const apiUrl = `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/updateContent/${encodedPermalink}`;
 
     fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      body: encodedPermalink
     })
     .then(response => {
       if (!response.ok) {

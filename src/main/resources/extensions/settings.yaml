@@ -90,7 +90,7 @@ spec:
           label: API密钥
           placeholder: 请输入openAi的应用介入的ApiKey
           validation: required
-          help: 必填,请前往 OpenAi 应用介入获取ApiKey
+          help: 必填,请前往 OpenAi 应用介入获取ApiKey、
         - $formkit: text
           if: $get(modelType).value == "openAi"
           name: openAiModelName
