@@ -103,7 +103,6 @@
     });
   }
 
-  // 精简后的实时监听深色模式切换
   function observeDarkSelector(selector) {
     const html = document.documentElement;
     const body = document.body;
