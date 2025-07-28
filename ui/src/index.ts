@@ -3,6 +3,7 @@ import {Dialog, Toast, VDropdownDivider, VDropdownItem} from "@halo-dev/componen
 import {definePlugin} from "@halo-dev/console-shared";
 import axios, {AxiosError} from "axios";
 import {markRaw} from "vue";
+import SynchronousAiSummary from '@/views/SynchronousAiSummary.vue'
 
 
 export default definePlugin({
@@ -55,6 +56,16 @@ export default definePlugin({
           ],
         },
       ];
+    },
+    "post:list-item:field:create": (post) => {
+      return [{
+        priority: 40,
+        position: "end",
+        component: markRaw(SynchronousAiSummary),
+        props: {
+          post
+        }
+      }];
     },
   },
 });
