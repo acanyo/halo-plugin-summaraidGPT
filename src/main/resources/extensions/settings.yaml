@@ -140,7 +140,7 @@ spec:
           placeholder: 请输入 通义千问 的模型名称
           validation: required
           help: 必填,请前往 通义千问 应用介入获取模型名称
-        - $formkit: text
+        - $formkit: textarea
           name: aiSystem
           key: aiSystem
           label: 模型人设

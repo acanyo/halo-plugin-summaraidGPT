@@ -32,8 +32,8 @@ export default definePlugin({
                     '同步此文章内容会从新发布AI，此操作数据无法逆转！',
                   onConfirm: async () => {
                     try {
-                      await axios.put(
-                        `/apis/api.plugin.halo.run/v1alpha1/plugins/summaraidGPT/summary/update`,
+                      await axios.post(
+                        `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/summaries`,
                         item.post,
                         {
                           headers: {

@@ -20,6 +20,13 @@ import run.halo.app.core.extension.content.Post;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.extension.ReactiveExtensionClient;
+import run.halo.app.extension.ListOptions;
+import static run.halo.app.extension.index.query.QueryFactory.and;
+import static run.halo.app.extension.index.query.QueryFactory.equal;
+import static run.halo.app.extension.index.query.QueryFactory.isNotNull;
+import org.springframework.data.domain.Sort;
+import run.halo.app.extension.router.selector.FieldSelector;
+import com.handsome.summary.extension.Summary;
 
 /**
  * 文章摘要API端点
@@ -37,11 +44,11 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
         public static ApiResponse success(String message, String content, boolean blackList) {
             return new ApiResponse(true, message, content, blackList);
         }
-        
+
         public static ApiResponse error(String message) {
             return new ApiResponse(false, message, "", false);
         }
-        
+
         public static ApiResponse error(String message, String content, boolean blackList) {
             return new ApiResponse(false, message, content, blackList);
         }
@@ -52,12 +59,10 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
         final var tag = "api.summary.summaraidgpt.lik.cc/v1alpha1/ArticleSummary";
 
         return SpringdocRouteBuilder.route()
-            .POST("/summaries/{postName}", this::generateSummary,
+            .POST("/summaries", this::generateSummary,
                 builder -> builder.operationId("GenerateSummary")
                     .tag(tag)
-                    .description("根据文章名称生成AI摘要")
-                    .parameter(parameterBuilder().name("postName").in(ParameterIn.PATH).required(true)
-                        .implementation(String.class))
+                    .description("根据文章对象生成AI摘要")
                     .response(responseBuilder().implementation(String.class))
             )
             .GET("/findSummaries/{postName}", this::findSummary,
@@ -68,13 +73,12 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
                         .implementation(String.class))
                     .response(responseBuilder().implementation(String.class))
             )
-            .POST("/updateContent/{postName}", this::updatePostContentWithSummary,
-                builder -> builder.operationId("UpdatePostContentWithSummary")
-                    .tag(tag)
-                    .description("根据摘要内容更新文章正文")
-                    .parameter(parameterBuilder().name("postName").in(ParameterIn.PATH).required(true)
-                        .implementation(String.class))
-                    .response(responseBuilder().implementation(ApiResponse.class))
+
+            .POST("/updateContent/{permalink}", this::updateContent,
+                builder -> builder.operationId("UpdateContent")
+                    .tag(tag).description("更新文章内容")
+                    .parameter(parameterBuilder().name("permalink").in(ParameterIn.PATH).required(true))
+                    .response(responseBuilder().implementation(String.class))
             )
             .build();
     }
@@ -83,15 +87,13 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
      * 生成文章摘要
      */
     private Mono<ServerResponse> generateSummary(ServerRequest request) {
-        String postName = extractPostName(request);
-        
-        return extensionClient.fetch(Post.class, postName)
+        return request.bodyToMono(Post.class)
             .flatMap(articleSummaryService::getSummary)
             .flatMap(summary -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(summary))
             .onErrorResume(e -> {
-                log.error("生成摘要失败，文章: {}, 错误: {}", postName, e.getMessage(), e);
+                log.error("生成摘要失败，错误: {}", e.getMessage(), e);
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue("生成失败：" + e.getMessage());
@@ -120,20 +122,50 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
     /**
      * 更新文章内容
      */
-    private Mono<ServerResponse> updatePostContentWithSummary(ServerRequest request) {
-        String postName = extractPostName(request);
+    private Mono<ServerResponse> updateContent(ServerRequest request) {
+        var permalink = request.pathVariable("permalink");
+        var actualPermalink = normalizePermalink(permalink);
 
-        return articleSummaryService.updatePostContentWithSummary(postName)
-            .map(this::convertToApiResponse)
+        return findSummaryByPermalink(actualPermalink)
+            .flatMap(this::processUpdateRequest)
             .flatMap(response -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(response))
-            .onErrorResume(e -> {
-                log.error("更新文章内容失败，文章: {}, 错误: {}", postName, e.getMessage(), e);
-                return ServerResponse.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(ApiResponse.error("更新失败：" + e.getMessage()));
-            });
+            .onErrorResume(this::handleUpdateError);
+    }
+
+    // 规范化permalink处理
+    private String normalizePermalink(String permalink) {
+        var processed = permalink.replace("__", "/");
+        return processed.startsWith("/") ? processed : "/" + processed;
+    }
+
+    private Mono<Summary> findSummaryByPermalink(String permalink) {
+        var listOptions = new ListOptions();
+        listOptions.setFieldSelector(FieldSelector.of(
+            and(equal("summarySpec.postUrl", permalink), 
+                isNotNull("summarySpec.postUrl"))
+        ));
+        
+        return extensionClient.listAll(Summary.class, listOptions, Sort.unsorted())
+            .next()
+            .switchIfEmpty(Mono.error(new IllegalArgumentException(
+                "未找到对应的摘要记录：" + permalink)));
+    }
+
+    private Mono<ApiResponse> processUpdateRequest(Summary summary) {
+        var postName = summary.getSummarySpec().getPostMetadataName();
+
+        return articleSummaryService.updatePostContentWithSummary(postName)
+            .map(this::convertToApiResponse)
+            .onErrorResume(e -> Mono.just(ApiResponse.error("更新失败：" + e.getMessage())));
+    }
+
+    private Mono<ServerResponse> handleUpdateError(Throwable e) {
+        var errorResponse = ApiResponse.error("系统异常：" + e.getMessage());
+        return ServerResponse.ok()
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(errorResponse);
     }
 
     /**
