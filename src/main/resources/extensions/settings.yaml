@@ -11,8 +11,37 @@ spec:
           attrs:
             class: formkit-actions
           children:
+            - $el: script
+          attrs:
+            type: text/javascript
+          children: |
+            async function syncAllSummary() {
+              const btn = document.getElementById('syncAllSummaryBtn');
+              const btnText = document.getElementById('syncAllSummaryBtnText');
+              btn.disabled = true;
+              const oldText = btnText.textContent;
+              btnText.textContent = '同步中...';
+              try {
+                const response = await fetch('/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/syncAll', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+                if (!response.ok) {
+                  throw new Error('同步失败');
+                }
+                const result = await response.text();
+                alert(result || '同步成功！');
+              } catch (err) {
+                alert('同步失败：' + err.message);
+              } finally {
+                btn.disabled = false;
+                btnText.textContent = oldText;
+              }
+            }
+
             - $el: button
-              if: true # 如需加条件可替换 true
               attrs:
                 type: button
                 id: syncAllSummaryBtn
@@ -339,32 +368,4 @@ spec:
           key: themeContentFontSize
           value: "16px"
           help: "内容文字字体大小"
-        - $el: script
-          attrs:
-            type: text/javascript
-          children: |
-            async function syncAllSummary() {
-              const btn = document.getElementById('syncAllSummaryBtn');
-              const btnText = document.getElementById('syncAllSummaryBtnText');
-              btn.disabled = true;
-              const oldText = btnText.textContent;
-              btnText.textContent = '同步中...';
-              try {
-                const response = await fetch('/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/syncAll', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                });
-                if (!response.ok) {
-                  throw new Error('同步失败');
-                }
-                const result = await response.text();
-                alert(result || '同步成功！');
-              } catch (err) {
-                alert('同步失败：' + err.message);
-              } finally {
-                btn.disabled = false;
-                btnText.textContent = oldText;
-              }
-            }
+        
