@@ -4,6 +4,7 @@ import com.handsome.summary.service.SettingConfigGetter;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
+import org.pf4j.PluginWrapper;
 import org.springframework.stereotype.Component;
 import org.springframework.util.PropertyPlaceholderHelper;
 import org.thymeleaf.context.ITemplateContext;
@@ -23,8 +24,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
     static final PropertyPlaceholderHelper
         PROPERTY_PLACEHOLDER_HELPER = new PropertyPlaceholderHelper("${", "}");
 
-    private final ReactiveSettingFetcher settingFetcher;
-
+    private final PluginWrapper pluginWrapper;
     private final ReactiveExtensionClient client;
     private final SettingConfigGetter settingConfigGetter;
 
@@ -58,10 +58,12 @@ public class ChatPostProcess implements TemplateHeadProcessor {
      * 向页面插入摘要框所需的 CSS、主 JS 脚本和动态初始化 JS。
      */
     private Mono<Void> insertJsAndCss(String jsContent, IModel iModel, IModelFactory modelFactory) {
-        // 插入 CSS
-        String cssTag = "<link rel=\"stylesheet\" href=\"/plugins/summaraidGPT/assets/static/ArticleSummary.css\" />";
-        // 插入主 JS 脚本
-        String mainJsTag = "<script src=\"/plugins/summaraidGPT/assets/static/ArticleSummary.js\"></script>";
+        // 获取插件版本号
+        String version = pluginWrapper.getDescriptor().getVersion();
+        // 插入 CSS，添加版本号参数
+        String cssTag = "<link rel=\"stylesheet\" href=\"/plugins/summaraidGPT/assets/static/ArticleSummary.css?version=" + version + "\" />";
+        // 插入主 JS 脚本，添加版本号参数
+        String mainJsTag = "<script src=\"/plugins/summaraidGPT/assets/static/ArticleSummary.js?version=" + version + "\"></script>";
         // 拼接完整 HTML 内容
         String fullScript = String.join("\n", cssTag, mainJsTag, jsContent);
         iModel.add(modelFactory.createText(fullScript));
@@ -77,7 +79,6 @@ public class ChatPostProcess implements TemplateHeadProcessor {
             SettingConfigGetter.StyleConfig styleConfig,
             SettingConfigGetter.BasicConfig basicConfig,Boolean isPost) {
         final Properties properties = getProperties(summaryConfig, styleConfig,basicConfig,isPost);
-
         // JS 初始化模板
         // JS 初始化模板
         String script = """
