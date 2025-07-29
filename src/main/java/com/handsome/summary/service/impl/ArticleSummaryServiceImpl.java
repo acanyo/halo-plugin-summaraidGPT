@@ -13,9 +13,11 @@ import com.handsome.summary.service.ArticleSummaryService;
 import com.handsome.summary.service.SettingConfigGetter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -47,6 +49,10 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
     public static final String ENABLE_BLACK_LIST = "summary.lik.cc/enable-black-list";
     public static final String DEFAULT_AI_SYSTEM_PROMPT = "你是专业摘要助手，请为以下文章生成简明摘要：";
     public static final String DEFAULT_SUMMARY_ERROR_MESSAGE = "文章摘要生成异常：";
+
+    // 进度状态变量
+    private final java.util.concurrent.atomic.AtomicInteger total = new java.util.concurrent.atomic.AtomicInteger();
+    private final java.util.concurrent.atomic.AtomicInteger finished = new java.util.concurrent.atomic.AtomicInteger();
 
     /**
      * 获取指定文章的AI摘要
@@ -97,6 +103,38 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
             .onErrorResume(e -> handleUpdateError(e, postMetadataName));
     }
 
+    @Override
+    @Async
+    public void syncAllSummariesAsync() {
+        total.set(0);
+        finished.set(0);
+        java.util.List<Post> posts = client.listAll(Post.class, new ListOptions(), Sort.unsorted()).collectList().block();
+        if (posts != null) {
+            total.set(posts.size());
+            for (Post post : posts) {
+                var annotations = nullSafeAnnotations(post);
+                var newPostNotified = annotations.getOrDefault(AI_SUMMARY_UPDATED,"false");
+                if (Objects.equals(newPostNotified,"false")) {
+                    log.info("开始摘要同步，文章: {}", post.getMetadata().getName());
+                    try {
+                        getSummary(post).block();
+                        finished.incrementAndGet();
+                    } catch (Exception e) {
+                        log.error("摘要同步失败，文章: {}，错误: {}", post.getMetadata().getName(), e.getMessage());
+                        finished.incrementAndGet();
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public Mono<Map<String, Integer>> getSyncProgress() {
+        Map<String, Integer> progress = new HashMap<>();
+        progress.put("total", total.get());
+        progress.put("finished", finished.get());
+        return Mono.just(progress);
+    }
 
     /**
      * 使用配置生成摘要

@@ -7,6 +7,26 @@ spec:
     - group: basic
       label: 基本设置
       formSchema:
+        - $el: div
+          attrs:
+            class: formkit-actions
+          children:
+            - $el: button
+              if: true # 如需加条件可替换 true
+              attrs:
+                type: button
+                id: syncAllSummaryBtn
+                onclick: "syncAllSummary()"
+                class: "btn-md btn-primary btn flex items-center gap-2"
+              children:
+                - $el: span
+                  attrs:
+                    id: syncAllSummaryBtnIcon
+                    class: "hidden"
+                - $el: span
+                  attrs:
+                    id: syncAllSummaryBtnText
+                  children: 同步所有文章AI摘要
         - $el: a
           attrs:
             href: "https://docs.lik.cc"
@@ -168,7 +188,7 @@ spec:
           name: target
           id: target
           key: target
-          value: ".article-content"
+          value: "article"
           help: "摘要框插入的目标元素选择器"
         - $formkit: text
           label: 文章路由
@@ -319,3 +339,32 @@ spec:
           key: themeContentFontSize
           value: "16px"
           help: "内容文字字体大小"
+        - $el: script
+          attrs:
+            type: text/javascript
+          children: |
+            async function syncAllSummary() {
+              const btn = document.getElementById('syncAllSummaryBtn');
+              const btnText = document.getElementById('syncAllSummaryBtnText');
+              btn.disabled = true;
+              const oldText = btnText.textContent;
+              btnText.textContent = '同步中...';
+              try {
+                const response = await fetch('/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/syncAll', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+                if (!response.ok) {
+                  throw new Error('同步失败');
+                }
+                const result = await response.text();
+                alert(result || '同步成功！');
+              } catch (err) {
+                alert('同步失败：' + err.message);
+              } finally {
+                btn.disabled = false;
+                btnText.textContent = oldText;
+              }
+            }

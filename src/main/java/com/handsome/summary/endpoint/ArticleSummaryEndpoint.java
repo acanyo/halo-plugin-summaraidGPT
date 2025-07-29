@@ -81,6 +81,18 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
                     .description("根据 permalink 更新文章内容")
                     .response(responseBuilder().implementation(String.class))
             )
+            .POST("/syncAll", this::syncAllSummaries,
+                builder -> builder.operationId("SyncAllSummaries")
+                    .tag(tag)
+                    .description("异步触发全量摘要同步")
+                    .response(responseBuilder().implementation(String.class))
+            )
+            .GET("/syncProgress", this::getSyncProgress,
+                builder -> builder.operationId("GetSyncProgress")
+                    .tag(tag)
+                    .description("查询全量摘要同步进度")
+                    .response(responseBuilder().implementation(String.class))
+            )
             .build();
     }
 
@@ -169,6 +181,17 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
         return ServerResponse.ok()
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(errorResponse);
+    }
+
+    private Mono<ServerResponse> syncAllSummaries(ServerRequest request) {
+        articleSummaryService.syncAllSummariesAsync();
+        return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("已异步触发全量摘要同步");
+    }
+
+    private Mono<ServerResponse> getSyncProgress(ServerRequest request) {
+        return articleSummaryService.getSyncProgress()
+            .flatMap(progress -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).bodyValue(progress));
     }
 
     /**
