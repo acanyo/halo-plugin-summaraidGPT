@@ -4,7 +4,6 @@ import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder
 import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
 
 import com.handsome.summary.service.ArticleSummaryService;
-import com.handsome.summary.service.SettingConfigGetter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +27,7 @@ import static run.halo.app.extension.index.query.QueryFactory.isNotNull;
 import org.springframework.data.domain.Sort;
 import run.halo.app.extension.router.selector.FieldSelector;
 import com.handsome.summary.extension.Summary;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * 文章摘要API端点
@@ -184,7 +184,12 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> syncAllSummaries(ServerRequest request) {
-        articleSummaryService.syncAllSummariesAsync();
+        // 立即启动后台任务，不等待完成
+        articleSummaryService.syncAllSummariesAsync()
+            .subscribeOn(Schedulers.boundedElastic())
+            .subscribe();
+        
+        // 立即返回响应
         return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
             .bodyValue("已异步触发全量摘要同步");
     }

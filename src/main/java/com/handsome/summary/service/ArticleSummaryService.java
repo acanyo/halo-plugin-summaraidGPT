@@ -26,7 +26,7 @@ public interface ArticleSummaryService {
 
     Mono<Map<String, Object>> updatePostContentWithSummary(String postMetadataName);
 
-    void syncAllSummariesAsync();
+    Mono<Void> syncAllSummariesAsync();
     /**
      * 查询当前批量同步进度
      * @return Map 包含 total, finished

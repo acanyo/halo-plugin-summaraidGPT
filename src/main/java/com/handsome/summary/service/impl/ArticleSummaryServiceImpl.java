@@ -17,7 +17,6 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -27,6 +26,7 @@ import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.Metadata;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.router.selector.FieldSelector;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * 文章摘要服务实现类
@@ -104,28 +104,28 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
     }
 
     @Override
-    @Async
-    public void syncAllSummariesAsync() {
+    public Mono<Void> syncAllSummariesAsync() {
         total.set(0);
         finished.set(0);
-        java.util.List<Post> posts = client.listAll(Post.class, new ListOptions(), Sort.unsorted()).collectList().block();
-        if (posts != null) {
-            total.set(posts.size());
-            for (Post post : posts) {
+        return client.listAll(Post.class, new ListOptions(), Sort.unsorted())
+            .doOnNext(post -> total.incrementAndGet())
+            .filter(post -> {
                 var annotations = nullSafeAnnotations(post);
-                var newPostNotified = annotations.getOrDefault(AI_SUMMARY_UPDATED,"false");
-                if (Objects.equals(newPostNotified,"false")) {
-                    log.info("开始摘要同步，文章: {}", post.getMetadata().getName());
-                    try {
-                        getSummary(post).block();
-                        finished.incrementAndGet();
-                    } catch (Exception e) {
+                var newPostNotified = annotations.getOrDefault(AI_SUMMARY_UPDATED, "false");
+                return Objects.equals(newPostNotified, "false");
+            })
+            .flatMap(post -> {
+                log.info("开始摘要同步，文章: {}", post.getMetadata().getName());
+                return getSummary(post)
+                    .doOnSuccess(s -> finished.incrementAndGet())
+                    .onErrorResume(e -> {
                         log.error("摘要同步失败，文章: {}，错误: {}", post.getMetadata().getName(), e.getMessage());
                         finished.incrementAndGet();
-                    }
-                }
-            }
-        }
+                        return Mono.empty();
+                    });
+            }, 3) // 并发数
+            .subscribeOn(Schedulers.boundedElastic()) // 在后台线程池执行
+            .then();
     }
 
     @Override
