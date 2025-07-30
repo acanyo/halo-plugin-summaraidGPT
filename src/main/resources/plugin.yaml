@@ -16,7 +16,7 @@ spec:
   configMapName: plugin-summaraidGPT-configMap
   homepage: https://lik.cc
   repo: https://github.com/acanyo/halo-plugin-summaraidGPT
-  issues: https://github.com/acanyo/halo-plugin-summaraidGPT/issues
+  issues: https://www.lik.cc/subject/subject-brhugeis
   displayName: "智阅GPT-智能AI摘要"
   description: "智阅点睛，一键洞见——Halo智能AI摘要插件"
   license:
