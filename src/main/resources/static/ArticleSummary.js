@@ -231,6 +231,9 @@
       const foundElement = document.querySelector(selector);
       if (foundElement) {
         targetElement = foundElement;
+      } else {
+        console.info(`[智阅GPT] 未找到指定的目标元素: ${selector}，摘要功能已关闭`);
+        return null;
       }
     }
     // 插入到目标元素内部最前面
