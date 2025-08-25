@@ -30,7 +30,7 @@ export default definePlugin({
                 Dialog.warning({
                   title: '同步摘要内容',
                   description:
-                    '同步此文章内容会从新发布AI，此操作数据无法逆转！',
+                    '同步此文章内容会重新发布AI，此操作数据无法逆转！',
                   onConfirm: async () => {
                     try {
                       await axios.post(

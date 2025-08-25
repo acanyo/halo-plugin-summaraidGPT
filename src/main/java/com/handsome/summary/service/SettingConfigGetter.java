@@ -7,6 +7,7 @@ public interface SettingConfigGetter {
     Mono<BasicConfig> getBasicConfig();
     Mono<SummaryConfig> getSummaryConfig();
     Mono<StyleConfig> getStyleConfig();
+    Mono<TagsConfig> getTagsConfig();
 
     @Data
     class BasicConfig {
@@ -53,7 +54,15 @@ public interface SettingConfigGetter {
         private String themeBorder;
         private String themeShadow;
         private String themeTagBg;
+        private String themeTagColor;
         private String themeCursor;
         private String themeContentFontSize;
+    }
+
+    @Data
+    class TagsConfig {
+        public static final String GROUP = "tags";
+        private String tagGenerationPrompt;
+        private Integer tagGenerationCount;
     }
 }

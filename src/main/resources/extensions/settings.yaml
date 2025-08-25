@@ -19,7 +19,7 @@ spec:
               align-items: "center"
           children:
             - $el: span
-              children: "查看 Ink 智阅GPT 帮助文档"
+              children: "查看 智阅GPT 帮助文档"
             - $el: img
               attrs:
                 src: "/plugins/summaraidGPT/assets/static/img/link.svg"
@@ -384,6 +384,14 @@ spec:
           value: "#f0f4ff"
           help: "标签背景色"
         - $formkit: color
+          label: 标签文字颜色
+          if: $get(themeName).value == "custom"
+          name: themeTagColor
+          id: themeTagColor
+          key: themeTagColor
+          value: "#4F8DFD"
+          help: "标签文字颜色"
+        - $formkit: color
           label: 光标颜色
           if: $get(themeName).value == "custom"
           name: themeCursor
@@ -399,4 +407,25 @@ spec:
           key: themeContentFontSize
           value: "16px"
           help: "内容文字字体大小"
+        
+    - group: tags
+      label: 标签生成设置
+      formSchema:
+        - $formkit: textarea
+          label: 标签生成角色设定
+          name: tagGenerationPrompt
+          id: tagGenerationPrompt
+          key: tagGenerationPrompt
+          value: "你是一个专业的标签生成助手，请根据文章内容生成相关的标签。标签应该准确反映文章主题，包含核心关键词，适合SEO优化，标签尽量控制在2-4字，用中文表达。"
+          help: "AI标签生成的角色设定和指令"
+        
+        - $formkit: number
+          label: 标签生成数量
+          name: tagGenerationCount
+          id: tagGenerationCount
+          key: tagGenerationCount
+          value: 6
+          min: 1
+          max: 5
+          help: "每篇文章生成的标签数量"
         

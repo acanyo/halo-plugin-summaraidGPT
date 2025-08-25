@@ -78,6 +78,12 @@
   --likcc-summaraid-contentFontSize: 14px;
 }
 
+/* 自定义主题样式 - 现在由JavaScript动态设置CSS变量 */
+.likcc-summaraidGPT-summary--custom {
+  /* 自定义主题的CSS变量由JavaScript动态设置 */
+  /* 这里不需要硬编码任何值，保持默认值即可 */
+}
+
 .likcc-summaraidGPT-summary-container {
   width: 100%;
   box-sizing: border-box;

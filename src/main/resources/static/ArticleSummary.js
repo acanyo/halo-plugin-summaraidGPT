@@ -90,6 +90,24 @@
     );
   }
 
+  // 应用自定义主题CSS变量
+  function applyCustomTheme(theme, container) {
+    if (!theme || typeof theme !== 'object') return;
+
+    // 直接在容器元素上设置CSS变量，避免全局污染
+    if (theme.bg) container.style.setProperty('--likcc-summaraid-bg', theme.bg);
+    if (theme.main) container.style.setProperty('--likcc-summaraid-main', theme.main);
+    if (theme.contentFontSize) container.style.setProperty('--likcc-summaraid-contentFontSize', theme.contentFontSize);
+    if (theme.title) container.style.setProperty('--likcc-summaraid-title', theme.title);
+    if (theme.content) container.style.setProperty('--likcc-summaraid-content', theme.content);
+    if (theme.gptName) container.style.setProperty('--likcc-summaraid-gptName', theme.gptName);
+    if (theme.contentBg) container.style.setProperty('--likcc-summaraid-contentBg', theme.contentBg);
+    if (theme.border) container.style.setProperty('--likcc-summaraid-border', theme.border);
+    if (theme.shadow) container.style.setProperty('--likcc-summaraid-shadow', theme.shadow);
+    if (theme.tagBg) container.style.setProperty('--likcc-summaraid-tagBg', theme.tagBg);
+    if (theme.cursor) container.style.setProperty('--likcc-summaraid-cursor', theme.cursor);
+  }
+
   // 公共主题切换函数
   function updateSummaryTheme(isDark) {
     document.querySelectorAll('.likcc-summaraidGPT-summary-container').forEach(container => {
@@ -97,7 +115,8 @@
               'likcc-summaraidGPT-summary--dark',
               'likcc-summaraidGPT-summary--blue',
               'likcc-summaraidGPT-summary--green',
-              'likcc-summaraidGPT-summary--default'
+              'likcc-summaraidGPT-summary--default',
+              'likcc-summaraidGPT-summary--custom'
       );
       container.classList.add(isDark ? 'likcc-summaraidGPT-summary--dark' : 'likcc-summaraidGPT-summary--default');
     });
@@ -189,11 +208,13 @@
     }
 
     document.querySelectorAll('.likcc-summaraidGPT-summary-container').forEach(el => el.remove());
+
+    // 主题处理逻辑
     let finalThemeName = '';
     if (config.darkSelector && isDarkBySelector(config.darkSelector)) {
       finalThemeName = 'dark';
     } else if (config.themeName === 'custom') {
-      finalThemeName = '';
+      finalThemeName = 'custom';
     } else if (config.themeName) {
       finalThemeName = config.themeName;
     } else {
@@ -209,7 +230,7 @@
       target: 'body', // 默认插入到body
       /**
        * themeName: 'default' | 'dark' | 'blue' | 'green' | 'custom'
-       * - 'custom' 时用 theme 配色
+       * - 'custom' 时用 theme 配色（通过CSS变量实现）
        * - 其他为内置主题
        * - darkSelector 命中时强制 dark
        */
@@ -224,6 +245,7 @@
     // 创建摘要框HTML片段
     const summaryBoxHTML = likcc_summaraidGPT_createSummaryBoxHTML(finalConfig);
     const fragment = document.createRange().createContextualFragment(summaryBoxHTML);
+
     // 确定插入位置
     let targetElement = document.body;
     if (finalConfig.target && finalConfig.target !== 'body') {
@@ -236,6 +258,7 @@
         return null;
       }
     }
+
     // 插入到目标元素内部最前面
     let summaryContainer;
     if (targetElement.firstChild) {
@@ -245,6 +268,7 @@
       targetElement.appendChild(fragment);
       summaryContainer = targetElement.querySelector('.likcc-summaraidGPT-summary-container');
     }
+
     // 主题class注入
     let themeClass = '';
     if (finalThemeName === 'dark') {
@@ -253,10 +277,17 @@
       themeClass = 'likcc-summaraidGPT-summary--blue';
     } else if (finalThemeName === 'green') {
       themeClass = 'likcc-summaraidGPT-summary--green';
+    } else if (finalThemeName === 'custom') {
+      themeClass = 'likcc-summaraidGPT-summary--custom';
+      // 应用自定义主题CSS变量
+      if (finalConfig.theme) {
+        applyCustomTheme(finalConfig.theme, summaryContainer);
+      }
     } else {
       themeClass = 'likcc-summaraidGPT-summary--default';
     }
     summaryContainer.classList.add(themeClass);
+
     // 集成实时深色模式监听
     if (config.darkSelector) {
       observeDarkSelector(config.darkSelector);
