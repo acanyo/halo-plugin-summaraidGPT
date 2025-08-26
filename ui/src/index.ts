@@ -53,6 +53,43 @@ export default definePlugin({
                 });
               },
             },
+            {
+              priority: 1,
+              component: markRaw(VDropdownItem),
+              label: '同步文章标签',
+              visible: true,
+              action: async (item?: ListedPost) => {
+                if (!item) return;
+                const postName = item.post.metadata?.name;
+                if (!postName) {
+                  Toast.error('未获取到文章标识');
+                  return;
+                }
+                try {
+                  const { data } = await axios.post(
+                    `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/generateTags`,
+                    { postName, ensure: true },
+                    { headers: { 'Content-Type': 'application/json' } }
+                  );
+                  const tags: string[] = Array.isArray(data?.tags) ? data.tags : [];
+                  if (!data?.success) {
+                    Toast.error(data?.message || '生成标签失败');
+                    return;
+                  }
+                  Dialog.info({
+                    title: 'AI 推荐标签',
+                    description: tags.length ? tags.join('，') : '未生成到可用标签',
+                  });
+                  Toast.success('同步AI完成');
+                } catch (error) {
+                  if (error instanceof AxiosError) {
+                    Toast.error(error.response?.data?.detail || '请求失败，请重试');
+                  } else {
+                    Toast.error('请求异常，请重试');
+                  }
+                }
+              },
+            },
           ],
         },
       ];

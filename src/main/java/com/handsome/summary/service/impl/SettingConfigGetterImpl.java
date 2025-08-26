@@ -28,4 +28,10 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
         return settingFetcher.fetch(StyleConfig.GROUP, StyleConfig.class)
             .defaultIfEmpty(new StyleConfig());
     }
+
+    @Override
+    public Mono<TagsConfig> getTagsConfig() {
+        return settingFetcher.fetch(TagsConfig.GROUP, TagsConfig.class)
+            .defaultIfEmpty(new TagsConfig());
+    }
 }

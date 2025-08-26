@@ -418,7 +418,6 @@ spec:
           key: tagGenerationPrompt
           value: "你是一个专业的标签生成助手，请根据文章内容生成相关的标签。标签应该准确反映文章主题，包含核心关键词，适合SEO优化，标签尽量控制在2-4字，用中文表达。"
           help: "AI标签生成的角色设定和指令"
-        
         - $formkit: number
           label: 标签生成数量
           name: tagGenerationCount
