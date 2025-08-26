@@ -220,13 +220,21 @@
   transform: translateX(1px);
 }
 
+/* 底部区域样式 */
+.likcc-summaraidGPT-bottom-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--likcc-summaraid-border, #f3e6f9);
+  gap: 1rem;
+}
+
 /* 按钮组样式 */
 .likcc-summaraidGPT-button-group {
   display: flex;
   gap: 0.35rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--likcc-summaraid-border, #f3e6f9);
   flex-wrap: wrap;
   justify-content: flex-start;
 }
@@ -295,6 +303,12 @@
 
 /* 响应式按钮布局 */
 @media (max-width: 480px) {
+  .likcc-summaraidGPT-bottom-area {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
   .likcc-summaraidGPT-button-group {
     gap: 0.25rem;
   }
@@ -302,6 +316,12 @@
   .likcc-summaraidGPT-button {
     padding: 0.3rem 0.7rem;
     font-size: 0.7rem;
+  }
+
+  .likcc-summaraidGPT-disclaimer {
+    text-align: left;
+    white-space: normal;
+    font-size: 0.65rem;
   }
 }
 
@@ -360,6 +380,17 @@
 
 .likcc-summaraidGPT-recommendations a:hover {
   color: var(--likcc-summaraid-main, #4F8DFD);
+}
+
+/* 摘要免责声明 */
+.likcc-summaraidGPT-disclaimer {
+  font-size: 0.7rem;
+  color: var(--likcc-summaraid-gptName, #a16cea);
+  text-align: right;
+  line-height: 1.4;
+  font-style: italic;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* 介绍信息样式 */

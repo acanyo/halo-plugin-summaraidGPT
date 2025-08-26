@@ -76,19 +76,24 @@
                         <p>这里将支持针对文章内容的智能问答</p>
                     </div>
                 </div>
-                <div class="likcc-summaraidGPT-button-group">
-                    <button class="likcc-summaraidGPT-button active" data-action="summary">
-                        📖 显示摘要
-                    </button>
-                    <button class="likcc-summaraidGPT-button" data-action="recommendations">
-                        📚 推荐阅读
-                    </button>
-                    <button class="likcc-summaraidGPT-button" data-action="qa">
-                        ❓ 文章问答
-                    </button>
-                    <button class="likcc-summaraidGPT-button" data-action="intro">
-                        🤖 介绍自己
-                    </button>
+                <div class="likcc-summaraidGPT-bottom-area">
+                    <div class="likcc-summaraidGPT-button-group">
+                        <button class="likcc-summaraidGPT-button active" data-action="summary">
+                            📖 显示摘要
+                        </button>
+                        <button class="likcc-summaraidGPT-button" data-action="recommendations">
+                            📚 推荐阅读
+                        </button>
+                        <button class="likcc-summaraidGPT-button" data-action="qa">
+                            ❓ 文章问答
+                        </button>
+                        <button class="likcc-summaraidGPT-button" data-action="intro">
+                            🤖 介绍自己
+                        </button>
+                    </div>
+                    <div class="likcc-summaraidGPT-disclaimer">
+                        此摘要由智阅GPT分析文章内容生成，仅供参考。
+                    </div>
                 </div>
             </div>
         `;
