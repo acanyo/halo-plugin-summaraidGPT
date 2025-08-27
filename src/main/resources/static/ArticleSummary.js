@@ -109,7 +109,24 @@
   }
 
   // 公共主题切换函数
-  function updateSummaryTheme(isDark) {
+  function clearCustomThemeVars(container) {
+    const vars = [
+      '--likcc-summaraid-bg',
+      '--likcc-summaraid-main',
+      '--likcc-summaraid-contentFontSize',
+      '--likcc-summaraid-title',
+      '--likcc-summaraid-content',
+      '--likcc-summaraid-gptName',
+      '--likcc-summaraid-contentBg',
+      '--likcc-summaraid-border',
+      '--likcc-summaraid-shadow',
+      '--likcc-summaraid-tagBg',
+      '--likcc-summaraid-cursor',
+    ];
+    vars.forEach(v => container.style.removeProperty(v));
+  }
+
+  function updateSummaryTheme(isDark, themeName, themeObj) {
     document.querySelectorAll('.likcc-summaraidGPT-summary-container').forEach(container => {
       container.classList.remove(
               'likcc-summaraidGPT-summary--dark',
@@ -118,11 +135,29 @@
               'likcc-summaraidGPT-summary--default',
               'likcc-summaraidGPT-summary--custom'
       );
-      container.classList.add(isDark ? 'likcc-summaraidGPT-summary--dark' : 'likcc-summaraidGPT-summary--default');
+      if (isDark) {
+        // 进入暗色模式时清除可能存在的自定义变量，避免覆盖暗色主题变量
+        clearCustomThemeVars(container);
+        container.classList.add('likcc-summaraidGPT-summary--dark');
+      } else {
+        let cls = 'likcc-summaraidGPT-summary--default';
+        if (themeName === 'custom') cls = 'likcc-summaraidGPT-summary--custom';
+        else if (themeName === 'blue') cls = 'likcc-summaraidGPT-summary--blue';
+        else if (themeName === 'green') cls = 'likcc-summaraidGPT-summary--green';
+        else if (themeName === 'default' || !themeName) cls = 'likcc-summaraidGPT-summary--default';
+        // 非暗色：如果是自定义主题，动态重新应用自定义CSS变量
+        if (cls === 'likcc-summaraidGPT-summary--custom') {
+          applyCustomTheme(themeObj, container);
+        } else {
+          // 切换到非自定义内置主题时清理旧的自定义变量
+          clearCustomThemeVars(container);
+        }
+        container.classList.add(cls);
+      }
     });
   }
 
-  function observeDarkSelector(selector) {
+  function observeDarkSelector(selector, themeName, themeObj) {
     const html = document.documentElement;
     const body = document.body;
     if (!selector) return;
@@ -146,7 +181,7 @@
       checkIsDark = () => (html.classList.contains(className) || body.classList.contains(className));
     }
 
-    const callback = () => updateSummaryTheme(checkIsDark());
+    const callback = () => updateSummaryTheme(checkIsDark(), themeName, themeObj);
 
     new MutationObserver(callback).observe(html, obsConfig);
     new MutationObserver(callback).observe(body, obsConfig);
@@ -290,7 +325,7 @@
 
     // 集成实时深色模式监听
     if (config.darkSelector) {
-      observeDarkSelector(config.darkSelector);
+      observeDarkSelector(config.darkSelector, finalThemeName, finalConfig.theme);
     }
 
     // 获取内容元素并通过API动态获取摘要
