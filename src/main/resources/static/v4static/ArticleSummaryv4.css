@@ -1,0 +1,518 @@
+/**
+ * likcc-summaraidGPT AI摘要框样式
+ * 现代化设计，支持动画效果和响应式布局
+ */
+
+/* 主题色变量 */
+:root {
+  --likcc-summaraid-bg: #f7f9fe;
+  --likcc-summaraid-main: #425AEF;
+  --likcc-summaraid-title: #363636;
+  --likcc-summaraid-gptName: #999999;
+  --likcc-summaraid-contentBg: #fff;
+  --likcc-summaraid-border: #e3e8f7;
+  --likcc-summaraid-shadow: 0 4px 24px rgba(66,90,239,0.08);
+  --likcc-summaraid-tagBg: #f0f4ff;
+  --likcc-summaraid-tagColor: #425AEF;
+  --likcc-summaraid-cursor: #425AEF;
+  --likcc-summaraid-contentFontSize: 14px;
+}
+
+.likcc-summaraidGPT-summary--dark {
+  --likcc-summaraid-bg: #23272e;
+  --likcc-summaraid-main: #90caf9;
+  --likcc-summaraid-title: #fff;
+  --likcc-summaraid-content: #e3e8f7;
+  --likcc-summaraid-gptName: #b0b8c9;
+  --likcc-summaraid-contentBg: #2a2d32;
+  --likcc-summaraid-border: #444;
+  --likcc-summaraid-shadow: 0 2px 16px 0 rgba(0,0,0,0.18);
+  --likcc-summaraid-tagBg: rgba(255,255,255,0.12);
+  --likcc-summaraid-tagColor: #7ca6ff;
+  --likcc-summaraid-cursor: #90caf9;
+  --likcc-summaraid-contentFontSize: 14px;
+}
+
+.likcc-summaraidGPT-summary--default {
+  --likcc-summaraid-bg: #f7f9fe;
+  --likcc-summaraid-main: #4F8DFD;
+  --likcc-summaraid-title: #3A5A8C;
+  --likcc-summaraid-content: #222;
+  --likcc-summaraid-gptName: #7B88A8;
+  --likcc-summaraid-contentBg: #fff;
+  --likcc-summaraid-border: #e3e8f7;
+  --likcc-summaraid-shadow: 0 2px 12px 0 rgba(60,80,180,0.08);
+  --likcc-summaraid-tagBg: #f0f4ff;
+  --likcc-summaraid-tagColor: #4F8DFD;
+  --likcc-summaraid-cursor: #4F8DFD;
+  --likcc-summaraid-contentFontSize: 14px;
+}
+
+.likcc-summaraidGPT-summary--blue {
+  --likcc-summaraid-bg: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  --likcc-summaraid-main: #1976d2;
+  --likcc-summaraid-title: #1976d2;
+  --likcc-summaraid-content: #22577a;
+  --likcc-summaraid-gptName: #fff;
+  --likcc-summaraid-contentBg: #fafdff;
+  --likcc-summaraid-border: #90caf9;
+  --likcc-summaraid-shadow: 0 2px 12px 0 rgba(66,165,245,0.10);
+  --likcc-summaraid-tagBg: linear-gradient(90deg, #b3e5fc 0%, #e3f2fd 100%);
+  --likcc-summaraid-tagColor: #1976d2;
+  --likcc-summaraid-cursor: #1976d2;
+  --likcc-summaraid-contentFontSize: 14px;
+}
+
+.likcc-summaraidGPT-summary--green {
+  --likcc-summaraid-bg: linear-gradient(135deg, #e0f7fa 0%, #a5d6a7 100%);
+  --likcc-summaraid-main: #43a047;
+  --likcc-summaraid-title: #2e7d32;
+  --likcc-summaraid-content: #225744;
+  --likcc-summaraid-gptName: #fff;
+  --likcc-summaraid-contentBg: #fafdff;
+  --likcc-summaraid-border: #a5d6a7;
+  --likcc-summaraid-shadow: 0 2px 12px 0 rgba(67,160,71,0.10);
+  --likcc-summaraid-tagBg: linear-gradient(90deg, #b2dfdb 0%, #e0f7fa 100%);
+  --likcc-summaraid-tagColor: #43a047;
+  --likcc-summaraid-cursor: #43a047;
+  --likcc-summaraid-contentFontSize: 14px;
+}
+
+/* 自定义主题样式 - 现在由JavaScript动态设置CSS变量 */
+.likcc-summaraidGPT-summary--custom {
+  /* 自定义主题的CSS变量由JavaScript动态设置 */
+  /* 这里不需要硬编码任何值，保持默认值即可 */
+}
+
+.likcc-summaraidGPT-summary-container {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 0.7rem;
+  background: var(--likcc-summaraid-bg, rgba(250, 245, 255, 0.85));
+  border: 1px solid var(--likcc-summaraid-border, #f3e6f9);
+  box-shadow: var(--likcc-summaraid-shadow, 0 1px 4px 0 rgba(177,108,234,0.04));
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  z-index: 0;
+  line-height: 1.5;
+  padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+  font-size: 0.98rem;
+  transition: box-shadow 0.25s, background 0.2s, transform 0.18s;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: likcc-summaraidGPT-fadein 0.7s cubic-bezier(.4,1.4,.6,1) forwards;
+  margin: 0.25rem 0;
+}
+@keyframes likcc-summaraidGPT-fadein {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.likcc-summaraidGPT-summary-container:hover {
+  box-shadow: 0 10px 32px 0 rgba(60,80,180,0.13), 0 2px 8px 0 rgba(60,80,180,0.07);
+  transform: translateY(-1.5px) scale(1.01);
+}
+
+.likcc-summaraidGPT-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  background: none;
+  box-shadow: none;
+}
+
+.likcc-summaraidGPT-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.likcc-summaraidGPT-logo {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 0.3rem;
+  background: #fff;
+  border: 1px solid var(--likcc-summaraid-border, #f3e6f9);
+  box-shadow: none;
+  object-fit: cover;
+}
+
+.likcc-summaraidGPT-summary-title {
+  font-weight: 600;
+  font-size: 0.97rem;
+  color: var(--likcc-summaraid-title, #5a3a7a);
+  margin-right: 0.4rem;
+}
+
+.likcc-summaraidGPT-gpt-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--likcc-summaraid-gptName, #a16cea);
+  background: var(--likcc-summaraid-tagBg, linear-gradient(90deg, #b3e5fc 0%, #e3f2fd 100%));
+  border-radius: 0.35rem;
+  padding: 1px 7px;
+  margin-left: auto;
+  min-width: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: none;
+}
+.likcc-summaraidGPT-gpt-name::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(66,90,239,0.13), transparent);
+  animation: likcc-summaraidGPT-shine 3s infinite linear;
+  pointer-events: none;
+}
+@keyframes likcc-summaraidGPT-shine {
+  0% { left: -100%; }
+  20% { left: 100%; }
+  100% { left: 100%; }
+}
+
+/* 推荐阅读区域 */
+.likcc-summaraidGPT-reco {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--likcc-summaraid-border, #f3e6f9);
+}
+
+.likcc-summaraidGPT-reco-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--likcc-summaraid-title, #5a3a7a);
+  margin-bottom: 0.35rem;
+}
+
+.likcc-summaraidGPT-reco-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.likcc-summaraidGPT-reco-item a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--likcc-summaraid-main, #4F8DFD);
+  text-decoration: none;
+  line-height: 1.6;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.likcc-summaraidGPT-reco-item a::after {
+  content: '\2192';
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.likcc-summaraidGPT-reco-item a:hover {
+  color: var(--likcc-summaraid-title, #3A5A8C);
+  text-decoration: underline;
+  transform: translateX(1px);
+}
+
+/* 底部区域样式 */
+.likcc-summaraidGPT-bottom-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--likcc-summaraid-border, #f3e6f9);
+  gap: 1rem;
+}
+
+/* 按钮组样式 */
+.likcc-summaraidGPT-button-group {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.likcc-summaraidGPT-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.8rem;
+  background: var(--likcc-summaraid-contentBg, #fff);
+  border: 1.5px solid var(--likcc-summaraid-border, #f3e6f9);
+  border-radius: 2rem;
+  color: var(--likcc-summaraid-main, #4F8DFD);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.likcc-summaraidGPT-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.likcc-summaraidGPT-button:hover::before {
+  left: 100%;
+}
+
+.likcc-summaraidGPT-button:hover {
+  background: var(--likcc-summaraid-main, #4F8DFD);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66,90,239,0.25);
+  border-color: var(--likcc-summaraid-main, #4F8DFD);
+}
+
+.likcc-summaraidGPT-button.active {
+  background: var(--likcc-summaraid-main, #4F8DFD);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(66,90,239,0.3);
+  border-color: var(--likcc-summaraid-main, #4F8DFD);
+  transform: translateY(-1px);
+}
+
+.likcc-summaraidGPT-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(66,90,239,0.2);
+}
+
+.likcc-summaraidGPT-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 响应式按钮布局 */
+@media (max-width: 480px) {
+  .likcc-summaraidGPT-bottom-area {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .likcc-summaraidGPT-button-group {
+    gap: 0.25rem;
+  }
+
+  .likcc-summaraidGPT-button {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.7rem;
+  }
+
+  .likcc-summaraidGPT-disclaimer {
+    text-align: left;
+    white-space: normal;
+    font-size: 0.65rem;
+  }
+}
+
+/* 内容区域样式 */
+.likcc-summaraidGPT-content-area {
+  min-height: 2rem;
+  transition: opacity 0.3s ease;
+}
+
+.likcc-summaraidGPT-content-area.hidden {
+  display: none;
+}
+
+/* 推荐阅读列表样式 */
+.likcc-summaraidGPT-recommendations {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.likcc-summaraidGPT-recommendations ul {
+  list-style: none !important;
+  padding: 0;
+  margin: 0;
+}
+
+.likcc-summaraidGPT-recommendations li {
+  list-style: none !important;
+  list-style-type: none !important;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background: var(--likcc-summaraid-contentBg, #fff);
+  border: 1px solid var(--likcc-summaraid-border, #f3e6f9);
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.likcc-summaraidGPT-recommendations li:last-child {
+  margin-bottom: 0;
+}
+
+.likcc-summaraidGPT-recommendations li:hover {
+  border-color: var(--likcc-summaraid-main, #4F8DFD);
+  box-shadow: 0 2px 8px rgba(66,90,239,0.1);
+  transform: translateY(-1px);
+}
+
+.likcc-summaraidGPT-recommendations a {
+  color: var(--likcc-summaraid-title, #5a3a7a);
+  text-decoration: none;
+  display: block;
+  font-weight: 500;
+  line-height: 1.5;
+  transition: color 0.2s ease;
+}
+
+.likcc-summaraidGPT-recommendations a:hover {
+  color: var(--likcc-summaraid-main, #4F8DFD);
+}
+
+/* 摘要免责声明 */
+.likcc-summaraidGPT-disclaimer {
+  font-size: 0.7rem;
+  color: var(--likcc-summaraid-gptName, #a16cea);
+  text-align: right;
+  line-height: 1.4;
+  font-style: italic;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* 介绍信息样式 */
+.likcc-summaraidGPT-intro {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.likcc-summaraidGPT-intro h3 {
+  color: var(--likcc-summaraid-title, #5a3a7a);
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.likcc-summaraidGPT-intro p {
+  color: var(--likcc-summaraid-content, #4b2e5c);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+/* 问答区域样式 */
+.likcc-summaraidGPT-qa {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.likcc-summaraidGPT-qa .placeholder {
+  color: var(--likcc-summaraid-gptName, #a16cea);
+  font-style: italic;
+}
+
+.likcc-summaraidGPT-summary-content {
+  background: var(--likcc-summaraid-contentBg, rgba(255,255,255,0.92));
+  border-radius: 0.45rem;
+  padding: 0.4rem 0.4rem 0.3rem 0.4rem;
+  font-size: var(--likcc-summaraid-contentFontSize, 14px);
+  color: var(--likcc-summaraid-content, #4b2e5c);
+  border: 1px solid var(--likcc-summaraid-border, #f3e6f9);
+  margin: 0;
+  word-break: break-word;
+  line-height: 1.85;
+  box-shadow: var(--likcc-summaraid-shadow, none);
+  transition: background 0.3s, box-shadow 0.2s;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: likcc-summaraidGPT-contentin 0.7s 0.12s cubic-bezier(.4,1.4,.6,1) forwards;
+}
+@keyframes likcc-summaraidGPT-contentin {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.likcc-summaraidGPT-tag {
+  font-size: 13px;
+  color: var(--likcc-summaraid-tagColor);
+  background: var(--likcc-summaraid-tagBg);
+  border-radius: 8px;
+  padding: 2px 10px;
+  margin-left: auto;
+  flex: none;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(66,90,239,0.04);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.likcc-summaraidGPT-tag::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(66,90,239,0.13), transparent);
+  animation: likcc-summaraidGPT-shine 3s infinite linear;
+}
+@keyframes likcc-summaraidGPT-shine {
+  0% { left: -100%; }
+  20% { left: 100%; }
+  100% { left: 100%; }
+}
+.likcc-summaraidGPT-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background-color: var(--likcc-summaraid-cursor);
+  margin-left: 2px;
+  animation: likcc-summaraidGPT-blink 1.1s steps(1, end) infinite;
+  vertical-align: middle;
+  border-radius: 1px;
+}
+@keyframes likcc-summaraidGPT-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.likcc-summaraidGPT-summary-container .likcc-summaraidGPT-tag {
+  position: relative;
+  font-size: 12px;
+  border-radius: 12px;
+  margin-left: auto;
+  line-height: 12px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: .3s;
+  opacity: .9;
+  overflow: hidden;
+}
+.likcc-summaraidGPT-summary-container .likcc-summaraidGPT-tag::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.6), transparent);
+  animation: likcc-summaraidGPT-shine 3s infinite linear;
+}
+@keyframes likcc-summaraidGPT-shine {
+  0% { left: -100%; }
+  20% { left: 100%; }
+  100% { left: 100%; }
+}
