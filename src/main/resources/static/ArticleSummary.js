@@ -54,47 +54,7 @@
                     </div>
                     <span class="likcc-summaraidGPT-gpt-name">${config.gptName || 'LikccGPT'}</span>
                 </div>
-                <div class="likcc-summaraidGPT-content-area">
-                    <div class="likcc-summaraidGPT-summary-content"></div>
-                    <div class="likcc-summaraidGPT-recommendations hidden">
-                        <ul>
-                            <li><a href="#" rel="noopener">禅导航 v2 升级：彻底重构，只为更好用</a></li>
-                            <li><a href="#" rel="noopener">🌿 林间第2页拾语：糟心事很少，懂你的人刚好够</a></li>
-                            <li><a href="#" rel="noopener">谈谈SEO：什么是SEO，如何做好SEO，及需要注意的事项</a></li>
-                        </ul>
-                    </div>
-                    <div class="likcc-summaraidGPT-intro hidden">
-                        <h3>🤖 智阅GPT助手</h3>
-                        <p>我是您的智能阅读助手，可以为您：</p>
-                        <p>• 生成文章摘要，提炼核心观点</p>
-                        <p>• 推荐相关文章，扩展阅读视野</p>
-                        <p>• 回答文章相关问题，深入理解内容</p>
-                        <p>让阅读更高效，知识更丰富！</p>
-                    </div>
-                    <div class="likcc-summaraidGPT-qa hidden">
-                        <div class="placeholder">💭 文章问答功能开发中...</div>
-                        <p>这里将支持针对文章内容的智能问答</p>
-                    </div>
-                </div>
-                <div class="likcc-summaraidGPT-bottom-area">
-                    <div class="likcc-summaraidGPT-button-group">
-                        <button class="likcc-summaraidGPT-button active" data-action="summary">
-                            📖 显示摘要
-                        </button>
-                        <button class="likcc-summaraidGPT-button" data-action="recommendations">
-                            📚 推荐阅读
-                        </button>
-                        <button class="likcc-summaraidGPT-button" data-action="qa">
-                            ❓ 文章问答
-                        </button>
-                        <button class="likcc-summaraidGPT-button" data-action="intro">
-                            🤖 介绍自己
-                        </button>
-                    </div>
-                    <div class="likcc-summaraidGPT-disclaimer">
-                        此摘要由智阅GPT分析文章内容生成，仅供参考。
-                    </div>
-                </div>
+                <div class="likcc-summaraidGPT-summary-content"></div>
             </div>
         `;
   }
@@ -226,55 +186,6 @@
     });
   }
 
-  // 按钮交互处理
-  function likcc_summaraidGPT_handleButtonClick(action, container) {
-    const contentArea = container.querySelector('.likcc-summaraidGPT-content-area');
-    const buttons = container.querySelectorAll('.likcc-summaraidGPT-button');
-    const summaryContent = contentArea.querySelector('.likcc-summaraidGPT-summary-content');
-    const recommendations = contentArea.querySelector('.likcc-summaraidGPT-recommendations');
-    const intro = contentArea.querySelector('.likcc-summaraidGPT-intro');
-    const qa = contentArea.querySelector('.likcc-summaraidGPT-qa');
-
-    // 移除所有按钮的active状态
-    buttons.forEach(btn => btn.classList.remove('active'));
-
-    // 隐藏所有内容区域
-    [summaryContent, recommendations, intro, qa].forEach(el => {
-      if (el) el.classList.add('hidden');
-    });
-
-    // 根据action显示对应内容
-    switch (action) {
-      case 'summary':
-        summaryContent.classList.remove('hidden');
-        buttons[0].classList.add('active');
-        break;
-      case 'recommendations':
-        recommendations.classList.remove('hidden');
-        buttons[1].classList.add('active');
-        break;
-      case 'qa':
-        qa.classList.remove('hidden');
-        buttons[2].classList.add('active');
-        break;
-      case 'intro':
-        intro.classList.remove('hidden');
-        buttons[3].classList.add('active');
-        break;
-    }
-  }
-
-  // 初始化按钮事件
-  function likcc_summaraidGPT_initButtons(container) {
-    const buttons = container.querySelectorAll('.likcc-summaraidGPT-button');
-    buttons.forEach(button => {
-      button.addEventListener('click', function() {
-        const action = this.getAttribute('data-action');
-        likcc_summaraidGPT_handleButtonClick(action, container);
-      });
-    });
-  }
-
   // 主初始化函数
   window.likcc_summaraidGPT_initSummaryBox = function(config) {
     likcc_summaraidGPT_checkCSS();
@@ -389,10 +300,6 @@
 
     // 通过API获取摘要内容
     fetchSummaryContent(window.location.pathname, contentElement, finalConfig);
-
-    // 初始化按钮交互
-    likcc_summaraidGPT_initButtons(summaryContainer);
-
     return summaryContainer;
   };
 
