@@ -8,6 +8,7 @@ public interface SettingConfigGetter {
     Mono<SummaryConfig> getSummaryConfig();
     Mono<StyleConfig> getStyleConfig();
     Mono<TagsConfig> getTagsConfig();
+    Mono<AssistantConfig> getAssistantConfig();
 
     @Data
     class BasicConfig {
@@ -64,5 +65,15 @@ public interface SettingConfigGetter {
         public static final String GROUP = "tags";
         private String tagGenerationPrompt;
         private Integer tagGenerationCount;
+    }
+
+    @Data
+    class AssistantConfig {
+        public static final String GROUP = "assistant";
+        private String assistantIcon;
+        private String inputPlaceholder;
+        private String dialogType;
+        private String displayMode;
+        private String buttonPosition;
     }
 }

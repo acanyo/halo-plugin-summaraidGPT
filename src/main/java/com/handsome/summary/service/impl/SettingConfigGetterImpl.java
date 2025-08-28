@@ -34,4 +34,10 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
         return settingFetcher.fetch(TagsConfig.GROUP, TagsConfig.class)
             .defaultIfEmpty(new TagsConfig());
     }
+
+    @Override
+    public Mono<AssistantConfig> getAssistantConfig() {
+        return settingFetcher.fetch(AssistantConfig.GROUP, AssistantConfig.class)
+            .defaultIfEmpty(new AssistantConfig());
+    }
 }

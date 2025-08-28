@@ -5,7 +5,7 @@ metadata:
 spec:
   forms:
     - group: basic
-      label: 基本设置
+      label: AI设置
       formSchema:
         - $el: a
           attrs:
@@ -427,4 +427,58 @@ spec:
           min: 1
           max: 5
           help: "每篇文章生成的标签数量"
+          
+    - group: assistant
+      label: 文章助手设置
+      formSchema:
+        - $formkit: attachment
+          label: 对话框图标
+          name: assistantIcon
+          id: assistantIcon
+          key: assistantIcon
+          value: "/plugins/summaraidGPT/assets/static/icon.svg"
+          help: "文章助手对话框的图标"
+        - $formkit: text
+          label: 输入框默认值
+          name: inputPlaceholder
+          id: inputPlaceholder
+          key: inputPlaceholder
+          value: "请输入您想了解的问题..."
+          help: "输入框的默认提示文字"
+        - $formkit: select
+          label: 弹窗样式
+          name: dialogType
+          id: dialogType
+          key: dialogType
+          value: "overlay"
+          options:
+            - label: 覆盖层弹窗
+              value: overlay
+            - label: 模态弹窗
+              value: modal
+          help: "选择对话框的弹出样式"
+        - $formkit: select
+          label: 弹出样式
+          name: displayMode
+          id: displayMode
+          key: displayMode
+          value: "normal"
+          options:
+            - label: 普通模式
+              value: normal
+            - label: 全屏模式
+              value: fullscreen
+          help: "选择对话框的显示模式"
+        - $formkit: select
+          label: 按钮位置
+          name: buttonPosition
+          id: buttonPosition
+          key: buttonPosition
+          value: "right"
+          options:
+            - label: 左侧
+              value: left
+            - label: 右侧
+              value: right
+          help: "文章助手按钮的显示位置"
         
