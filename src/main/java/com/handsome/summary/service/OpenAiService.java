@@ -97,6 +97,113 @@ public class OpenAiService implements AiService {
         }
     }
 
+    /**
+     * 多轮对话AI服务调用，返回完整原始响应JSON字符串。
+     * @param conversationHistory 对话历史，JSON格式字符串
+     * @param config 当前AI相关配置（API Key、模型名、BaseUrl等）
+     * @return AI返回的完整原始响应JSON字符串
+     */
+    @Override
+    public String multiTurnChat(String conversationHistory, BasicConfig config) {
+        String modelType = null;
+        try {
+            // 判断 codesphere 适配
+            modelType = config.getModelType();
+            String apiKey;
+            String modelName;
+            String baseUrl;
+            if ("codesphere".equalsIgnoreCase(modelType)) {
+                apiKey = config.getCodesphereKey();
+                modelName = config.getCodesphereType();
+                baseUrl = "https://api.master-jsx.top";
+            } else {
+                apiKey = config.getOpenAiApiKey();
+                modelName = config.getOpenAiModelName();
+                baseUrl = config.getBaseUrl();
+            }
+            
+            String apiUrl = buildMultiTurnApiUrl(baseUrl);
+            URL url = URI.create(apiUrl).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+            conn.setRequestProperty("Content-Type", "application/json");
+            if ("codesphere".equalsIgnoreCase(modelType)) {
+                conn.setRequestProperty("Accept", "application/json");
+            }
+            conn.setDoOutput(true);
+            
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode root = mapper.createObjectNode();
+            root.put("model", modelName);
+            
+            // 解析对话历史
+            ArrayNode messagesArray = parseConversationHistory(conversationHistory, mapper);
+            root.set("messages", messagesArray);
+            
+            String body = mapper.writeValueAsString(root);
+            return getOutputStream(conn, body);
+        } catch (Exception e) {
+            return "[" + modelType + " 多轮对话异常：" + e.getMessage() + "]";
+        }
+    }
+
+    /**
+     * 解析对话历史，支持JSON数组格式
+     * @param conversationHistory 对话历史字符串
+     * @param mapper JSON映射器
+     * @return 消息数组
+     */
+    private ArrayNode parseConversationHistory(String conversationHistory, ObjectMapper mapper) {
+        ArrayNode messagesArray = mapper.createArrayNode();
+        
+        try {
+            // 尝试解析为JSON数组
+            if (conversationHistory.startsWith("[") && conversationHistory.endsWith("]")) {
+                com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(conversationHistory);
+                if (jsonNode.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode node : jsonNode) {
+                        if (node.has("role") && node.has("content")) {
+                            messagesArray.add(node);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // 如果解析失败，作为单个用户消息处理
+            ObjectNode message = messagesArray.addObject();
+            message.put("role", "user");
+            message.put("content", conversationHistory);
+        }
+        
+        // 如果没有解析到有效消息，创建默认消息
+        if (messagesArray.size() == 0) {
+            ObjectNode message = messagesArray.addObject();
+            message.put("role", "user");
+            message.put("content", conversationHistory);
+        }
+        
+        return messagesArray;
+    }
+
+    /**
+     * 构建多轮对话API URL
+     * @param baseUrl 基础URL
+     * @return 完整的API URL
+     */
+    private String buildMultiTurnApiUrl(String baseUrl) {
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            String base = baseUrl.replaceAll("/+$", "");
+            if (!base.endsWith("/v1/chat/completions")) {
+                return base + "/v1/chat/completions";
+            } else {
+                return base;
+            }
+        } else {
+            return "https://api.openai.com/v1/chat/completions";
+        }
+    }
+
     @NotNull
     public String getOutputStream(HttpURLConnection conn, String body) throws IOException {
         try (OutputStream os = conn.getOutputStream()) {

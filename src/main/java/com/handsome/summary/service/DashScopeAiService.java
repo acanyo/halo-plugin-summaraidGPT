@@ -55,4 +55,23 @@ public class DashScopeAiService implements AiService {
             return "[通义千问 摘要生成异常：" + e.getMessage() + "]";
         }
     }
+
+    /**
+     * 多轮对话AI服务调用，返回完整原始响应JSON字符串。
+     * @param conversationHistory 对话历史，JSON格式字符串
+     * @param config 当前AI相关配置（API Key、模型名、BaseUrl等）
+     * @return AI返回的完整原始响应JSON字符串
+     */
+    @Override
+    public String multiTurnChat(String conversationHistory, BasicConfig config) {
+        try {
+            // 通义千问的多轮对话实现
+            // 通义千问支持多轮对话，可以直接使用chat/completions接口
+            // 暂时返回默认实现，保持向后兼容
+            return chatCompletionRaw(conversationHistory, config);
+        } catch (Exception e) {
+            return "[通义千问 多轮对话异常：" + e.getMessage() + "]";
+        }
+    }
+
 } 

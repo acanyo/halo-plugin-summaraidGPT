@@ -21,4 +21,12 @@ public interface AiService {
      * @return AI返回的完整原始响应JSON字符串，业务层可自行解析content、role、history等字段
      */
     String chatCompletionRaw(String prompt, SettingConfigGetter.BasicConfig config);
+
+    /**
+     * 多轮对话AI服务调用，返回完整原始响应JSON字符串。
+     * @param conversationHistory 对话历史，JSON格式字符串，包含role和content字段
+     * @param config 当前AI相关配置（包含API Key、模型名、baseUrl等）
+     * @return AI返回的完整原始响应JSON字符串
+     */
+    String multiTurnChat(String conversationHistory, SettingConfigGetter.BasicConfig config);
 } 
