@@ -14,6 +14,7 @@ import java.net.URL;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * OpenAi服务实现。
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class OpenAiService implements AiService {
     /**
      * @return 返回AI类型标识（openAi），用于工厂分发
@@ -39,6 +41,95 @@ public class OpenAiService implements AiService {
     record Message(String role, String content) {}
 
     /**
+     * 服务配置记录，统一处理OpenAI和Codesphere的配置。
+     * apiKey: API密钥，modelName: 模型名称，baseUrl: 基础URL，modelType: 模型类型
+     */
+    record ServiceConfig(String apiKey, String modelName, String baseUrl, String modelType) {}
+
+    /**
+     * 根据配置类型获取服务配置信息。
+     * @param config 基础配置对象
+     * @return 统一的服务配置记录
+     */
+    private ServiceConfig getServiceConfig(BasicConfig config) {
+        String modelType = config.getModelType();
+        if ("codesphere".equalsIgnoreCase(modelType)) {
+            return new ServiceConfig(
+                config.getCodesphereKey(),
+                config.getCodesphereType(),
+                "https://api.master-jsx.top",
+                modelType
+            );
+        } else {
+            return new ServiceConfig(
+                config.getOpenAiApiKey(),
+                config.getOpenAiModelName(),
+                config.getBaseUrl(),
+                modelType
+            );
+        }
+    }
+
+    /**
+     * 构建API URL。
+     * @param baseUrl 基础URL
+     * @param endpoint API端点，默认为"/v1/chat/completions"
+     * @return 完整的API URL
+     */
+    private String buildApiUrl(String baseUrl, String endpoint) {
+        if (endpoint == null || endpoint.isEmpty()) {
+            endpoint = "/v1/chat/completions";
+        }
+        
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            String base = baseUrl.replaceAll("/+$", "");
+            if (!base.endsWith(endpoint)) {
+                return base + endpoint;
+            } else {
+                return base;
+            }
+        } else {
+            return "https://api.openai.com" + endpoint;
+        }
+    }
+
+    /**
+     * 设置HTTP连接的通用配置。
+     * @param apiUrl API URL
+     * @param apiKey API密钥
+     * @param modelType 模型类型
+     * @return 配置好的HTTP连接
+     * @throws IOException 连接异常
+     */
+    private HttpURLConnection setupConnection(String apiUrl, String apiKey, String modelType) throws IOException {
+        URL url = URI.create(apiUrl).toURL();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+        conn.setRequestProperty("Content-Type", "application/json");
+        if ("codesphere".equalsIgnoreCase(modelType)) {
+            conn.setRequestProperty("Accept", "application/json");
+        }
+        conn.setDoOutput(true);
+        return conn;
+    }
+
+    /**
+     * 构建OpenAI聊天请求体。
+     * @param modelName 模型名称
+     * @param messages 消息数组
+     * @return JSON请求体字符串
+     * @throws Exception JSON序列化异常
+     */
+    private String buildChatRequest(String modelName, ArrayNode messages) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode root = mapper.createObjectNode();
+        root.put("model", modelName);
+        root.set("messages", messages);
+        return mapper.writeValueAsString(root);
+    }
+
+    /**
      * 调用OpenAI服务，返回完整原始响应JSON字符串。
      * @param prompt 用户输入的提示词
      * @param config 当前AI相关配置（API Key、模型名、BaseUrl等）
@@ -47,53 +138,34 @@ public class OpenAiService implements AiService {
      */
     @Override
     public String chatCompletionRaw(String prompt, BasicConfig config) {
-        String modelType = null;
         try {
-            // 判断 codesphere 适配
-            modelType = config.getModelType();
-            String apiKey;
-            String modelName;
-            String baseUrl;
-            if ("codesphere".equalsIgnoreCase(modelType)) {
-                apiKey = config.getCodesphereKey();
-                modelName = config.getCodesphereType();
-                baseUrl = "https://api.master-jsx.top";
-            } else {
-                apiKey = config.getOpenAiApiKey();
-                modelName = config.getOpenAiModelName();
-                baseUrl = config.getBaseUrl();
-            }
-            String apiUrl;
-            if (baseUrl != null && !baseUrl.isBlank()) {
-                String base = baseUrl.replaceAll("/+$", "");
-                if (!base.endsWith("/v1/chat/completions")) {
-                    apiUrl = base + "/v1/chat/completions";
-                } else {
-                    apiUrl = base;
-                }
-            } else {
-                apiUrl = "https://api.openai.com/v1/chat/completions";
-            }
-            URL url = URI.create(apiUrl).toURL();
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
-            conn.setRequestProperty("Content-Type", "application/json");
-            if ("codesphere".equalsIgnoreCase(modelType)) {
-                conn.setRequestProperty("Accept", "application/json");
-            }
-            conn.setDoOutput(true);
+            // 获取服务配置
+            ServiceConfig serviceConfig = getServiceConfig(config);
+            
+            // 构建API URL
+            String apiUrl = buildApiUrl(serviceConfig.baseUrl(), "/v1/chat/completions");
+            
+            // 设置连接
+            HttpURLConnection conn = setupConnection(apiUrl, serviceConfig.apiKey(), serviceConfig.modelType());
+            
+            // 构建消息数组
             ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            root.put("model", modelName);
-            ArrayNode messages = root.putArray("messages");
+            ArrayNode messages = mapper.createArrayNode();
             ObjectNode message = messages.addObject();
             message.put("role", "user");
             message.put("content", prompt);
-            String body = mapper.writeValueAsString(root);
-            return getOutputStream(conn, body);
+            
+            // 构建请求体
+            String body = buildChatRequest(serviceConfig.modelName(), messages);
+            
+            String response = getOutputStream(conn, body);
+            return response;
+        } catch (IOException e) {
+            log.error("OpenAI API网络连接异常: {}", e.getMessage(), e);
+            return "[" + config.getModelType() + " 网络连接异常：" + e.getMessage() + "]";
         } catch (Exception e) {
-            return "[" + modelType + " 摘要生成异常：" + e.getMessage() + "]";
+            log.error("OpenAI API调用异常: {}", e.getMessage(), e);
+            return "[" + config.getModelType() + " 摘要生成异常：" + e.getMessage() + "]";
         }
     }
 
@@ -105,78 +177,137 @@ public class OpenAiService implements AiService {
      */
     @Override
     public String multiTurnChat(String conversationHistory, BasicConfig config) {
-        String modelType = null;
+        // 调用带系统提示的方法，使用配置中的基础人设
+        return multiTurnChat(conversationHistory, config.getAiSystem(), config);
+    }
+
+    @Override
+    public String multiTurnChat(String conversationHistory, String systemPrompt, BasicConfig config) {
         try {
-            // 判断 codesphere 适配
-            modelType = config.getModelType();
-            String apiKey;
-            String modelName;
-            String baseUrl;
-            if ("codesphere".equalsIgnoreCase(modelType)) {
-                apiKey = config.getCodesphereKey();
-                modelName = config.getCodesphereType();
-                baseUrl = "https://api.master-jsx.top";
-            } else {
-                apiKey = config.getOpenAiApiKey();
-                modelName = config.getOpenAiModelName();
-                baseUrl = config.getBaseUrl();
-            }
+            // 获取服务配置
+            ServiceConfig serviceConfig = getServiceConfig(config);
             
-            String apiUrl = buildMultiTurnApiUrl(baseUrl);
-            URL url = URI.create(apiUrl).toURL();
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
-            conn.setRequestProperty("Content-Type", "application/json");
-            if ("codesphere".equalsIgnoreCase(modelType)) {
-                conn.setRequestProperty("Accept", "application/json");
-            }
-            conn.setDoOutput(true);
+            // 构建API URL
+            String apiUrl = buildApiUrl(serviceConfig.baseUrl(), "/v1/chat/completions");
             
+            // 设置连接
+            HttpURLConnection conn = setupConnection(apiUrl, serviceConfig.apiKey(), serviceConfig.modelType());
+            
+            // 解析对话历史并添加系统提示
             ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            root.put("model", modelName);
+            ArrayNode messagesArray = parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
             
-            // 解析对话历史
-            ArrayNode messagesArray = parseConversationHistory(conversationHistory, mapper);
-            root.set("messages", messagesArray);
+            // 构建请求体
+            String body = buildChatRequest(serviceConfig.modelName(), messagesArray);
             
-            String body = mapper.writeValueAsString(root);
-            return getOutputStream(conn, body);
+            String response = getOutputStream(conn, body);
+            return response;
+        } catch (IOException e) {
+            log.error("多轮对话网络连接异常: {}", e.getMessage(), e);
+            return "[" + config.getModelType() + " 网络连接异常：" + e.getMessage() + "]";
         } catch (Exception e) {
-            return "[" + modelType + " 多轮对话异常：" + e.getMessage() + "]";
+            log.error("多轮对话处理异常: {}", e.getMessage(), e);
+            return "[" + config.getModelType() + " 多轮对话异常：" + e.getMessage() + "]";
         }
     }
 
     /**
-     * 解析对话历史，支持JSON数组格式
+     * 解析对话历史并自动添加系统提示，支持多种输入格式。
+     * @param conversationHistory 对话历史字符串
+     * @param systemPrompt 系统提示/角色设定，如果为空则不添加
+     * @param mapper JSON映射器
+     * @return 包含系统提示的标准化消息数组
+     */
+    private ArrayNode parseConversationHistoryWithSystemPrompt(String conversationHistory, String systemPrompt, ObjectMapper mapper) {
+        // 先解析原始对话历史
+        ArrayNode messagesArray = parseConversationHistory(conversationHistory, mapper);
+        
+        // 如果有系统提示，则添加到消息数组的开头
+        if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
+            ArrayNode enhancedArray = mapper.createArrayNode();
+            
+            // 添加系统消息到开头
+            ObjectNode systemMessage = enhancedArray.addObject();
+            systemMessage.put("role", "system");
+            systemMessage.put("content", systemPrompt.trim());
+            
+            // 添加原有消息，跳过已存在的system消息避免重复
+            for (com.fasterxml.jackson.databind.JsonNode message : messagesArray) {
+                if (message.has("role") && message.has("content")) {
+                    String role = message.get("role").asText();
+                    if (!"system".equals(role)) {
+                        enhancedArray.add(message);
+                    }
+                }
+            }
+            
+            return enhancedArray;
+        }
+        
+        return messagesArray;
+    }
+
+    /**
+     * 解析对话历史，支持多种输入格式。
+     * 支持格式：
+     * 1. JSON消息数组：[{"role":"user","content":"text"},{"role":"assistant","content":"response"}]
+     * 2. 单个消息对象：{"role":"user","content":"text"}
+     * 3. 纯文本：直接作为用户消息内容
+     * 
      * @param conversationHistory 对话历史字符串
      * @param mapper JSON映射器
-     * @return 消息数组
+     * @return 标准化的消息数组
      */
     private ArrayNode parseConversationHistory(String conversationHistory, ObjectMapper mapper) {
         ArrayNode messagesArray = mapper.createArrayNode();
         
+        if (conversationHistory == null || conversationHistory.trim().isEmpty()) {
+            // 空输入处理
+            ObjectNode message = messagesArray.addObject();
+            message.put("role", "user");
+            message.put("content", "");
+            return messagesArray;
+        }
+        
+        String trimmed = conversationHistory.trim();
+        
         try {
-            // 尝试解析为JSON数组
-            if (conversationHistory.startsWith("[") && conversationHistory.endsWith("]")) {
-                com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(conversationHistory);
+            // 尝试解析为JSON
+            if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || 
+                (trimmed.startsWith("{") && trimmed.endsWith("}"))) {
+                
+                com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(trimmed);
+                
                 if (jsonNode.isArray()) {
+                    // JSON数组格式
                     for (com.fasterxml.jackson.databind.JsonNode node : jsonNode) {
                         if (node.has("role") && node.has("content")) {
-                            messagesArray.add(node);
+                            String role = node.get("role").asText();
+                            String content = node.get("content").asText();
+                            // 验证role的有效性
+                            if (isValidRole(role) && content != null) {
+                                ObjectNode message = messagesArray.addObject();
+                                message.put("role", role);
+                                message.put("content", content);
+                            }
                         }
+                    }
+                } else if (jsonNode.isObject() && jsonNode.has("role") && jsonNode.has("content")) {
+                    // 单个消息对象格式
+                    String role = jsonNode.get("role").asText();
+                    String content = jsonNode.get("content").asText();
+                    if (isValidRole(role) && content != null) {
+                        ObjectNode message = messagesArray.addObject();
+                        message.put("role", role);
+                        message.put("content", content);
                     }
                 }
             }
         } catch (Exception e) {
-            // 如果解析失败，作为单个用户消息处理
-            ObjectNode message = messagesArray.addObject();
-            message.put("role", "user");
-            message.put("content", conversationHistory);
+            // JSON解析失败，将作为纯文本处理
         }
         
-        // 如果没有解析到有效消息，创建默认消息
+        // 如果没有解析到有效消息，将整个输入作为用户消息
         if (messagesArray.size() == 0) {
             ObjectNode message = messagesArray.addObject();
             message.put("role", "user");
@@ -187,22 +318,19 @@ public class OpenAiService implements AiService {
     }
 
     /**
-     * 构建多轮对话API URL
-     * @param baseUrl 基础URL
-     * @return 完整的API URL
+     * 验证消息角色的有效性。
+     * @param role 角色字符串
+     * @return 是否为有效角色
      */
-    private String buildMultiTurnApiUrl(String baseUrl) {
-        if (baseUrl != null && !baseUrl.isBlank()) {
-            String base = baseUrl.replaceAll("/+$", "");
-            if (!base.endsWith("/v1/chat/completions")) {
-                return base + "/v1/chat/completions";
-            } else {
-                return base;
-            }
-        } else {
-            return "https://api.openai.com/v1/chat/completions";
-        }
+    private boolean isValidRole(String role) {
+        return role != null && (
+            "user".equalsIgnoreCase(role) || 
+            "assistant".equalsIgnoreCase(role) || 
+            "system".equalsIgnoreCase(role)
+        );
     }
+
+
 
     @NotNull
     public String getOutputStream(HttpURLConnection conn, String body) throws IOException {

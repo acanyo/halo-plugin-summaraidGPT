@@ -71,6 +71,7 @@ public interface SettingConfigGetter {
     class AssistantConfig {
         public static final String GROUP = "assistant";
         private String assistantIcon;
+        private String conversationSystemPrompt;
         private String inputPlaceholder;
         private String dialogType;
         private String displayMode;

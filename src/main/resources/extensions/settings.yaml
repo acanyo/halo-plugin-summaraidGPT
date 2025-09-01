@@ -438,6 +438,13 @@ spec:
           key: assistantIcon
           value: "/plugins/summaraidGPT/assets/static/icon.svg"
           help: "文章助手对话框的图标"
+        - $formkit: textarea
+          label: 对话助手人设
+          name: conversationSystemPrompt
+          id: conversationSystemPrompt
+          key: conversationSystemPrompt
+          value: "你是一个专业的文章助手AI，能够基于文章内容为用户提供深入的解答和讨论。请保持友好、专业的态度，提供准确、有用的信息。回答要简洁明了，重点突出。"
+          help: "多轮对话功能的AI人设，定义AI助手的角色和回答风格"
         - $formkit: text
           label: 输入框默认值
           name: inputPlaceholder

@@ -62,10 +62,12 @@ public class ChatPostProcess implements TemplateHeadProcessor {
         String version = pluginWrapper.getDescriptor().getVersion();
         // 插入 CSS，添加版本号参数
         String cssTag = "<link rel=\"stylesheet\" href=\"/plugins/summaraidGPT/assets/static/ArticleSummary.css?version=" + version + "\" />";
+        String css1Tag = "<link rel=\"stylesheet\" href=\"/plugins/summaraidGPT/assets/static/article-ai-dialog.css?version=" + version + "\" />";
         // 插入主 JS 脚本，添加版本号参数
         String mainJsTag = "<script src=\"/plugins/summaraidGPT/assets/static/ArticleSummary.js?version=" + version + "\"></script>";
+        String main1JsTag = "<script src=\"/plugins/summaraidGPT/assets/static/article-ai-dialog.umd.cjs?version=" + version + "\"></script>";
         // 拼接完整 HTML 内容
-        String fullScript = String.join("\n", cssTag, mainJsTag, jsContent);
+        String fullScript = String.join("\n", cssTag, mainJsTag, css1Tag, main1JsTag, jsContent);
         iModel.add(modelFactory.createText(fullScript));
         return Mono.empty();
     }
@@ -105,6 +107,20 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                 document.addEventListener('DOMContentLoaded', showLikccSummaryBox, { once: true });
                 document.addEventListener('pjax:success', showLikccSummaryBox);
                 document.addEventListener('pjax:complete', showLikccSummaryBox);
+            </script>
+            <script>
+                                  // 使用推荐的初始化方式
+                                  ArticleAIDialog.ready(() => {
+                                      const dialog = new ArticleAIDialog({
+                                          aiService: {
+                                              type: 'summaraidgpt'
+                                          },
+                                          articleSelector: 'article',
+                                          side: 'right',
+                                          bottomSpacing: 20,
+                                          placeholder: '基于文章内容问我任何问题...'
+                                      })
+                                  })
             </script>
             """;
         return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(script, properties);

@@ -29,4 +29,13 @@ public interface AiService {
      * @return AI返回的完整原始响应JSON字符串
      */
     String multiTurnChat(String conversationHistory, SettingConfigGetter.BasicConfig config);
+
+    /**
+     * 多轮对话AI服务调用，支持系统提示，返回完整原始响应JSON字符串。
+     * @param conversationHistory 对话历史，JSON格式字符串，包含role和content字段
+     * @param systemPrompt 系统提示/角色设定，如果为空则不添加系统消息
+     * @param config 当前AI相关配置（包含API Key、模型名、baseUrl等）
+     * @return AI返回的完整原始响应JSON字符串
+     */
+    String multiTurnChat(String conversationHistory, String systemPrompt, SettingConfigGetter.BasicConfig config);
 } 

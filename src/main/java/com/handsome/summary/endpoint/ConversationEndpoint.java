@@ -32,7 +32,7 @@ public class ConversationEndpoint implements CustomEndpoint {
     private final AiServiceFactory aiServiceFactory;
     private final SettingConfigGetter settingConfigGetter;
 
-    public record ConversationRequest(String aiType, String conversationHistory) {}
+    public record ConversationRequest(String conversationHistory) {}
 
     public record ApiResponse(boolean success, String message, String response, String aiType, Long timestamp) {
         public static ApiResponse success(String message, String response, String aiType) {
@@ -67,6 +67,12 @@ public class ConversationEndpoint implements CustomEndpoint {
      */
     private Mono<ServerResponse> multiTurnConversation(ServerRequest request) {
         return request.bodyToMono(ConversationRequest.class)
+            .onErrorResume(e -> {
+                // 如果解析ConversationRequest失败，尝试作为纯字符串处理
+                log.debug("尝试解析为ConversationRequest失败，转为字符串处理: {}", e.getMessage());
+                return request.bodyToMono(String.class)
+                    .map(conversationHistory -> new ConversationRequest(conversationHistory));
+            })
             .flatMap(this::processConversation)
             .flatMap(response -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -83,20 +89,28 @@ public class ConversationEndpoint implements CustomEndpoint {
      * 处理多轮对话请求
      */
     private Mono<ApiResponse> processConversation(ConversationRequest request) {
-        log.info("收到多轮对话请求: AI类型={}, 对话历史长度={}", 
-                request.aiType(), 
+        log.info("收到多轮对话请求，对话历史长度={}", 
                 request.conversationHistory() != null ? request.conversationHistory().length() : 0);
 
         return settingConfigGetter.getBasicConfig()
-                .map(config -> {
+                .zipWith(settingConfigGetter.getAssistantConfig())
+                .map(tuple -> {
+                    var basicConfig = tuple.getT1();
+                    var assistantConfig = tuple.getT2();
+                    
                     try {
                         // 验证AI服务是否启用
-                        if (config.getEnableAi() == null || !config.getEnableAi()) {
+                        if (basicConfig.getEnableAi() == null || !basicConfig.getEnableAi()) {
                             return ApiResponse.error("AI服务未启用");
                         }
 
-                        // 获取AI服务实例
-                        String aiType = request.aiType() != null ? request.aiType() : config.getModelType();
+                        // 从配置中获取AI服务类型
+                        String aiType = basicConfig.getModelType();
+                        if (aiType == null || aiType.trim().isEmpty()) {
+                            return ApiResponse.error("AI服务类型未配置");
+                        }
+                        
+                        log.debug("使用AI服务类型: {}", aiType);
                         AiService aiService = aiServiceFactory.getService(aiType);
 
                         // 验证对话历史
@@ -104,8 +118,9 @@ public class ConversationEndpoint implements CustomEndpoint {
                             return ApiResponse.error("对话历史不能为空");
                         }
 
-                        // 调用AI服务进行多轮对话
-                        String aiResponse = aiService.multiTurnChat(request.conversationHistory(), config);
+                        // 调用AI服务进行多轮对话，直接传递系统人设
+                        String systemPrompt = assistantConfig.getConversationSystemPrompt();
+                        String aiResponse = aiService.multiTurnChat(request.conversationHistory(), systemPrompt, basicConfig);
 
                         // 检查AI响应是否包含错误信息
                         if (aiResponse.startsWith("[") && aiResponse.contains("异常")) {
@@ -121,6 +136,8 @@ public class ConversationEndpoint implements CustomEndpoint {
                     }
                 });
     }
+
+
 
     @Override
     public GroupVersion groupVersion() {

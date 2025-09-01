@@ -87,14 +87,122 @@ public class ZhipuAiService implements AiService {
      */
     @Override
     public String multiTurnChat(String conversationHistory, BasicConfig config) {
+        // 调用带系统提示的方法，使用配置中的基础人设
+        return multiTurnChat(conversationHistory, config.getAiSystem(), config);
+    }
+
+    /**
+     * 多轮对话AI服务调用，支持系统提示，返回完整原始响应JSON字符串。
+     * @param conversationHistory 对话历史，JSON格式字符串
+     * @param systemPrompt 系统提示/角色设定，如果为空则不添加系统消息
+     * @param config 当前AI相关配置（API Key、模型名、BaseUrl等）
+     * @return AI返回的完整原始响应JSON字符串
+     */
+    @Override
+    public String multiTurnChat(String conversationHistory, String systemPrompt, BasicConfig config) {
+        HttpURLConnection conn = null;
         try {
-            // 智谱AI的多轮对话实现
-            // 智谱AI支持多轮对话，可以直接使用chat/completions接口
-            // 暂时返回默认实现，保持向后兼容
-            return chatCompletionRaw(conversationHistory, config);
+            String apiUrl = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
+            conn = (HttpURLConnection) URI.create(apiUrl).toURL().openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Authorization", "Bearer " + config.getZhipuAiApiKey());
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+
+            // 用Jackson构造请求体，支持多轮对话
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode root = mapper.createObjectNode();
+            root.put("model", config.getZhipuAiModelName());
+            
+            // 解析对话历史并添加系统提示
+            ArrayNode messagesArray = parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
+            root.set("messages", messagesArray);
+            
+            String body = mapper.writeValueAsString(root);
+            return openAiService.getOutputStream(conn, body);
         } catch (Exception e) {
-            return "[智谱AI 多轮对话异常：" + e.getMessage() + "]";
+            String errorMsg = e.getMessage();
+            if (conn != null) {
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
+                    StringBuilder errorResponse = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        errorResponse.append(line);
+                    }
+                    errorMsg += " | " + errorResponse;
+                } catch (Exception ignore) {}
+            }
+            return "[智谱AI 多轮对话异常：" + errorMsg + "]";
         }
+    }
+
+    /**
+     * 解析对话历史并自动添加系统提示，支持多种输入格式。
+     * @param conversationHistory 对话历史字符串
+     * @param systemPrompt 系统提示/角色设定，如果为空则不添加
+     * @param mapper JSON映射器
+     * @return 包含系统提示的标准化消息数组
+     */
+    private ArrayNode parseConversationHistoryWithSystemPrompt(String conversationHistory, String systemPrompt, ObjectMapper mapper) {
+        ArrayNode messagesArray = mapper.createArrayNode();
+        
+        // 如果有系统提示，添加到开头
+        if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
+            ObjectNode systemMessage = messagesArray.addObject();
+            systemMessage.put("role", "system");
+            systemMessage.put("content", systemPrompt.trim());
+        }
+        
+        try {
+            // 解析对话历史
+            if (conversationHistory != null && !conversationHistory.trim().isEmpty()) {
+                String trimmed = conversationHistory.trim();
+                
+                if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || 
+                    (trimmed.startsWith("{") && trimmed.endsWith("}"))) {
+                    
+                    com.fasterxml.jackson.databind.JsonNode conversationNode = mapper.readTree(trimmed);
+                    
+                    if (conversationNode.isArray()) {
+                        // JSON数组格式
+                        for (com.fasterxml.jackson.databind.JsonNode message : conversationNode) {
+                            if (message.has("role") && message.has("content")) {
+                                String role = message.get("role").asText();
+                                // 跳过已有的system消息，避免重复
+                                if (!"system".equals(role)) {
+                                    messagesArray.add(message);
+                                }
+                            }
+                        }
+                    } else if (conversationNode.isObject() && conversationNode.has("role") && conversationNode.has("content")) {
+                        // 单个消息对象
+                        String role = conversationNode.get("role").asText();
+                        if (!"system".equals(role)) {
+                            messagesArray.add(conversationNode);
+                        }
+                    }
+                } else {
+                    // 纯文本，作为用户消息
+                    ObjectNode userMessage = messagesArray.addObject();
+                    userMessage.put("role", "user");
+                    userMessage.put("content", conversationHistory);
+                }
+            }
+        } catch (Exception e) {
+            // 解析失败，作为纯文本处理
+            ObjectNode userMessage = messagesArray.addObject();
+            userMessage.put("role", "user");
+            userMessage.put("content", conversationHistory);
+        }
+        
+        // 如果没有消息，添加一个空的用户消息
+        if (messagesArray.size() == 0 || (messagesArray.size() == 1 && systemPrompt != null)) {
+            ObjectNode userMessage = messagesArray.addObject();
+            userMessage.put("role", "user");
+            userMessage.put("content", "");
+        }
+        
+        return messagesArray;
     }
 
 } 
