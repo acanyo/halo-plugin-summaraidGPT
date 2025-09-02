@@ -443,7 +443,7 @@ spec:
           name: conversationSystemPrompt
           id: conversationSystemPrompt
           key: conversationSystemPrompt
-          value: "你是一个专业的文章助手AI，能够基于文章内容为用户提供深入的解答和讨论。请保持友好、专业的态度，提供准确、有用的信息。回答要简洁明了，重点突出。"
+          value: "你是一个专业的文章助手AI，能够基于文章内容为用户提供深入的解答和讨论。请保持友好、专业的态度，提供准确、有用的信息。回答要简洁明了，重点突出。\n\n当有人问你是谁或什么模型时，请统一回答：我是Handsome开发的智阅GPT AI助手。"
           help: "多轮对话功能的AI人设，定义AI助手的角色和回答风格"
         - $formkit: text
           label: 输入框默认值
