@@ -51,17 +51,28 @@ public class TagServiceImpl implements TagService {
                 ? "你是一个专业的标签生成助手，请根据文章内容生成相关的中文标签。标签应准确反映主题，适合SEO，建议2-4字。"
                 : role.trim();
 
-            return postContentService.getReleaseContent(post.getMetadata().getName())
+            return postContentService.getHeadContent(post.getMetadata().getName())
+                .doOnNext(contentWrapper -> log.info("获取到文章内容，长度: {}", 
+                    contentWrapper.getContent() != null ? contentWrapper.getContent().length() : 0))
                 .flatMap(contentWrapper -> {
+                    String content = contentWrapper.getContent();
+                    if (content == null || content.trim().isEmpty()) {
+                        log.warn("文章内容为空，postName: {}", post.getMetadata().getName());
+                        return Mono.just(List.<String>of());
+                    }
+                    
                     String prompt = "请你按照以下要求：" + roleText + "\n"
                         + "返回标签数量不超过" + limit
                         + "，仅返回中文标签，使用逗号或换行分隔，不要编号与解释。\n"
                         + "文章正文如下：\n"
-                        + contentWrapper.getContent();
+                        + content;
 
+                    log.info("开始调用AI生成标签，提示词长度: {}", prompt.length());
                     var ai = aiServiceFactory.getService(basic.getModelType());
                     String raw = ai.chatCompletionRaw(prompt, basic);
+                    log.info("AI返回原始响应: {}", raw);
                     List<String> tags = parseTagsFromRaw(raw, limit);
+                    log.info("解析后的标签: {}", tags);
                     return Mono.just(tags);
                 })
                 .onErrorResume(e -> {

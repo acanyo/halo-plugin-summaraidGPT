@@ -4,10 +4,14 @@ import {definePlugin} from "@halo-dev/console-shared";
 import axios, {AxiosError} from "axios";
 import {markRaw} from "vue";
 import SynchronousAiSummary from '@/views/SynchronousAiSummary.vue'
+import TagViewer from '@/extensions/TagViewer'
 
 
 export default definePlugin({
   extensionPoints: {
+    "default:editor:extension:create": () => {
+      return [TagViewer];
+    },
     'post:list-item:operation:create': () => {
       return [
         {

@@ -55,8 +55,12 @@ public class TagGenerationEndpoint implements CustomEndpoint {
                         .bodyValue(TagResponse.error("postName 不能为空"));
                 }
                 String normalized = postName.trim();
+                log.info("开始生成标签，postName: {}", normalized);
+                
                 return extensionClient.fetch(Post.class, normalized)
-                    .flatMap(tagService::generateAndEnsureTagsForPost)
+                    .doOnNext(post -> log.info("成功获取文章: {}", post.getMetadata().getName()))
+                    .flatMap(tagService::generateTagsForPost)
+                    .doOnNext(tags -> log.info("生成标签结果: {}", tags))
                     .flatMap(tags -> ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(TagResponse.ok(tags)))
                     .onErrorResume(e -> {
@@ -64,6 +68,11 @@ public class TagGenerationEndpoint implements CustomEndpoint {
                         return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(TagResponse.error("生成失败: " + e.getMessage()));
                     });
+            })
+            .onErrorResume(e -> {
+                log.info("请求处理失败: {}", e.getMessage(), e);
+                return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(TagResponse.error("请求处理失败: " + e.getMessage()));
             });
     }
 
