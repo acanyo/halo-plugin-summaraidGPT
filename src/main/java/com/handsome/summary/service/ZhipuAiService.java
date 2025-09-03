@@ -1,6 +1,6 @@
 package com.handsome.summary.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -55,14 +55,14 @@ public class ZhipuAiService implements AiService {
             String apiUrl = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
             conn = (HttpURLConnection) URI.create(apiUrl).toURL().openConnection();
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + config.getZhipuAiApiKey());
+            conn.setRequestProperty("Authorization", "Bearer " + config.getAiModelConfig().getZhipuAiConfig().getApiKey());
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
 
             // 用Jackson构造请求体，自动转义content
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode root = mapper.createObjectNode();
-            root.put("model", config.getZhipuAiModelName());
+            root.put("model", config.getAiModelConfig().getZhipuAiConfig().getModelName());
             ArrayNode messages = root.putArray("messages");
             ObjectNode message = messages.addObject();
             message.put("role", "user");
@@ -85,20 +85,19 @@ public class ZhipuAiService implements AiService {
         }
     }
 
-    @Override
+        @Override
     public String multiTurnChat(String conversationHistory, String systemPrompt, BasicConfig config,
                                Consumer<String> onData, Runnable onComplete, Consumer<String> onError) {
-        // 判断是否为流式模式
-        boolean isStreamMode = (onData != null && onComplete != null && onError != null);
-        
-        if (isStreamMode) {
-            // 流式模式，异步处理
-            processMultiTurnChatStream(conversationHistory, systemPrompt, config, onData, onComplete, onError);
-            return null;
-        } else {
-            // 非流式模式，同步处理
-            return processMultiTurnChatSync(conversationHistory, systemPrompt, config);
-        }
+        return AiServiceUtils.handleMultiTurnChat(
+            conversationHistory,
+            systemPrompt,
+            onData,
+            onComplete,
+            onError,
+            (history, prompt) -> processMultiTurnChatSync(history, prompt, config),
+            (history, prompt, dataCallback, completeCallback, errorCallback) -> 
+                processMultiTurnChatStream(history, prompt, config, dataCallback, completeCallback, errorCallback)
+        );
     }
 
     /**
@@ -114,17 +113,17 @@ public class ZhipuAiService implements AiService {
             String apiUrl = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
             conn = (HttpURLConnection) URI.create(apiUrl).toURL().openConnection();
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + config.getZhipuAiApiKey());
+            conn.setRequestProperty("Authorization", "Bearer " + config.getAiModelConfig().getZhipuAiConfig().getApiKey());
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
 
             // 用Jackson构造请求体，支持多轮对话
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode root = mapper.createObjectNode();
-            root.put("model", config.getZhipuAiModelName());
+            root.put("model", config.getAiModelConfig().getZhipuAiConfig().getModelName());
             
             // 解析对话历史并添加系统提示
-            ArrayNode messagesArray = parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
+            ArrayNode messagesArray = AiServiceUtils.parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
             root.set("messages", messagesArray);
             
             String body = mapper.writeValueAsString(root);
@@ -157,23 +156,23 @@ public class ZhipuAiService implements AiService {
      */
     private void processMultiTurnChatStream(String conversationHistory, String systemPrompt, BasicConfig config,
                                           Consumer<String> onData, Runnable onComplete, Consumer<String> onError) {
-        HttpURLConnection conn = null;
+        HttpURLConnection conn;
         try {
             String apiUrl = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
             conn = (HttpURLConnection) URI.create(apiUrl).toURL().openConnection();
             conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + config.getZhipuAiApiKey());
+            conn.setRequestProperty("Authorization", "Bearer " + config.getAiModelConfig().getZhipuAiConfig().getApiKey());
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
 
             // 用Jackson构造流式请求体，支持多轮对话
             ObjectMapper mapper = new ObjectMapper();
             ObjectNode root = mapper.createObjectNode();
-            root.put("model", config.getZhipuAiModelName());
+            root.put("model", config.getAiModelConfig().getZhipuAiConfig().getModelName());
             root.put("stream", true); // 启用流式输出
             
             // 解析对话历史并添加系统提示
-            ArrayNode messagesArray = parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
+            ArrayNode messagesArray = AiServiceUtils.parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
             root.set("messages", messagesArray);
             
             String body = mapper.writeValueAsString(root);
@@ -226,20 +225,10 @@ public class ZhipuAiService implements AiService {
                     break;
                 }
                 
-                try {
-                    // 解析JSON数据并提取内容
-                    JsonNode jsonNode = mapper.readTree(data);
-                    if (jsonNode.has("choices") && jsonNode.get("choices").isArray() &&
-                        !jsonNode.get("choices").isEmpty()) {
-                       JsonNode choice = jsonNode.get("choices").get(0);
-                        if (choice.has("delta") && choice.get("delta").has("content")) {
-                            String content = choice.get("delta").get("content").asText();
-                            if (!content.isEmpty()) {
-                                onData.accept(content);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
+                                  try {
+                      // 解析JSON数据并提取内容
+                     AiServiceUtils.parseStreamResponse(onData, mapper, data);
+                  } catch (Exception e) {
                     log.warn("解析智谱AI流式数据失败: {}", e.getMessage());
                     // 继续处理下一行，不中断整个流程
                 }
@@ -261,86 +250,4 @@ public class ZhipuAiService implements AiService {
             }
         }
     }
-
-    /**
-     * 解析对话历史并自动添加系统提示，支持多种输入格式。
-     * @param conversationHistory 对话历史字符串
-     * @param systemPrompt 系统提示/角色设定，如果为空则不添加
-     * @param mapper JSON映射器
-     * @return 包含系统提示的标准化消息数组
-     */
-    private ArrayNode parseConversationHistoryWithSystemPrompt(String conversationHistory, String systemPrompt, ObjectMapper mapper) {
-        ArrayNode messagesArray = mapper.createArrayNode();
-        boolean hasSystemMessage = false;
-        
-        try {
-            // 解析对话历史
-            if (conversationHistory != null && !conversationHistory.trim().isEmpty()) {
-                String trimmed = conversationHistory.trim();
-                
-                if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || 
-                    (trimmed.startsWith("{") && trimmed.endsWith("}"))) {
-                    
-                    JsonNode conversationNode = mapper.readTree(trimmed);
-                    
-                    if (conversationNode.isArray()) {
-                        // JSON数组格式
-                        for (com.fasterxml.jackson.databind.JsonNode message : conversationNode) {
-                            if (message.has("role") && message.has("content")) {
-                                String role = message.get("role").asText();
-                                if ("system".equals(role)) {
-                                    hasSystemMessage = true;
-                                }
-                                messagesArray.add(message);
-                            }
-                        }
-                    } else if (conversationNode.isObject() && conversationNode.has("role") && conversationNode.has("content")) {
-                        // 单个消息对象
-                        String role = conversationNode.get("role").asText();
-                        if ("system".equals(role)) {
-                            hasSystemMessage = true;
-                        }
-                        messagesArray.add(conversationNode);
-                    }
-                } else {
-                    // 纯文本，作为用户消息
-                    ObjectNode userMessage = messagesArray.addObject();
-                    userMessage.put("role", "user");
-                    userMessage.put("content", conversationHistory);
-                }
-            }
-        } catch (Exception e) {
-            // 解析失败，作为纯文本处理
-            ObjectNode userMessage = messagesArray.addObject();
-            userMessage.put("role", "user");
-            userMessage.put("content", conversationHistory);
-        }
-        
-        // 如果没有system消息且有系统提示，添加到开头
-        if (!hasSystemMessage && systemPrompt != null && !systemPrompt.trim().isEmpty()) {
-            ArrayNode enhancedArray = mapper.createArrayNode();
-            
-            // 添加系统消息到开头
-            ObjectNode systemMessage = enhancedArray.addObject();
-            systemMessage.put("role", "system");
-            systemMessage.put("content", systemPrompt.trim());
-            
-            // 添加原有消息
-            for (com.fasterxml.jackson.databind.JsonNode message : messagesArray) {
-                enhancedArray.add(message);
-            }
-            
-            return enhancedArray;
-        }
-        
-        // 如果没有消息，添加一个空的用户消息
-        if (messagesArray.isEmpty()) {
-            ObjectNode userMessage = messagesArray.addObject();
-            userMessage.put("role", "user");
-            userMessage.put("content", "");
-        }
-        
-        return messagesArray;
-    }
-
 } 

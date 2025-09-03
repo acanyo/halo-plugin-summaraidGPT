@@ -1,6 +1,7 @@
 package com.handsome.summary.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,12 +38,6 @@ public class OpenAiService implements AiService {
     public String getType() { return "openAi"; }
 
     /**
-     * 用于构造OpenAI请求体的消息结构。
-     * role: 消息角色（如user/assistant），content: 消息内容。
-     */
-    record Message(String role, String content) {}
-
-    /**
      * 服务配置记录，统一处理OpenAI和Codesphere的配置。
      * apiKey: API密钥，modelName: 模型名称，baseUrl: 基础URL，modelType: 模型类型
      */
@@ -54,22 +49,34 @@ public class OpenAiService implements AiService {
      * @return 统一的服务配置记录
      */
     private ServiceConfig getServiceConfig(BasicConfig config) {
-        String modelType = config.getModelType();
-        if ("codesphere".equalsIgnoreCase(modelType)) {
+        String modelType = config.getGlobalAiType();
+        // 检查是否是Codesphere
+        if ("codesphere".equalsIgnoreCase(modelType) && config.getAiModelConfig() != null && config.getAiModelConfig().getCodesphereConfig() != null) {
+            var codesphereConfig = config.getAiModelConfig().getCodesphereConfig();
+            log.info("使用Codesphere配置 - ApiKey: {}, ModelName: {}", 
+                codesphereConfig.getApiKey() != null ? "已设置" : "null", 
+                codesphereConfig.getModelName());
             return new ServiceConfig(
-                config.getCodesphereKey(),
-                config.getCodesphereType(),
+                codesphereConfig.getApiKey(),
+                codesphereConfig.getModelName(),
                 "https://api.master-jsx.top",
                 modelType
             );
-        } else {
+        } 
+        // 默认使用OpenAI配置
+        else if (config.getAiModelConfig() != null && config.getAiModelConfig().getOpenAiConfig() != null) {
+            var openAiConfig = config.getAiModelConfig().getOpenAiConfig();
             return new ServiceConfig(
-                config.getOpenAiApiKey(),
-                config.getOpenAiModelName(),
-                config.getBaseUrl(),
+                openAiConfig.getApiKey(),
+                openAiConfig.getModelName(),
+                openAiConfig.getBaseUrl(),
                 modelType
             );
         }
+        
+        // 如果都没有配置，抛出异常
+        log.info("配置获取失败 - AI类型: {}, AiModelConfig: {}", modelType, config.getAiModelConfig());
+        throw new RuntimeException("未找到有效的AI配置：" + modelType);
     }
 
     /**
@@ -163,27 +170,26 @@ public class OpenAiService implements AiService {
             return getOutputStream(conn, body);
         } catch (IOException e) {
             log.error("OpenAI API网络连接异常: {}", e.getMessage(), e);
-            return "[" + config.getModelType() + " 网络连接异常：" + e.getMessage() + "]";
+            return "[" + config.getGlobalAiType() + " 网络连接异常：" + e.getMessage() + "]";
         } catch (Exception e) {
             log.error("OpenAI API调用异常: {}", e.getMessage(), e);
-            return "[" + config.getModelType() + " 摘要生成异常：" + e.getMessage() + "]";
+            return "[" + config.getGlobalAiType() + " 摘要生成异常：" + e.getMessage() + "]";
         }
     }
 
     @Override
     public String multiTurnChat(String conversationHistory, String systemPrompt, BasicConfig config,
                                Consumer<String> onData, Runnable onComplete, Consumer<String> onError) {
-        // 判断是否为流式模式
-        boolean isStreamMode = (onData != null && onComplete != null && onError != null);
-        
-        if (isStreamMode) {
-            // 流式模式，异步处理
-            processMultiTurnChatStream(conversationHistory, systemPrompt, config, onData, onComplete, onError);
-            return null;
-        } else {
-            // 非流式模式，同步处理
-            return processMultiTurnChatSync(conversationHistory, systemPrompt, config);
-        }
+        return AiServiceUtils.handleMultiTurnChat(
+            conversationHistory,
+            systemPrompt,
+            onData,
+            onComplete,
+            onError,
+            (history, prompt) -> processMultiTurnChatSync(history, prompt, config),
+            (history, prompt, dataCallback, completeCallback, errorCallback) -> 
+                processMultiTurnChatStream(history, prompt, config, dataCallback, completeCallback, errorCallback)
+        );
     }
 
     /**
@@ -206,19 +212,18 @@ public class OpenAiService implements AiService {
             
             // 解析对话历史并添加系统提示
             ObjectMapper mapper = new ObjectMapper();
-            ArrayNode messagesArray = parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
+            ArrayNode messagesArray = AiServiceUtils.parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
             
             // 构建请求体
             String body = buildChatRequest(serviceConfig.modelName(), messagesArray);
-            
-            String response = getOutputStream(conn, body);
-            return response;
+
+            return getOutputStream(conn, body);
         } catch (IOException e) {
             log.error("多轮对话网络连接异常: {}", e.getMessage(), e);
-            return "[" + config.getModelType() + " 网络连接异常：" + e.getMessage() + "]";
+            return "[" + config.getGlobalAiType() + " 网络连接异常：" + e.getMessage() + "]";
         } catch (Exception e) {
             log.error("多轮对话处理异常: {}", e.getMessage(), e);
-            return "[" + config.getModelType() + " 多轮对话异常：" + e.getMessage() + "]";
+            return "[" + config.getGlobalAiType() + " 多轮对话异常：" + e.getMessage() + "]";
         }
     }
 
@@ -245,7 +250,7 @@ public class OpenAiService implements AiService {
             
             // 解析对话历史并添加系统提示
             ObjectMapper mapper = new ObjectMapper();
-            ArrayNode messagesArray = parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
+            ArrayNode messagesArray = AiServiceUtils.parseConversationHistoryWithSystemPrompt(conversationHistory, systemPrompt, mapper);
             
             // 构建流式请求体
             String body = buildStreamChatRequest(serviceConfig.modelName(), messagesArray);
@@ -255,10 +260,10 @@ public class OpenAiService implements AiService {
             
         } catch (IOException e) {
             log.error("OpenAI流式多轮对话网络连接异常: {}", e.getMessage(), e);
-            onError.accept("[" + config.getModelType() + " 网络连接异常：" + e.getMessage() + "]");
+            onError.accept("[" + config.getGlobalAiType() + " 网络连接异常：" + e.getMessage() + "]");
         } catch (Exception e) {
             log.error("OpenAI流式多轮对话处理异常: {}", e.getMessage(), e);
-            onError.accept("[" + config.getModelType() + " 流式对话异常：" + e.getMessage() + "]");
+            onError.accept("[" + config.getGlobalAiType() + " 流式对话异常：" + e.getMessage() + "]");
         }
     }
 
@@ -315,18 +320,7 @@ public class OpenAiService implements AiService {
                 
                 try {
                     // 解析JSON数据并提取内容
-                    JsonNode jsonNode = mapper.readTree(data);
-                    if (jsonNode.has("choices") && jsonNode.get("choices").isArray() && 
-                        jsonNode.get("choices").size() > 0) {
-                        
-                        JsonNode choice = jsonNode.get("choices").get(0);
-                        if (choice.has("delta") && choice.get("delta").has("content")) {
-                            String content = choice.get("delta").get("content").asText();
-                            if (!content.isEmpty()) {
-                                onData.accept(content);
-                            }
-                        }
-                    }
+                    AiServiceUtils.parseStreamResponse(onData, mapper, data);
                 } catch (Exception e) {
                     log.warn("解析流式数据失败: {}", e.getMessage());
                     // 继续处理下一行，不中断整个流程
@@ -339,128 +333,13 @@ public class OpenAiService implements AiService {
         }
     }
 
-    /**
-     * 解析对话历史并自动添加系统提示，支持多种输入格式。
-     * @param conversationHistory 对话历史字符串
-     * @param systemPrompt 系统提示/角色设定，如果为空则不添加
-     * @param mapper JSON映射器
-     * @return 包含系统提示的标准化消息数组
-     */
-    private ArrayNode parseConversationHistoryWithSystemPrompt(String conversationHistory, String systemPrompt, ObjectMapper mapper) {
-        // 先解析原始对话历史
-        ArrayNode messagesArray = parseConversationHistory(conversationHistory, mapper);
-        
-        // 检查是否已经存在system消息
-        boolean hasSystemMessage = false;
-        for (JsonNode message : messagesArray) {
-            if (message.has("role") && "system".equals(message.get("role").asText())) {
-                hasSystemMessage = true;
-                break;
-            }
-        }
-        
-        // 如果没有system消息且有系统提示，则添加到消息数组的开头
-        if (!hasSystemMessage && systemPrompt != null && !systemPrompt.trim().isEmpty()) {
-            ArrayNode enhancedArray = mapper.createArrayNode();
-            
-            // 添加系统消息到开头
-            ObjectNode systemMessage = enhancedArray.addObject();
-            systemMessage.put("role", "system");
-            systemMessage.put("content", systemPrompt.trim());
-            
-            // 添加原有消息
-            for (JsonNode message : messagesArray) {
-                enhancedArray.add(message);
-            }
-            
-            return enhancedArray;
-        }
-        
-        return messagesArray;
-    }
 
-    /**
-     * 解析对话历史，支持多种输入格式。
-     * 支持格式：
-     * 1. JSON消息数组：[{"role":"user","content":"text"},{"role":"assistant","content":"response"}]
-     * 2. 单个消息对象：{"role":"user","content":"text"}
-     * 3. 纯文本：直接作为用户消息内容
-     * 
-     * @param conversationHistory 对话历史字符串
-     * @param mapper JSON映射器
-     * @return 标准化的消息数组
-     */
-    private ArrayNode parseConversationHistory(String conversationHistory, ObjectMapper mapper) {
-        ArrayNode messagesArray = mapper.createArrayNode();
-        
-        if (conversationHistory == null || conversationHistory.trim().isEmpty()) {
-            // 空输入处理
-            ObjectNode message = messagesArray.addObject();
-            message.put("role", "user");
-            message.put("content", "");
-            return messagesArray;
-        }
-        
-        String trimmed = conversationHistory.trim();
-        
-        try {
-            // 尝试解析为JSON
-            if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || 
-                (trimmed.startsWith("{") && trimmed.endsWith("}"))) {
-                
-                JsonNode jsonNode = mapper.readTree(trimmed);
-                
-                if (jsonNode.isArray()) {
-                    // JSON数组格式
-                    for (JsonNode node : jsonNode) {
-                        if (node.has("role") && node.has("content")) {
-                            String role = node.get("role").asText();
-                            String content = node.get("content").asText();
-                            // 验证role的有效性
-                            if (isValidRole(role) && content != null) {
-                                ObjectNode message = messagesArray.addObject();
-                                message.put("role", role);
-                                message.put("content", content);
-                            }
-                        }
-                    }
-                } else if (jsonNode.isObject() && jsonNode.has("role") && jsonNode.has("content")) {
-                    // 单个消息对象格式
-                    String role = jsonNode.get("role").asText();
-                    String content = jsonNode.get("content").asText();
-                    if (isValidRole(role) && content != null) {
-                        ObjectNode message = messagesArray.addObject();
-                        message.put("role", role);
-                        message.put("content", content);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // JSON解析失败，将作为纯文本处理
-        }
-        
-        // 如果没有解析到有效消息，将整个输入作为用户消息
-        if (messagesArray.isEmpty()) {
-            ObjectNode message = messagesArray.addObject();
-            message.put("role", "user");
-            message.put("content", conversationHistory);
-        }
-        
-        return messagesArray;
-    }
 
-    /**
-     * 验证消息角色的有效性。
-     * @param role 角色字符串
-     * @return 是否为有效角色
-     */
-    private boolean isValidRole(String role) {
-        return role != null && (
-            "user".equalsIgnoreCase(role) || 
-            "assistant".equalsIgnoreCase(role) || 
-            "system".equalsIgnoreCase(role)
-        );
-    }
+
+
+
+
+
 
 
 

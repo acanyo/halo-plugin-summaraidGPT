@@ -37,29 +37,37 @@ public class DashScopeAiService implements AiService {
     public String getType() { return "dashScope"; }
 
     /**
-     * 调用通义千问服务，返回完整原始响应JSON字符串。
-     * @param prompt 用户输入的提示词
-     * @param config 当前AI相关配置（API Key、模型名等）
-     * @return AI返回的完整原始响应JSON字符串，业务层可自行解析content、role、history等字段
-     * @throws RuntimeException 网络异常或API异常时抛出
+     * 创建通义千问API连接和基础JSON结构
      */
+    private record DashScopeRequest(HttpURLConnection conn, ObjectMapper mapper, ObjectNode root, ObjectNode input) {}
+    
+    private DashScopeRequest createDashScopeRequest(BasicConfig config, boolean isStream) throws Exception {
+        String apiUrl = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
+        URL url = URI.create(apiUrl).toURL();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Authorization", "Bearer " + config.getAiModelConfig().getDashScopeConfig().getApiKey());
+        conn.setRequestProperty("Content-Type", "application/json");
+        if (isStream) {
+            conn.setRequestProperty("Accept", "text/event-stream"); // 启用SSE
+        }
+        conn.setDoOutput(true);
+        
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode root = mapper.createObjectNode();
+        root.put("model", config.getAiModelConfig().getDashScopeConfig().getModelName());
+        ObjectNode input = root.putObject("input");
+        
+        return new DashScopeRequest(conn, mapper, root, input);
+    }
+
     @Override
     public String chatCompletionRaw(String prompt, BasicConfig config) {
         try {
-            String apiUrl = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
-            URL url = URI.create(apiUrl).toURL();
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + config.getDashScopeApiKey());
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            root.put("model", config.getDashScopeModelName());
-            ObjectNode input = root.putObject("input");
-            input.put("prompt", prompt);
-            String body = mapper.writeValueAsString(root);
-            return openAiService.getOutputStream(conn, body);
+            var request = createDashScopeRequest(config, false);
+            request.input().put("prompt", prompt);
+            String body = request.mapper().writeValueAsString(request.root());
+            return openAiService.getOutputStream(request.conn(), body);
         } catch (Exception e) {
             return "[通义千问 摘要生成异常：" + e.getMessage() + "]";
         }
@@ -68,17 +76,16 @@ public class DashScopeAiService implements AiService {
     @Override
     public String multiTurnChat(String conversationHistory, String systemPrompt, BasicConfig config,
                                Consumer<String> onData, Runnable onComplete, Consumer<String> onError) {
-        // 判断是否为流式模式
-        boolean isStreamMode = (onData != null && onComplete != null && onError != null);
-        
-        if (isStreamMode) {
-            // 流式模式，异步处理
-            processMultiTurnChatStream(conversationHistory, systemPrompt, config, onData, onComplete, onError);
-            return null;
-        } else {
-            // 非流式模式，同步处理
-            return processMultiTurnChatSync(conversationHistory, systemPrompt, config);
-        }
+        return AiServiceUtils.handleMultiTurnChat(
+            conversationHistory,
+            systemPrompt,
+            onData,
+            onComplete,
+            onError,
+            (history, prompt) -> processMultiTurnChatSync(history, prompt, config),
+            (history, prompt, dataCallback, completeCallback, errorCallback) -> 
+                processMultiTurnChatStream(history, prompt, config, dataCallback, completeCallback, errorCallback)
+        );
     }
 
     /**
@@ -90,38 +97,13 @@ public class DashScopeAiService implements AiService {
      */
     private String processMultiTurnChatSync(String conversationHistory, String systemPrompt, BasicConfig config) {
         try {
-            String apiUrl = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
-            URL url = URI.create(apiUrl).toURL();
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + config.getDashScopeApiKey());
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
-
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            root.put("model", config.getDashScopeModelName());
-            
-            // 构建输入参数
-            ObjectNode input = root.putObject("input");
+            var request = createDashScopeRequest(config, false);
             
             // 解析对话历史并添加系统提示
-            String enhancedConversationHistory = enhanceConversationWithSystemPrompt(conversationHistory, systemPrompt);
-            
-            // 通义千问使用messages字段，需要解析JSON字符串为对象数组
-            try {
-                JsonNode messagesNode = mapper.readTree(enhancedConversationHistory);
-                input.set("messages", messagesNode);
-            } catch (Exception e) {
-                // 如果解析失败，作为单个用户消息处理
-                ArrayNode messagesArray = input.putArray("messages");
-                ObjectNode userMessage = messagesArray.addObject();
-                userMessage.put("role", "user");
-                userMessage.put("content", conversationHistory);
-            }
-            
-            String body = mapper.writeValueAsString(root);
-            return openAiService.getOutputStream(conn, body);
+            conversationHistory(conversationHistory, systemPrompt, request.mapper(), request.input());
+
+            String body = request.mapper().writeValueAsString(request.root());
+            return openAiService.getOutputStream(request.conn(), body);
         } catch (Exception e) {
             return "[通义千问 多轮对话异常：" + e.getMessage() + "]";
         }
@@ -139,46 +121,20 @@ public class DashScopeAiService implements AiService {
     private void processMultiTurnChatStream(String conversationHistory, String systemPrompt, BasicConfig config,
                                           Consumer<String> onData, Runnable onComplete, Consumer<String> onError) {
         try {
-            String apiUrl = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
-            URL url = URI.create(apiUrl).toURL();
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Authorization", "Bearer " + config.getDashScopeApiKey());
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Accept", "text/event-stream"); // 启用SSE
-            conn.setDoOutput(true);
-
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode root = mapper.createObjectNode();
-            root.put("model", config.getDashScopeModelName());
-            
-            // 构建输入参数
-            ObjectNode input = root.putObject("input");
+            var request = createDashScopeRequest(config, true);
             
             // 解析对话历史并添加系统提示
-            String enhancedConversationHistory = enhanceConversationWithSystemPrompt(conversationHistory, systemPrompt);
-            
-            // 通义千问使用messages字段，需要解析JSON字符串为对象数组
-            try {
-                JsonNode messagesNode = mapper.readTree(enhancedConversationHistory);
-                input.set("messages", messagesNode);
-            } catch (Exception e) {
-                // 如果解析失败，作为单个用户消息处理
-                ArrayNode messagesArray = input.putArray("messages");
-                ObjectNode userMessage = messagesArray.addObject();
-                userMessage.put("role", "user");
-                userMessage.put("content", conversationHistory);
-            }
-            
+            conversationHistory(conversationHistory, systemPrompt, request.mapper(), request.input());
+
             // 添加流式输出参数
-            ObjectNode parameters = root.putObject("parameters");
+            ObjectNode parameters = request.root().putObject("parameters");
             parameters.put("incremental_output", true);
             
-            String body = mapper.writeValueAsString(root);
+            String body = request.mapper().writeValueAsString(request.root());
             log.info("通义千问流式请求体: {}", body);
             
             // 处理流式响应
-            processDashScopeStreamResponse(conn, body, onData, onComplete, onError);
+            processDashScopeStreamResponse(request.conn(), body, onData, onComplete, onError);
             
         } catch (IOException e) {
             log.error("通义千问流式多轮对话网络连接异常: {}", e.getMessage(), e);
@@ -186,6 +142,24 @@ public class DashScopeAiService implements AiService {
         } catch (Exception e) {
             log.error("通义千问流式多轮对话处理异常: {}", e.getMessage(), e);
             onError.accept("[通义千问 流式对话异常：" + e.getMessage() + "]");
+        }
+    }
+
+    private void conversationHistory(String conversationHistory, String systemPrompt, ObjectMapper mapper,
+        ObjectNode input) {
+        String enhancedConversationHistory = AiServiceUtils.enhanceConversationWithSystemPrompt(
+            conversationHistory, systemPrompt, mapper);
+
+        // 通义千问使用messages字段，需要解析JSON字符串为对象数组
+        try {
+            JsonNode messagesNode = mapper.readTree(enhancedConversationHistory);
+            input.set("messages", messagesNode);
+        } catch (Exception e) {
+            // 如果解析失败，作为单个用户消息处理
+            ArrayNode messagesArray = input.putArray("messages");
+            ObjectNode userMessage = messagesArray.addObject();
+            userMessage.put("role", "user");
+            userMessage.put("content", conversationHistory);
         }
     }
 
@@ -257,88 +231,6 @@ public class DashScopeAiService implements AiService {
         }
     }
 
-    /**
-     * 增强对话历史，添加系统人设提示
-     * @param conversationHistory 原始对话历史
-     * @param systemPrompt 系统人设提示
-     * @return 增强后的对话历史
-     */
-    private String enhanceConversationWithSystemPrompt(String conversationHistory, String systemPrompt) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode conversationNode;
-            boolean hasSystemMessage = false;
-            
-            // 检查是否是JSON格式
-            if (conversationHistory.trim().startsWith("[") || conversationHistory.trim().startsWith("{")) {
-                conversationNode = mapper.readTree(conversationHistory);
-                
-                // 检查是否已经有system消息
-                if (conversationNode.isArray()) {
-                    for (JsonNode message : conversationNode) {
-                        if (message.has("role") && "system".equals(message.get("role").asText())) {
-                            hasSystemMessage = true;
-                            break;
-                        }
-                    }
-                } else if (conversationNode.isObject() && conversationNode.has("role") && 
-                          "system".equals(conversationNode.get("role").asText())) {
-                    hasSystemMessage = true;
-                }
-                
-                // 如果已经有system消息，直接返回原对话历史
-                if (hasSystemMessage) {
-                    return conversationHistory;
-                }
-            } else {
-                // 如果是纯文本，包装成用户消息并添加系统提示
-                if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
-                    return String.format("[{\"role\":\"system\",\"content\":\"%s\"},{\"role\":\"user\",\"content\":\"%s\"}]", 
-                        systemPrompt.replace("\"", "\\\""), 
-                        conversationHistory.replace("\"", "\\\""));
-                } else {
-                    return String.format("[{\"role\":\"user\",\"content\":\"%s\"}]", 
-                        conversationHistory.replace("\"", "\\\""));
-                }
-            }
 
-            // 如果没有system消息且有系统提示，添加系统提示
-            if (!hasSystemMessage && systemPrompt != null && !systemPrompt.trim().isEmpty()) {
-                // 创建增强后的对话数组
-               ArrayNode enhancedArray = mapper.createArrayNode();
-                
-                // 添加系统人设消息（放在最前面）
-               ObjectNode systemMessage = enhancedArray.addObject();
-                systemMessage.put("role", "system");
-                systemMessage.put("content", systemPrompt);
-                
-                // 添加原有对话内容
-                if (conversationNode.isArray()) {
-                    for (com.fasterxml.jackson.databind.JsonNode message : conversationNode) {
-                        if (message.has("role") && message.has("content")) {
-                            enhancedArray.add(message);
-                        }
-                    }
-                } else if (conversationNode.isObject() && conversationNode.has("role") && conversationNode.has("content")) {
-                    enhancedArray.add(conversationNode);
-                }
-                
-                return mapper.writeValueAsString(enhancedArray);
-            }
-            
-            return conversationHistory;
-            
-        } catch (Exception e) {
-            // 如果解析失败，尝试简单的字符串拼接
-            if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
-                return String.format("[{\"role\":\"system\",\"content\":\"%s\"},{\"role\":\"user\",\"content\":\"%s\"}]", 
-                    systemPrompt.replace("\"", "\\\""), 
-                    conversationHistory.replace("\"", "\\\""));
-            } else {
-                return String.format("[{\"role\":\"user\",\"content\":\"%s\"}]", 
-                    conversationHistory.replace("\"", "\\\""));
-            }
-        }
-    }
 
 } 

@@ -116,119 +116,205 @@ spec:
                   border: "1px solid #d1e7ff"
                   cursor: "pointer"
               children: "复制群号"
-#        - $formkit: checkbox
-#          label: 关闭全局摘要
-#          name: enableAi
-#          id: enableAi
-#          key: enableAi
-#          value: false
-#          help: "关闭后不再产生AI摘要"
         - $formkit: select
-          name: modelType
-          key: modelType
-          id: modelType
-          label: 大模型类型
-          searchable: true
-          placeholder: 请选择你的大模型类型
+          name: globalAiType
+          label: 全局AI类型
+          placeholder: "选择默认使用的AI提供商"
           options:
-            - label: OpenAi
-              value: openAi
-            - label: 智谱
-              value: zhipuAi
+            - label: OpenAI
+              value: "openAi"
+            - label: 智谱AI
+              value: "zhipuAi"
             - label: 通义千问
-              value: dashScope
-            - label: 加速站Codesphere
-              value: codesphere
-#          OpenAi
-        - $formkit: password
-          if: $get(modelType).value === "codesphere"
-          name: codesphereKey
-          id: codesphereKey
-          key: codesphereKey
-          label: Codesphere密钥
-        - $el: div
-          if: $get(modelType).value === "codesphere"
-          attrs:
-            class: "formkit-help text-xs text-gray-500"
-            innerHTML: "国内加速站 <a href='https://api.codesphere.chat/register?aff=76JI' title='前往 Codesphere 免费获取 Key' target='_blank' class='text-blue-500 hover:text-blue-700'>Codesphere 注册并获取专属免费 Key</a>，解锁更快的响应速度。"
-        - $formkit: text
-          if: $get(modelType).value === "codesphere"
-          name: codesphereType
-          id: codesphereType
-          key: codesphereType
-          label: Codesphere模型类型
-        - $el: div
-          if: $get(modelType).value === "codesphere"
-          attrs:
-            class: "formkit-help text-xs text-gray-500"
-            innerHTML: "国内加速站 <a href='https://api.codesphere.chat/pricing' title='前往 Codesphere 模型' target='_blank' class='text-blue-500 hover:text-blue-700'>Codesphere 模型类型</a>，推荐免费的智普推理模型。"
+              value: "dashScope"
+            - label: Codesphere
+              value: "codesphere"
+          value: "openAi"
+          help: "设置全局默认的AI提供商，当各功能模块AI类型为空时使用此配置"
+        - $formkit: group
+          name: aiModelConfig
+          label: AI模型配置
+          help: 说明：配置智阅GPT使用的AI模型提供商和相关参数
+          value:
+            openAiConfig:
+              apiKey: ""
+              modelName: "gpt-4o"
+              baseUrl: "https://api.openai.com/"
+            zhipuAiConfig:
+              apiKey: ""
+              modelName: "glm-4"
+            dashScopeConfig:
+              apiKey: ""
+              modelName: "qwen-max"
+            codesphereConfig:
+              apiKey: ""
+              modelName: "zhipu-free"
+          children:
+            - $formkit: group
+              name: openAiConfig
+              label: OpenAI 配置
+              help: "配置OpenAI模型参数"
+              children:
+                - $formkit: password
+                  name: apiKey
+                  label: OpenAI API密钥
+                  placeholder: "请输入OpenAI的API Key"
+                  help: "必填，请前往 OpenAI 官网获取 API Key"
+                - $formkit: select
+                  name: modelName
+                  label: 模型名称
+                  searchable: true
+                  allowCreate: true
+                  placeholder: "请选择或输入模型名称"
+                  options:
+                    - label: gpt-4o
+                      value: gpt-4o
+                    - label: gpt-4o-mini
+                      value: gpt-4o-mini
+                    - label: gpt-4-turbo
+                      value: gpt-4-turbo
+                    - label: gpt-3.5-turbo
+                      value: gpt-3.5-turbo
+                  help: "选择或自定义模型名称"
+                - $el: a
+                  attrs:
+                    href: "https://platform.openai.com/docs/models"
+                    target: "_blank"
+                    class: "text-blue-500 hover:text-blue-700 text-sm"
+                  children: "查看 OpenAI 模型列表 ←"
+                - $formkit: text
+                  name: baseUrl
+                  label: API地址
+                  placeholder: "https://api.openai.com/"
+                  help: "只需填写基础API地址，系统会自动拼接端点路径"
 
-        - $formkit: password
-          if: $get(modelType).value == "openAi"
-          name: openAiApiKey
-          key: openAiApiKey
-          label: API密钥
-          placeholder: 请输入openAi的应用介入的ApiKey
-          validation: required
-          help: 必填,请前往 OpenAi 应用介入获取ApiKey、
-        - $formkit: text
-          if: $get(modelType).value == "openAi"
-          name: openAiModelName
-          key: openAiModelName
-          label: 模型名称
-          placeholder: 请输入Openai的模型名称
-          validation: required
-          help: 必填,请前往 OpenAi 应用介入获取模型名称
-        - $formkit: text
-          if: $get(modelType).value == "openAi"
-          name: baseUrl
-          key: baseUrl
-          label: API地址
-          placeholder: https://api.openai.com/
-          help: 只需填写基础API地址，系统会自动拼接端点路径
-#          智谱大模型
-        - $formkit: password
-          if: $get(modelType).value == "zhipuAi"
-          name: zhipuAiApiKey
-          key: zhipuAiApiKey
-          label: 智谱API密钥
-          placeholder: 请输入 智谱 的应用介入的ApiKey
-          validation: required
-          help: 必填,请前往 智谱 应用介入获取ApiKey
-        - $formkit: text
-          if: $get(modelType).value == "zhipuAi"
-          name: zhipuAiModelName
-          key: zhipuAiModelName
-          label: 智谱模型名称
-          placeholder: 请输入智谱的模型名称
-          validation: required
-          help: 必填,请前往 智谱 应用介入获取模型名称
-        #          通义千问
-        - $formkit: password
-          if: $get(modelType).value == "dashScope"
-          name: dashScopeApiKey
-          key: dashScopeApiKey
-          label: 通义千问API密钥
-          placeholder: 请输入 通义千问 的应用介入的ApiKey
-          validation: required
-          help: 必填,请前往 通义千问 应用介入获取ApiKey
-        - $formkit: text
-          if: $get(modelType).value == "dashScope"
-          name: dashScopeModelName
-          key: dashScopeModelName
-          label: 通义千问模型名称
-          placeholder: 请输入 通义千问 的模型名称
-          validation: required
-          help: 必填,请前往 通义千问 应用介入获取模型名称
-        - $formkit: textarea
-          name: aiSystem
-          key: aiSystem
-          label: 模型人设
-          placeholder: 请输入模型人设
-          help: 模型人设，主要用于人设设定，例如：你好,你是一个专业写200字左右文章摘要总结写手,不写为默认值
+            - $formkit: group
+              name: zhipuAiConfig
+              label: 智谱AI 配置
+              help: "配置智谱AI模型参数"
+              children:
+                - $formkit: password
+                  name: apiKey
+                  label: 智谱AI API密钥
+                  placeholder: "请输入智谱AI的API Key"
+                  help: "必填，请前往智谱AI官网获取API Key"
+                - $formkit: select
+                  name: modelName
+                  label: 智谱AI 模型名称
+                  searchable: true
+                  allowCreate: true
+                  placeholder: "请选择或输入模型名称"
+                  options:
+                    - label: GLM-4.5-Flash/免费
+                      value: GLM-4.5-Flash
+                    - label: GLM-4.5
+                      value: GLM-4.5
+                    - label: GLM-4.5-Air
+                      value: GLM-4.5-Air
+                  help: "选择或自定义智谱模型名称"
+                - $el: a
+                  attrs:
+                    href: "https://open.bigmodel.cn/dev/api#language"
+                    target: "_blank"
+                    class: "text-blue-500 hover:text-blue-700 text-sm"
+                  children: "查看 智谱AI 模型列表 ←"
+
+            - $formkit: group
+              name: dashScopeConfig
+              label: 通义千问 配置
+              help: "配置通义千问模型参数"
+              children:
+                - $formkit: password
+                  name: apiKey
+                  label: 通义千问 API密钥
+                  placeholder: "请输入通义千问的API Key"
+                  help: "必填，请前往阿里云获取通义千问API Key"
+                - $formkit: select
+                  name: modelName
+                  label: 通义千问 模型名称
+                  searchable: true
+                  allowCreate: true
+                  placeholder: "请选择或输入模型名称"
+                  options:
+                    - label: qwen-max
+                      value: qwen-max
+                    - label: qwen-plus
+                      value: qwen-plus
+                    - label: qwen-turbo
+                      value: qwen-turbo
+                  help: "选择或自定义通义千问模型名称"
+                - $el: a
+                  attrs:
+                    href: "https://help.aliyun.com/zh/dashscope/developer-reference/model-introduction"
+                    target: "_blank"
+                    class: "text-blue-500 hover:text-blue-700 text-sm"
+                  children: "查看 通义千问 模型列表 ←"
+            - $formkit: group
+              name: codesphereConfig
+              label: Codesphere 配置
+              help: "配置Codesphere加速站参数"
+              children:
+                - $formkit: password
+                  name: apiKey
+                  label: Codesphere API密钥
+                  placeholder: "请输入Codesphere API Key"
+                  help: "国内加速站，更快的响应速度"
+                - $el: div
+                  attrs:
+                    class: "formkit-help text-xs text-gray-500"
+                    innerHTML: "国内加速站 <a href='https://api.codesphere.chat/register?aff=76JI' title='前往 Codesphere 免费获取 Key' target='_blank' class='text-blue-500 hover:text-blue-700'>Codesphere 注册并获取专属免费 Key</a>，解锁更快的响应速度。"
+                - $formkit: select
+                  name: modelName
+                  label: Codesphere 模型类型
+                  searchable: true
+                  allowCreate: true
+                  placeholder: "请选择或输入模型类型"
+                  options:
+                    - label: glm-4-flash
+                      value: glm-4-flash
+                    - label: gpt-4o
+                      value: gpt-4o
+                    - label: gpt-4o-mini
+                      value: gpt-4o-mini
+                    - label: claude-3-5-sonnet
+                      value: claude-3-5-sonnet
+                  help: "推荐免费的智谱推理模型"
+                - $el: a
+                  attrs:
+                    href: "https://api.codesphere.chat/pricing"
+                    target: "_blank"
+                    class: "text-blue-500 hover:text-blue-700 text-sm"
+                  children: "查看 Codesphere 模型列表 ←"
+                - $el: div
+                  attrs:
+                    class: "formkit-help text-xs text-gray-500"
+                    innerHTML: "国内加速站，推荐免费的智谱推理模型"
+
     - group: summary
       label: 摘要设置
       formSchema:
+        - $formkit: select
+          name: summaryAiType
+          label: 摘要AI类型选择
+          placeholder: "选择用于摘要生成的AI提供商"
+          options:
+            - label: 使用主配置AI
+              value: ""
+            - label: OpenAI
+              value: "openAi"
+            - label: 智谱AI
+              value: "zhipuAi"
+            - label: 通义千问
+              value: "dashScope"
+            - label: Codesphere
+              value: "codesphere"
+          help: "选择专门用于摘要生成的AI提供商，留空则使用主配置"
+        - $formkit: textarea
+          name: summarySystemPrompt
+          label: 摘要模型人设
+          placeholder: "请输入摘要生成的模型人设"
+          value: "你是一个专业的文章摘要总结助手，请根据文章内容生成简洁明了的摘要，字数控制在200字左右。"
+          help: "专门用于摘要生成的AI人设，定义AI如何生成摘要"
         - $formkit: text
           label: 摘要框标题
           name: summaryTitle
@@ -279,7 +365,7 @@ spec:
           value: true
           help: "是否启用打字机效果"
     - group: style
-      label: 样式设置
+      label: 摘要框样式设置
       formSchema:
         - $formkit: select
           name: themeName
@@ -411,6 +497,22 @@ spec:
     - group: tags
       label: 标签生成设置
       formSchema:
+        - $formkit: select
+          name: tagAiType
+          label: 标签AI类型选择
+          placeholder: "选择用于标签生成的AI提供商"
+          options:
+            - label: 使用主配置AI
+              value: ""
+            - label: OpenAI
+              value: "openAi"
+            - label: 智谱AI
+              value: "zhipuAi"
+            - label: 通义千问
+              value: "dashScope"
+            - label: Codesphere
+              value: "codesphere"
+          help: "选择专门用于标签生成的AI提供商，留空则使用主配置"
         - $formkit: textarea
           label: 标签生成角色设定
           name: tagGenerationPrompt
@@ -431,6 +533,28 @@ spec:
     - group: assistant
       label: 文章助手设置
       formSchema:
+        - $formkit: select
+          name: assistantAiType
+          label: 对话AI类型选择
+          placeholder: "选择用于对话的AI提供商"
+          options:
+            - label: 使用主配置AI
+              value: ""
+            - label: OpenAI
+              value: "openAi"
+            - label: 智谱AI
+              value: "zhipuAi"
+            - label: 通义千问
+              value: "dashScope"
+            - label: Codesphere
+              value: "codesphere"
+          help: "选择专门用于对话的AI提供商，留空则使用主配置"
+        - $el: div
+          attrs:
+            class: "formkit-help text-xs text-gray-500"
+            style:
+              marginTop: "8px"
+          children: "⚠️ 注意：Codesphere免费模型（如glm-4-flash）暂时不支持多轮对话功能，如使用免费模型请更改为其他AI提供商。付费模型（如gpt-4o、claude-3-5-sonnet）支持对话功能。"
         - $formkit: attachment
           label: 对话框图标
           name: assistantIcon
@@ -446,6 +570,13 @@ spec:
           value: "你是一个专业的文章助手AI，能够基于文章内容为用户提供深入的解答和讨论。请保持友好、专业的态度，提供准确、有用的信息。回答要简洁明了，重点突出。\n\n当有人问你是谁或什么模型时，请统一回答：我是Handsome开发的智阅GPT AI助手。"
           help: "多轮对话功能的AI人设，定义AI助手的角色和回答风格"
         - $formkit: text
+          label: 对话框助手名称
+          name: assistantName
+          id: assistantName
+          key: assistantName
+          value: "智阅GPT助手"
+          help: "对话框中显示的AI助手名称"
+        - $formkit: text
           label: 输入框默认值
           name: inputPlaceholder
           id: inputPlaceholder
@@ -459,23 +590,11 @@ spec:
           key: dialogType
           value: "overlay"
           options:
-            - label: 覆盖层弹窗
+            - label: 默认全屏
               value: overlay
-            - label: 模态弹窗
+            - label: 默认弹窗
               value: modal
           help: "选择对话框的弹出样式"
-        - $formkit: select
-          label: 弹出样式
-          name: displayMode
-          id: displayMode
-          key: displayMode
-          value: "normal"
-          options:
-            - label: 普通模式
-              value: normal
-            - label: 全屏模式
-              value: fullscreen
-          help: "选择对话框的显示模式"
         - $formkit: select
           label: 按钮位置
           name: buttonPosition

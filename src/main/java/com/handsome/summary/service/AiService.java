@@ -31,7 +31,7 @@ public interface AiService {
      * @return AI返回的完整原始响应JSON字符串
      */
     default String multiTurnChat(String conversationHistory, SettingConfigGetter.BasicConfig config) {
-        return multiTurnChat(conversationHistory, config.getAiSystem(), config, null, null, null);
+        return multiTurnChat(conversationHistory, null, config, null, null, null);
     }
 
     /**

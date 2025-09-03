@@ -5,10 +5,11 @@ import static run.halo.app.extension.index.query.QueryFactory.and;
 import static run.halo.app.extension.index.query.QueryFactory.equal;
 import static run.halo.app.extension.index.query.QueryFactory.isNotNull;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.handsome.summary.extension.Summary;
-import com.handsome.summary.service.AiServiceFactory;
+import com.handsome.summary.service.AiConfigService;
+import com.handsome.summary.service.AiServiceUtils;
+
 import com.handsome.summary.service.ArticleSummaryService;
 import com.handsome.summary.service.SettingConfigGetter;
 import java.util.HashMap;
@@ -39,8 +40,7 @@ import reactor.core.scheduler.Schedulers;
 public class ArticleSummaryServiceImpl implements ArticleSummaryService {
 
     // 依赖注入
-    private final AiServiceFactory aiServiceFactory;
-    private final SettingConfigGetter settingConfigGetter;
+    private final AiConfigService aiConfigService;
     private final PostContentService postContentService;
     private final ReactiveExtensionClient client;
 
@@ -62,11 +62,21 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
      */
     @Override
     public Mono<String> getSummary(Post post) {
-        return settingConfigGetter.getBasicConfig()
-            .flatMap(config -> generateSummaryWithConfig(post, config))
-            .map(this::extractContentFromJson)
-            .flatMap(summary -> saveSummaryToDatabase(summary, post).thenReturn(summary))
-            .onErrorResume(this::handleSummaryGenerationError);
+        return Mono.zip(
+                aiConfigService.getAiConfigForFunction("summary"),
+                aiConfigService.getAiServiceForFunction("summary")
+        )
+        .flatMap(tuple -> generateSummaryWithAiConfig(post, tuple.getT1(), tuple.getT2()))
+        .map(AiServiceUtils::extractContentFromResponse)
+        .flatMap(summary -> {
+            // 检查是否是错误信息，如果是则不保存到数据库
+            if (AiServiceUtils.isErrorMessage(summary)) {
+                log.warn("AI返回错误信息，不保存到数据库: {}", summary);
+                return Mono.error(new RuntimeException(summary));
+            }
+            return saveSummaryToDatabase(summary, post).thenReturn(summary);
+        })
+        .onErrorResume(this::handleSummaryGenerationError);
     }
 
     /**
@@ -137,37 +147,26 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
     }
 
     /**
-     * 使用配置生成摘要
+     * 使用新的AI配置生成摘要
      */
-    private Mono<String> generateSummaryWithConfig(Post post, SettingConfigGetter.BasicConfig config) {
+    private Mono<String> generateSummaryWithAiConfig(Post post, SettingConfigGetter.AiConfigResult aiConfig, 
+                                                    com.handsome.summary.service.AiService aiService) {
         return postContentService.getReleaseContent(post.getMetadata().getName())
             .flatMap(contentWrapper -> {
-                String aiSystem = config.getAiSystem() != null ? config.getAiSystem() : DEFAULT_AI_SYSTEM_PROMPT;
-                var aiService = aiServiceFactory.getService(config.getModelType());
+                String aiSystem = aiConfig.getSystemPrompt() != null ? aiConfig.getSystemPrompt() : DEFAULT_AI_SYSTEM_PROMPT;
                 String prompt = aiSystem + "\n" + contentWrapper.getRaw();
-                return Mono.fromCallable(() -> aiService.chatCompletionRaw(prompt, config));
+                
+                log.info("开始生成摘要，AI类型: {}, 文章: {}", aiConfig.getAiType(), post.getMetadata().getName());
+                
+                // 创建兼容的BasicConfig
+                var compatibleConfig = aiConfigService.createCompatibleBasicConfig(aiConfig);
+                return Mono.fromCallable(() -> aiService.chatCompletionRaw(prompt, compatibleConfig));
             });
     }
 
-    /**
-     * 从AI返回的JSON中提取内容
-     */
-    private String extractContentFromJson(String summaryJson) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(summaryJson);
-            JsonNode choices = root.path("choices");
-            if (choices.isArray() && !choices.isEmpty()) {
-                JsonNode content = choices.get(0).path("message").path("content");
-                if (!content.isMissingNode()) {
-                    return content.asText();
-                }
-            }
-        } catch (Exception e) {
-            log.error("解析AI摘要JSON失败: {}", e.getMessage(), e);
-        }
-        return summaryJson;
-    }
+
+    
+
 
     /**
      * 保存摘要到数据库
@@ -267,18 +266,29 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
             summaryContent != null ? summaryContent.length() : 0);
         
         var annotations = nullSafeAnnotations(post);
-        var aiSummaryUpdated = annotations.getOrDefault(AI_SUMMARY_UPDATED, "false");
         boolean blackList = Boolean.parseBoolean(annotations.getOrDefault(ENABLE_BLACK_LIST, "false"));
-        boolean enabled = !(Boolean.parseBoolean(String.valueOf(aiSummaryUpdated)) || blackList);
         
-        log.info("文章状态 - AI_SUMMARY_UPDATED: {}, ENABLE_BLACK_LIST: {}, enabled: {}", 
-            aiSummaryUpdated, blackList, enabled);
-        
-        if (!enabled) {
-            log.info("文章摘要已更新或在黑名单中，跳过更新，文章: {}", postMetadataName);
-            return Mono.just(buildResponse(false, "文章摘要已更新或在黑名单中", summaryContent, blackList));
+        // 黑名单检查 - 最高优先级
+        if (blackList) {
+            log.info("文章在黑名单中，跳过更新，文章: {}", postMetadataName);
+            return Mono.just(buildResponse(false, "文章在黑名单中，不进行摘要更新", summaryContent, true));
         }
         
+        // 获取当前文章的摘要内容
+        String currentSummary = post.getSpec().getExcerpt().getRaw();
+        log.info("当前文章摘要: [{}], 新生成摘要: [{}]", 
+            currentSummary != null ? currentSummary : "暂无摘要", 
+            summaryContent != null ? summaryContent : "暂无摘要");
+        
+        // 检查摘要内容是否发生变化
+        boolean summaryChanged = !java.util.Objects.equals(currentSummary, summaryContent);
+        
+        if (!summaryChanged) {
+            log.info("文章摘要内容未发生变化，跳过更新，文章: {}", postMetadataName);
+            return Mono.just(buildResponse(false, "摘要内容未发生变化，无需更新", summaryContent, false));
+        }
+        
+        log.info("文章摘要内容发生变化，执行更新，文章: {}", postMetadataName);
         return performPostUpdate(post, summaryContent, postMetadataName, annotations);
     }
 

@@ -14,7 +14,6 @@ import org.thymeleaf.processor.element.IElementModelStructureHandler;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.plugin.ReactiveSettingFetcher;
 import run.halo.app.theme.dialect.TemplateHeadProcessor;
 
 @Component
@@ -80,7 +79,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
             SettingConfigGetter.SummaryConfig summaryConfig,
             SettingConfigGetter.StyleConfig styleConfig,
             SettingConfigGetter.BasicConfig basicConfig,Boolean isPost) {
-        final Properties properties = getProperties(summaryConfig, styleConfig,basicConfig,isPost);
+        final Properties properties = getProperties(summaryConfig, styleConfig);
         // JS 初始化模板
         // JS 初始化模板
         String script = """
@@ -109,18 +108,10 @@ public class ChatPostProcess implements TemplateHeadProcessor {
                 document.addEventListener('pjax:complete', showLikccSummaryBox);
             </script>
             <script>
-                                  // 使用推荐的初始化方式
-                                  ArticleAIDialog.ready(() => {
-                                      const dialog = new ArticleAIDialog({
-                                          aiService: {
-                                              type: 'summaraidgpt'
-                                          },
-                                          articleSelector: 'article',
-                                          side: 'right',
-                                          bottomSpacing: 20,
-                                          placeholder: '基于文章内容问我任何问题...'
-                                      })
-                                  })
+              const dialog = new ArticleAIDialog({
+                                                useApiConfig: true,
+                                                articleSelector: '#article'
+                                            })
             </script>
             """;
         return PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(script, properties);
@@ -128,8 +119,7 @@ public class ChatPostProcess implements TemplateHeadProcessor {
 
     @NotNull
     private Properties getProperties(SettingConfigGetter.SummaryConfig summaryConfig,
-        SettingConfigGetter.StyleConfig styleConfig, SettingConfigGetter.BasicConfig basicConfig,
-        Boolean isPost) {
+        SettingConfigGetter.StyleConfig styleConfig) {
         final Properties properties = new Properties();
         // 动态参数填充
         // 动态参数填充

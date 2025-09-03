@@ -1,12 +1,15 @@
 package com.handsome.summary.service.impl;
 
-import com.handsome.summary.service.AiServiceFactory;
-import com.handsome.summary.service.SettingConfigGetter;
+
+import com.handsome.summary.service.AiConfigService;
+import com.handsome.summary.service.AiServiceUtils;
+
 import com.handsome.summary.service.TagService;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -31,25 +34,27 @@ import static run.halo.app.extension.index.query.QueryFactory.in;
 @Slf4j
 public class TagServiceImpl implements TagService {
 
-    private final AiServiceFactory aiServiceFactory;
-    private final SettingConfigGetter settingConfigGetter;
+    private final AiConfigService aiConfigService;
     private final PostContentService postContentService;
     private final ReactiveExtensionClient extensionClient;
 
     @Override
     public Mono<List<String>> generateTagsForPost(Post post) {
         return Mono.zip(
-                settingConfigGetter.getBasicConfig(),
-                settingConfigGetter.getTagsConfig()
+                aiConfigService.getAiConfigForFunction("tags"),
+                aiConfigService.getAiServiceForFunction("tags")
         ).flatMap(tuple -> {
-            var basic = tuple.getT1();
-            var tagsCfg = tuple.getT2();
+            var aiConfig = tuple.getT1();
+            var aiService = tuple.getT2();
 
-            int limit = tagsCfg.getTagGenerationCount() == null ? 4 : Math.max(1, tagsCfg.getTagGenerationCount());
-            String role = tagsCfg.getTagGenerationPrompt();
-            String roleText = (role == null || role.isBlank())
-                ? "你是一个专业的标签生成助手，请根据文章内容生成相关的中文标签。标签应准确反映主题，适合SEO，建议2-4字。"
-                : role.trim();
+            // 默认标签数量为4，可以从配置中获取
+            int limit = 4;
+            var ref = new Object() {
+                String roleText = aiConfig.getSystemPrompt();
+            };
+            if (ref.roleText == null || ref.roleText.isBlank()) {
+                ref.roleText = "你是一个专业的标签生成助手，请根据文章内容生成相关的中文标签。标签应准确反映主题，适合SEO，建议2-4字。";
+            }
 
             return postContentService.getHeadContent(post.getMetadata().getName())
                 .doOnNext(contentWrapper -> log.info("获取到文章内容，长度: {}", 
@@ -61,16 +66,25 @@ public class TagServiceImpl implements TagService {
                         return Mono.just(List.<String>of());
                     }
                     
-                    String prompt = "请你按照以下要求：" + roleText + "\n"
+                    String prompt = "请你按照以下要求：" + ref.roleText + "\n"
                         + "返回标签数量不超过" + limit
                         + "，仅返回中文标签，使用逗号或换行分隔，不要编号与解释。\n"
                         + "文章正文如下：\n"
                         + content;
 
-                    log.info("开始调用AI生成标签，提示词长度: {}", prompt.length());
-                    var ai = aiServiceFactory.getService(basic.getModelType());
-                    String raw = ai.chatCompletionRaw(prompt, basic);
+                    log.info("开始调用AI生成标签，AI类型: {}, 提示词长度: {}", aiConfig.getAiType(), prompt.length());
+                    
+                    // 创建兼容的BasicConfig
+                    var compatibleConfig = aiConfigService.createCompatibleBasicConfig(aiConfig);
+                    String raw = aiService.chatCompletionRaw(prompt, compatibleConfig);
                     log.info("AI返回原始响应: {}", raw);
+                    
+                    // 检查是否是错误信息
+                    if (AiServiceUtils.isErrorMessage(raw)) {
+                        log.warn("AI返回错误信息，不进行标签解析: {}", raw);
+                        return Mono.just(List.<String>of());
+                    }
+                    
                     List<String> tags = parseTagsFromRaw(raw, limit);
                     log.info("解析后的标签: {}", tags);
                     return Mono.just(tags);
@@ -121,7 +135,7 @@ public class TagServiceImpl implements TagService {
                 var existingNames = existingTags.stream()
                     .map(t -> t.getSpec().getDisplayName())
                     .filter(n -> n != null && !n.isBlank())
-                    .collect(java.util.stream.Collectors.toSet());
+                    .collect(Collectors.toSet());
 
                 // 日志记录已存在标签的 metadata.name，便于联动
                 existingTags.forEach(t -> {
@@ -165,10 +179,7 @@ public class TagServiceImpl implements TagService {
         if (raw == null || raw.isBlank()) {
             return List.of();
         }
-        String content = extractContent(raw);
-        if (content == null) {
-            content = raw;
-        }
+        String content = AiServiceUtils.extractContentFromResponse(raw);
         String[] parts = content.replace("\r", "\n").split("[\n,，]");
         Set<String> cleaned = new LinkedHashSet<>();
         for (String p : parts) {
@@ -185,21 +196,7 @@ public class TagServiceImpl implements TagService {
         }
         return new ArrayList<>(cleaned);
     }
-    public static String extractContent(String raw) {
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(raw);
-            var choices = root.path("choices");
-            if (choices.isArray() && !choices.isEmpty()) {
-                var content = choices.get(0).path("message").path("content");
-                if (!content.isMissingNode()) {
-                    return content.asText();
-                }
-            }
-        } catch (Exception ignore) {
-        }
-        return null;
-    }
+
 }
 
 
