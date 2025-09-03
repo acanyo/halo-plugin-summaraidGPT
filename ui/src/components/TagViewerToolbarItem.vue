@@ -1,0 +1,515 @@
+<script lang="ts" setup>
+import { ref, computed } from 'vue'
+import type { Editor } from '@tiptap/core'
+import type { Component } from 'vue'
+import {
+  VButton,
+  VDropdown,
+  VLoading,
+  Toast,
+  VEmpty,
+  VAlert
+} from '@halo-dev/components'
+import axios, { AxiosError } from 'axios'
+import LinemdCloudAltTags from '~icons/line-md/cloud-alt-tags'
+import MdiRefresh from '~icons/mdi/refresh'
+
+interface Props {
+  editor: Editor
+  isActive?: boolean
+  disabled?: boolean
+  icon?: Component
+  title?: string
+}
+
+interface TagResponse {
+  success: boolean
+  message?: string
+  tags: string[]
+}
+
+interface HaloTag {
+  apiVersion: string
+  kind: string
+  metadata: {
+    name: string
+    generateName?: string
+    finalizers?: string[]
+    annotations?: {
+      [key: string]: string
+    }
+    version?: number
+    creationTimestamp?: string
+    [key: string]: unknown
+  }
+  spec: {
+    displayName: string
+    slug: string
+    color: string
+    cover?: string
+  }
+  status?: {
+    postCount: number
+    visiblePostCount: number
+    permalink: string
+    observedVersion?: number
+  }
+}
+
+interface HaloTagListResponse {
+  items: HaloTag[]
+  [key: string]: unknown
+}
+
+const { isActive = false, disabled = false, title = 'AI智能标签', icon } = defineProps<Props>()
+
+const dropdownVisible = ref(false)
+const loading = ref(false)
+const tags = ref<string[]>([])
+const selectedTags = ref<string[]>([])
+const errorMessage = ref('')
+
+// 计算属性：是否全选
+const isAllSelected = computed(() => {
+  return tags.value.length > 0 && selectedTags.value.length === tags.value.length
+})
+
+// 从URL中获取postName
+const getPostNameFromUrl = () => {
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.get('name')
+}
+
+// 获取AI生成的标签
+const fetchAITags = async () => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const postName = getPostNameFromUrl()
+    if (!postName) {
+      throw new Error('未找到文章ID，请确保在文章编辑页面使用此功能')
+    }
+
+    const { data } = await axios.post<TagResponse>(
+      `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/generateTags`,
+      {
+        postName: postName,
+        ensure: true
+      },
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+
+    if (data.success && Array.isArray(data.tags)) {
+      tags.value = data.tags
+      if (tags.value.length === 0) {
+        errorMessage.value = '未能生成相关标签'
+      }
+    } else {
+      throw new Error(data.message || '生成标签失败')
+    }
+  } catch (error) {
+    console.error('获取AI标签失败:', error)
+    if (error instanceof AxiosError) {
+      errorMessage.value = error.response?.data?.detail || error.response?.data?.message || '请求失败，请重试'
+    } else {
+      errorMessage.value = error instanceof Error ? error.message : '生成标签失败'
+    }
+    Toast.error(errorMessage.value)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 打开下拉框并获取标签
+const handleOpenDropdown = (visible: boolean) => {
+  if (!visible) {
+    dropdownVisible.value = false
+    return
+  }
+
+  const postName = getPostNameFromUrl()
+  if (!postName) {
+    Toast.error('未找到文章ID，请确保在文章编辑页面使用此功能')
+    dropdownVisible.value = false
+    return
+  }
+
+  if (tags.value.length === 0) {
+    fetchAITags()
+  }
+}
+
+// 手动切换下拉框
+const toggleDropdown = () => {
+  if (!dropdownVisible.value) {
+    const postName = getPostNameFromUrl()
+    if (!postName) {
+      Toast.error('未找到文章ID，请确保在文章编辑页面使用此功能')
+      return
+    }
+    dropdownVisible.value = true
+    if (tags.value.length === 0) {
+      fetchAITags()
+    }
+  } else {
+    dropdownVisible.value = false
+  }
+}
+
+// 刷新标签
+const handleRefresh = () => {
+  selectedTags.value = []
+  fetchAITags()
+}
+
+// 切换标签选择状态
+const toggleTag = (tag: string) => {
+  const index = selectedTags.value.indexOf(tag)
+  if (index > -1) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
+  }
+}
+
+// 全选/取消全选
+const handleSelectAll = () => {
+  if (isAllSelected.value) {
+    // 如果已全选，则取消全选
+    selectedTags.value = []
+  } else {
+    // 如果未全选，则全选
+    selectedTags.value = [...tags.value]
+  }
+}
+
+// 确认选择标签
+const confirmSelection = async () => {
+  if (selectedTags.value.length === 0) {
+    Toast.warning('请选择至少一个标签')
+    return
+  }
+
+  const postName = getPostNameFromUrl()
+  if (!postName) {
+    Toast.error('未找到文章ID，无法应用标签')
+    return
+  }
+
+  loading.value = true
+
+  try {
+    // 1. 获取所有标签并在前端过滤
+    const { data: existingTagsResponse } = await axios.get<HaloTagListResponse>(
+      `/apis/content.halo.run/v1alpha1/tags`,
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+
+    const existingTagsMap = new Map<string, string>()
+    if (existingTagsResponse.items) {
+      // 在前端过滤出我们需要的标签
+      existingTagsResponse.items.forEach((tag: HaloTag) => {
+        if (selectedTags.value.includes(tag.spec.displayName)) {
+          existingTagsMap.set(tag.spec.displayName, tag.metadata.name)
+        }
+      })
+    }
+
+    // 2. 创建不存在的标签
+    const createPromises = selectedTags.value
+      .filter(tagName => !existingTagsMap.has(tagName))
+      .map(async (tagDisplayName) => {
+        try {
+          // 使用随机数生成slug，避免中文乱码问题
+          const randomId = Math.random().toString(36).substr(2, 8)
+          const slug = `tag-${randomId}`
+
+          const tagData = {
+            apiVersion: "content.halo.run/v1alpha1",
+            kind: "Tag",
+            metadata: {
+              generateName: "tag-",
+              annotations: {}
+            },
+            spec: {
+              displayName: tagDisplayName,
+              slug: slug,
+              color: "#ffffff",
+              cover: ""
+            }
+          }
+
+          const { data: tag } = await axios.post<HaloTag>(
+            `/apis/content.halo.run/v1alpha1/tags`,
+            tagData,
+            {
+              headers: { 'Content-Type': 'application/json' }
+            }
+          )
+
+          return tag.metadata.name
+        } catch (error) {
+          console.error(`创建标签 "${tagDisplayName}" 失败:`, error)
+          if (error instanceof AxiosError) {
+            console.error('响应数据:', error.response?.data)
+            console.error('请求配置:', error.config)
+          }
+          return null
+        }
+      })
+
+    const newTagNames = (await Promise.all(createPromises)).filter(name => name !== null)
+
+    // 3. 收集所有标签的metadata.name
+    const allTagNames = [
+      ...Array.from(existingTagsMap.values()), // 现有标签
+      ...newTagNames // 新创建的标签
+    ]
+
+    if (allTagNames.length === 0) {
+      throw new Error('没有成功创建或找到任何标签')
+    }
+
+    // 4. 获取并更新文章
+    const { data: post } = await axios.get(
+      `/apis/content.halo.run/v1alpha1/posts/${postName}`,
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+
+    // 5. 更新文章的标签
+    const existingTags = post.spec?.tags || []
+    const updatedTags = [...new Set([...existingTags, ...allTagNames])] // 去重合并
+
+    const updatedPost = {
+      ...post,
+      spec: {
+        ...post.spec,
+        tags: updatedTags
+      }
+    }
+
+    await axios.put(
+      `/apis/content.halo.run/v1alpha1/posts/${postName}`,
+      updatedPost,
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+
+    Toast.success(`成功应用 ${selectedTags.value.length} 个标签到文章`)
+    // 手动关闭下拉框
+    dropdownVisible.value = false
+    // 清空选择
+    selectedTags.value = []
+  } catch (error) {
+    console.error('应用标签失败:', error)
+    if (error instanceof AxiosError) {
+      Toast.error(error.response?.data?.message || error.response?.data?.detail || '应用标签失败，请重试')
+    } else {
+      Toast.error(error instanceof Error ? error.message : '应用标签失败')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+// 计算是否可用（基于URL中是否有postName）
+const isAvailable = computed(() => {
+  return !!getPostNameFromUrl()
+})
+</script>
+
+<template>
+  <div class="likcc-summaraidGPT-tag-viewer">
+    <VDropdown
+      v-model:visible="dropdownVisible"
+      :disabled="disabled || !isAvailable"
+      :triggers="['click']"
+      :auto-close="false"
+      :close-on-content-click="false"
+      @update:visible="handleOpenDropdown"
+    >
+      <button
+        v-tooltip="isAvailable ? title : '请在文章编辑页面使用此功能'"
+        :class="{
+          'bg-gray-200 text-black': isActive,
+          'text-gray-600 hover:text-gray-900 hover:bg-gray-100': !isActive && isAvailable,
+          'text-gray-400 cursor-not-allowed': !isAvailable
+        }"
+        class="likcc-summaraidGPT-tag-viewer-btn"
+        :disabled="disabled || !isAvailable"
+        @click="toggleDropdown"
+      >
+        <component :is="icon || LinemdCloudAltTags" class="h-4 w-4" />
+      </button>
+
+             <template #popper>
+         <div class="likcc-summaraidGPT-tag-dropdown" @click.stop>
+          <!-- 使用说明 -->
+          <div class="p-3">
+            <VAlert
+              type="info"
+              title="AI智能标签生成"
+              description="基于文章内容智能生成相关标签，您可以选择需要的标签应用到文章"
+              :closable="false"
+              class="text-xs"
+            />
+          </div>
+
+          <!-- 头部操作 -->
+          <div class="px-3 pb-3 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-gray-900">选择标签</span>
+              <div class="flex items-center space-x-2">
+                <VButton
+                  v-if="!loading && tags.length > 0"
+                  size="xs"
+                  type="secondary"
+                  @click="handleSelectAll"
+                >
+                  {{ isAllSelected ? '取消全选' : '全选' }}
+                </VButton>
+                <VButton
+                  v-if="!loading && tags.length > 0"
+                  size="xs"
+                  type="secondary"
+                  @click="handleRefresh"
+                >
+                  <template #icon>
+                    <MdiRefresh class="h-3 w-3" />
+                  </template>
+                  重新生成
+                </VButton>
+              </div>
+            </div>
+          </div>
+
+          <!-- 内容区域 -->
+          <div class="max-h-64 overflow-y-auto">
+            <!-- 加载状态 -->
+            <div v-if="loading" class="flex items-center justify-center py-6">
+              <VLoading />
+              <span class="text-sm text-gray-500 ml-2">生成中...</span>
+            </div>
+
+            <!-- 错误状态 -->
+            <div v-else-if="errorMessage" class="p-4 text-center">
+              <VEmpty
+                title="生成失败"
+                :description="errorMessage"
+                class="text-xs"
+              >
+                <template #actions>
+                  <VButton size="xs" type="primary" @click="handleRefresh">
+                    重试
+                  </VButton>
+                </template>
+              </VEmpty>
+            </div>
+
+            <!-- 标签列表 -->
+            <div v-else-if="tags.length > 0" class="py-2">
+              <label
+                v-for="tag in tags"
+                :key="tag"
+                class="flex items-center space-x-2 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+                :class="{ 'bg-blue-50 border-blue-200': selectedTags.includes(tag) }"
+              >
+                <input
+                  type="checkbox"
+                  :checked="selectedTags.includes(tag)"
+                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  @change="() => toggleTag(tag)"
+                >
+                <span
+                  class="text-sm select-none flex-1 cursor-pointer"
+                  :class="{ 'text-blue-700 font-medium': selectedTags.includes(tag) }"
+                >
+                  {{ tag }}
+                </span>
+                <span
+                  v-if="selectedTags.includes(tag)"
+                  class="text-blue-600 text-xs"
+                >
+                  ✓
+                </span>
+              </label>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-else class="p-4 text-center">
+              <VEmpty
+                title="暂无标签"
+                description="未能生成标签"
+                class="text-xs"
+              >
+                <template #actions>
+                  <VButton size="xs" type="primary" @click="handleRefresh">
+                    生成标签
+                  </VButton>
+                </template>
+              </VEmpty>
+            </div>
+          </div>
+
+          <!-- 底部操作 -->
+          <div v-if="tags.length > 0 && !loading" class="p-3 border-t border-gray-100">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-500">
+                已选择 {{ selectedTags.length }} 个标签
+              </span>
+                             <VButton
+                 size="xs"
+                 type="primary"
+                 :disabled="selectedTags.length === 0"
+                 @click="confirmSelection"
+               >
+                确认选择
+              </VButton>
+            </div>
+          </div>
+        </div>
+      </template>
+    </VDropdown>
+  </div>
+</template>
+
+<style scoped>
+.likcc-summaraidGPT-tag-viewer-btn {
+  @apply inline-flex items-center justify-center rounded transition-colors duration-200;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+}
+
+.likcc-summaraidGPT-tag-viewer-btn:disabled {
+  @apply text-gray-400 cursor-not-allowed;
+}
+
+.likcc-summaraidGPT-tag-viewer-btn:disabled:hover {
+  @apply bg-transparent;
+}
+
+.likcc-summaraidGPT-tag-content {
+  @apply min-h-[200px];
+}
+
+.likcc-summaraidGPT-tag-item {
+  @apply transition-colors duration-200;
+}
+
+.likcc-summaraidGPT-tag-item:hover {
+  @apply bg-blue-50 border-blue-200;
+}
+</style>
+
