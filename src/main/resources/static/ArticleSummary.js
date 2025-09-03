@@ -1,8 +1,3 @@
-/**
- * likcc-summaraidGPT AI摘要框
- * 动态创建AI摘要框，支持配置Logo、标题、GPT名字、打字机效果
- */
-
 (function() {
   'use strict';
 
@@ -136,7 +131,6 @@
               'likcc-summaraidGPT-summary--custom'
       );
       if (isDark) {
-        // 进入暗色模式时清除可能存在的自定义变量，避免覆盖暗色主题变量
         clearCustomThemeVars(container);
         container.classList.add('likcc-summaraidGPT-summary--dark');
       } else {
@@ -145,11 +139,9 @@
         else if (themeName === 'blue') cls = 'likcc-summaraidGPT-summary--blue';
         else if (themeName === 'green') cls = 'likcc-summaraidGPT-summary--green';
         else if (themeName === 'default' || !themeName) cls = 'likcc-summaraidGPT-summary--default';
-        // 非暗色：如果是自定义主题，动态重新应用自定义CSS变量
         if (cls === 'likcc-summaraidGPT-summary--custom') {
           applyCustomTheme(themeObj, container);
         } else {
-          // 切换到非自定义内置主题时清理旧的自定义变量
           clearCustomThemeVars(container);
         }
         container.classList.add(cls);
@@ -221,122 +213,178 @@
     });
   }
 
-  // 主初始化函数
-  window.likcc_summaraidGPT_initSummaryBox = function(config) {
+  // 通过API获取摘要配置
+  function fetchSummaryConfig() {
+    return fetch('/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/summaryConfig')
+      .then(response => {
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+
+        return data;
+      })
+      .catch(error => {
+
+        // 返回默认配置
+        return {
+          logo: 'icon.svg',
+          summaryTitle: '文章摘要',
+          gptName: '智阅GPT',
+          typeSpeed: 20,
+          darkSelector: '',
+          themeName: 'custom',
+          theme: '{bg: \'#f7f9fe\', main: \'#4F8DFD\', contentFontSize: \'16px\', title: \'#3A5A8C\', content: \'#222\', gptName: \'#7B88A8\', contentBg: \'#fff\', border: \'#e3e8f7\', shadow: \'0 2px 12px 0 rgba(60,80,180,0.08)\', tagBg: \'#f0f4ff\', cursor: \'#4F8DFD\'}',
+          typewriter: true
+        };
+      });
+  }
+
+  // 处理ai-summaraidGPT标签
+  function processSummaryWidgets(userConfig = {}) {
+    const widgets = document.querySelectorAll('ai-summaraidGPT');
+    if (widgets.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    // 先获取API配置，然后与用户配置合并
+    return fetchSummaryConfig().then(apiConfig => {
+      // 合并API配置和用户配置，用户配置优先级更高
+      const config = { ...apiConfig, ...userConfig };
+
+
+
+      const containers = [];
+
+      widgets.forEach(widget => {
+        // 获取widget的属性
+        const kind = widget.getAttribute('kind') || '';
+        const group = widget.getAttribute('group') || '';
+        const name = widget.getAttribute('name') || '';
+
+        // 主题处理逻辑
+        let finalThemeName = '';
+        if (config.darkSelector && isDarkBySelector(config.darkSelector)) {
+          finalThemeName = 'dark';
+        } else if (config.themeName === 'custom') {
+          finalThemeName = 'custom';
+        } else if (config.themeName) {
+          finalThemeName = config.themeName;
+        } else {
+          finalThemeName = 'default';
+        }
+
+        // 解析theme字符串为对象
+        let themeObj = {};
+
+        try {
+          if (config.theme && typeof config.theme === 'string') {
+
+            themeObj = JSON.parse(config.theme);
+
+          } else if (config.theme && typeof config.theme === 'object') {
+
+            themeObj = config.theme;
+          } else {
+
+          }
+        } catch (e) {
+
+          themeObj = {};
+        }
+
+        // 默认配置
+        const defaultConfig = {
+          logo: '',
+          summaryTitle: 'AI摘要',
+          gptName: 'TianliGPT',
+          typeSpeed: 50,
+          /**
+           * themeName: 'default' | 'dark' | 'blue' | 'green' | 'custom'
+           * - 'custom' 时用 theme 配色（通过CSS变量实现）
+           * - 其他为内置主题
+           * - darkSelector 命中时强制 dark
+           */
+          theme: themeObj,
+          typewriter: true,
+          themeName: finalThemeName
+        };
+
+        // 合并配置
+        const finalConfig = { ...defaultConfig, ...config };
+
+        // 创建摘要框HTML片段
+        const summaryBoxHTML = likcc_summaraidGPT_createSummaryBoxHTML(finalConfig);
+        const fragment = document.createRange().createContextualFragment(summaryBoxHTML);
+
+        // 替换widget标签为实际的摘要框
+        const summaryContainer = fragment.querySelector('.likcc-summaraidGPT-summary-container');
+        widget.parentNode.replaceChild(fragment, widget);
+
+        // 主题class注入
+        let themeClass = '';
+        if (finalThemeName === 'dark') {
+          themeClass = 'likcc-summaraidGPT-summary--dark';
+        } else if (finalThemeName === 'blue') {
+          themeClass = 'likcc-summaraidGPT-summary--blue';
+        } else if (finalThemeName === 'green') {
+          themeClass = 'likcc-summaraidGPT-summary--green';
+        } else if (finalThemeName === 'custom') {
+          themeClass = 'likcc-summaraidGPT-summary--custom';
+          // 应用自定义主题CSS变量
+          if (finalConfig.theme) {
+            applyCustomTheme(finalConfig.theme, summaryContainer);
+          }
+        } else {
+          themeClass = 'likcc-summaraidGPT-summary--default';
+        }
+        summaryContainer.classList.add(themeClass);
+
+        // 集成实时深色模式监听
+        if (config.darkSelector) {
+          observeDarkSelector(config.darkSelector, finalThemeName, finalConfig.theme);
+        }
+
+        // 获取内容元素并通过API动态获取摘要
+        const contentElement = summaryContainer.querySelector('.likcc-summaraidGPT-summary-content');
+        // 先显示loading状态
+        contentElement.innerHTML = '<span style="color:#bbb;">正在生成摘要...</span>';
+
+        // 通过API获取摘要内容
+        fetchSummaryContent(window.location.pathname, contentElement, finalConfig);
+
+        containers.push(summaryContainer);
+      });
+
+      return containers;
+    });
+  }
+
+  // 主初始化函数 - 现在处理ai-summaraidGPT标签
+  window.likcc_summaraidGPT_initSummaryBox = function(userConfig = {}) {
     likcc_summaraidGPT_checkCSS();
-
-    // 严格白名单判断，支持 * 结尾做前缀匹配
-    if (typeof config.whitelist !== 'string' || config.whitelist.length === 0) {
-      return null;
-    }
-    var path = window.location.pathname;
-    if (config.whitelist.endsWith('*')) {
-      // 通配符前缀匹配
-      var prefix = config.whitelist.slice(0, -1);
-      if (!path.startsWith(prefix)) {
-        return null;
-      }
-    } else {
-      if (path.indexOf(config.whitelist) === -1) {
-        return null;
-      }
-    }
-
-    document.querySelectorAll('.likcc-summaraidGPT-summary-container').forEach(el => el.remove());
-
-    // 主题处理逻辑
-    let finalThemeName = '';
-    if (config.darkSelector && isDarkBySelector(config.darkSelector)) {
-      finalThemeName = 'dark';
-    } else if (config.themeName === 'custom') {
-      finalThemeName = 'custom';
-    } else if (config.themeName) {
-      finalThemeName = config.themeName;
-    } else {
-      finalThemeName = 'default';
-    }
-
-    // 默认配置
-    const defaultConfig = {
-      logo: '',
-      summaryTitle: 'AI摘要',
-      gptName: 'TianliGPT',
-      typeSpeed: 50,
-      target: 'body', // 默认插入到body
-      /**
-       * themeName: 'default' | 'dark' | 'blue' | 'green' | 'custom'
-       * - 'custom' 时用 theme 配色（通过CSS变量实现）
-       * - 其他为内置主题
-       * - darkSelector 命中时强制 dark
-       */
-      theme: {},
-      typewriter: true,
-      themeName: finalThemeName
-    };
-
-    // 合并配置
-    const finalConfig = { ...defaultConfig, ...config };
-
-    // 创建摘要框HTML片段
-    const summaryBoxHTML = likcc_summaraidGPT_createSummaryBoxHTML(finalConfig);
-    const fragment = document.createRange().createContextualFragment(summaryBoxHTML);
-
-    // 确定插入位置
-    let targetElement = document.body;
-    if (finalConfig.target && finalConfig.target !== 'body') {
-      const selector = finalConfig.target;
-      const foundElement = document.querySelector(selector);
-      if (foundElement) {
-        targetElement = foundElement;
-      } else {
-        console.info(`[智阅GPT] 未找到指定的目标元素: ${selector}，摘要功能已关闭`);
-        return null;
-      }
-    }
-
-    // 插入到目标元素内部最前面
-    let summaryContainer;
-    if (targetElement.firstChild) {
-      targetElement.insertBefore(fragment, targetElement.firstChild);
-      summaryContainer = targetElement.querySelector('.likcc-summaraidGPT-summary-container');
-    } else {
-      targetElement.appendChild(fragment);
-      summaryContainer = targetElement.querySelector('.likcc-summaraidGPT-summary-container');
-    }
-
-    // 主题class注入
-    let themeClass = '';
-    if (finalThemeName === 'dark') {
-      themeClass = 'likcc-summaraidGPT-summary--dark';
-    } else if (finalThemeName === 'blue') {
-      themeClass = 'likcc-summaraidGPT-summary--blue';
-    } else if (finalThemeName === 'green') {
-      themeClass = 'likcc-summaraidGPT-summary--green';
-    } else if (finalThemeName === 'custom') {
-      themeClass = 'likcc-summaraidGPT-summary--custom';
-      // 应用自定义主题CSS变量
-      if (finalConfig.theme) {
-        applyCustomTheme(finalConfig.theme, summaryContainer);
-      }
-    } else {
-      themeClass = 'likcc-summaraidGPT-summary--default';
-    }
-    summaryContainer.classList.add(themeClass);
-
-    // 集成实时深色模式监听
-    if (config.darkSelector) {
-      observeDarkSelector(config.darkSelector, finalThemeName, finalConfig.theme);
-    }
-
-    // 获取内容元素并通过API动态获取摘要
-    const contentElement = summaryContainer.querySelector('.likcc-summaraidGPT-summary-content');
-    // 先显示loading状态
-    contentElement.innerHTML = '<span style="color:#bbb;">正在生成摘要...</span>';
-
-    // 通过API获取摘要内容
-    fetchSummaryContent(window.location.pathname, contentElement, finalConfig);
-    return summaryContainer;
+    return processSummaryWidgets(userConfig);
   };
+
+  // 自动初始化 - 处理页面中的ai-summaraidGPT标签
+  function autoInitSummaryBox() {
+    likcc_summaraidGPT_initSummaryBox();
+  }
+
+  // 页面加载完成后自动处理标签
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoInitSummaryBox, { once: true });
+  } else {
+    // 如果页面已经加载完成，立即执行
+    autoInitSummaryBox();
+  }
+
+  // 支持pjax页面切换
+  document.addEventListener('pjax:success', autoInitSummaryBox);
+  document.addEventListener('pjax:complete', autoInitSummaryBox);
 
   // 标记已初始化
   window.likcc_summaraidGPT_summaryInitialized = true;

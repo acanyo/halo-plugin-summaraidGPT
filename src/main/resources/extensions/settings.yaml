@@ -309,6 +309,13 @@ spec:
             - label: Codesphere
               value: "codesphere"
           help: "选择专门用于摘要生成的AI提供商，留空则使用主配置"
+        - $formkit: checkbox
+          label: 是否启用文章摘要
+          name: enable
+          id: enable
+          key: enable
+          value: false
+          help: "开启后将不会注入摘要框"
         - $formkit: textarea
           name: summarySystemPrompt
           label: 摘要模型人设
@@ -329,20 +336,7 @@ spec:
           key: gptName
           value: "智阅GPT"
           help: "AI模型名称，显示在摘要框中"
-        - $formkit: text
-          label: 目标元素选择器
-          name: target
-          id: target
-          key: target
-          value: "article"
-          help: "摘要框插入的目标元素选择器"
-        - $formkit: text
-          label: 文章路由
-          name: whitelist
-          id: whitelist
-          key: whitelist
-          value: "/archives/*"
-          help: "只在指定路径下显示摘要框，多个路径用逗号分隔"
+
         - $formkit: text
           label: 深色模式选择器
           name: darkSelector

@@ -72,8 +72,6 @@ public interface SettingConfigGetter {
         private Boolean enable;
         private String summaryTitle;
         private String gptName;
-        private String target;
-        private String whitelist;
         private String darkSelector;
         private Integer typeSpeed;
         private Boolean typewriter;

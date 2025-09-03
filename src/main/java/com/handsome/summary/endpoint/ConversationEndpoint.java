@@ -41,6 +41,17 @@ public class ConversationEndpoint implements CustomEndpoint {
         String dialogType,
         String buttonPosition
     ) {}
+    
+    public record SummaryConfig(
+        String logo,
+        String summaryTitle,
+        String gptName,
+        Integer typeSpeed,
+        String darkSelector,
+        String themeName,
+        String theme,
+        Boolean typewriter
+    ) {}
 
     public record ApiResponse(boolean success, String message, String response, String aiType, Long timestamp) {
         public static ApiResponse success(String message, String response, String aiType) {
@@ -78,6 +89,12 @@ public class ConversationEndpoint implements CustomEndpoint {
                     .tag(tag)
                     .description("获取对话框配置信息")
                     .response(responseBuilder().implementation(DialogConfig.class))
+            )
+            .GET("/summaryConfig", this::getSummaryConfig,
+                builder -> builder.operationId("GetSummaryConfig")
+                    .tag(tag)
+                    .description("获取摘要框配置信息")
+                    .response(responseBuilder().implementation(SummaryConfig.class))
             )
             .build();
     }
@@ -272,6 +289,69 @@ public class ConversationEndpoint implements CustomEndpoint {
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(defaultConfig);
             });
+    }
+
+    /**
+     * 获取摘要框配置信息
+     */
+    private Mono<ServerResponse> getSummaryConfig(ServerRequest request) {
+        return Mono.zip(
+            settingConfigGetter.getSummaryConfig(),
+            settingConfigGetter.getStyleConfig()
+        ).map(tuple -> {
+            var summaryConfig = tuple.getT1();
+            var styleConfig = tuple.getT2();
+            
+            return new SummaryConfig(
+                styleConfig.getLogo() != null ? styleConfig.getLogo() : "icon.svg",
+                summaryConfig.getSummaryTitle() != null ? summaryConfig.getSummaryTitle() : "文章摘要",
+                summaryConfig.getGptName() != null ? summaryConfig.getGptName() : "智阅GPT",
+                summaryConfig.getTypeSpeed() != null ? summaryConfig.getTypeSpeed() : 20,
+                summaryConfig.getDarkSelector() != null ? summaryConfig.getDarkSelector() : "",
+                styleConfig.getThemeName() != null ? styleConfig.getThemeName() : "custom",
+                buildThemeString(styleConfig),
+                summaryConfig.getTypewriter() != null ? summaryConfig.getTypewriter() : true
+            );
+        })
+        .flatMap(summaryConfig -> ServerResponse.ok()
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(summaryConfig))
+        .onErrorResume(e -> {
+            log.error("获取摘要框配置失败", e);
+            // 返回默认配置
+            SummaryConfig defaultConfig = new SummaryConfig(
+                "icon.svg",
+                "文章摘要",
+                "智阅GPT",
+                20,
+                "",
+                "custom",
+                "{\"bg\":\"#f7f9fe\",\"main\":\"#4F8DFD\",\"contentFontSize\":\"16px\",\"title\":\"#3A5A8C\",\"content\":\"#222\",\"gptName\":\"#7B88A8\",\"contentBg\":\"#fff\",\"border\":\"#e3e8f7\",\"shadow\":\"0 2px 12px 0 rgba(60,80,180,0.08)\",\"tagBg\":\"#f0f4ff\",\"cursor\":\"#4F8DFD\"}",
+                true
+            );
+            return ServerResponse.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(defaultConfig);
+        });
+    }
+    
+    /**
+     * 构建主题字符串
+     */
+    private String buildThemeString(SettingConfigGetter.StyleConfig styleConfig) {
+        return String.format("{\"bg\":\"%s\",\"main\":\"%s\",\"contentFontSize\":\"%s\",\"title\":\"%s\",\"content\":\"%s\",\"gptName\":\"%s\",\"contentBg\":\"%s\",\"border\":\"%s\",\"shadow\":\"%s\",\"tagBg\":\"%s\",\"cursor\":\"%s\"}",
+            styleConfig.getThemeBg() != null ? styleConfig.getThemeBg() : "#f7f9fe",
+            styleConfig.getThemeMain() != null ? styleConfig.getThemeMain() : "#4F8DFD",
+            styleConfig.getThemeContentFontSize() != null ? styleConfig.getThemeContentFontSize() : "16px",
+            styleConfig.getThemeTitle() != null ? styleConfig.getThemeTitle() : "#3A5A8C",
+            styleConfig.getThemeContent() != null ? styleConfig.getThemeContent() : "#222",
+            styleConfig.getThemeGptName() != null ? styleConfig.getThemeGptName() : "#7B88A8",
+            styleConfig.getThemeContentBg() != null ? styleConfig.getThemeContentBg() : "#fff",
+            styleConfig.getThemeBorder() != null ? styleConfig.getThemeBorder() : "#e3e8f7",
+            styleConfig.getThemeShadow() != null ? styleConfig.getThemeShadow() : "0 2px 12px 0 rgba(60,80,180,0.08)",
+            styleConfig.getThemeTagBg() != null ? styleConfig.getThemeTagBg() : "#f0f4ff",
+            styleConfig.getThemeCursor() != null ? styleConfig.getThemeCursor() : "#4F8DFD"
+        );
     }
 
     @Override
