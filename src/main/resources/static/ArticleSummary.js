@@ -6,6 +6,11 @@
     return;
   }
 
+  // 版权信息打印
+  console.log('%c智阅GPT-智能AI助手', 'color: #4F8DFD; font-size: 16px; font-weight: bold;');
+  console.log('%c🚀 智阅点睛，一键洞见——基于AI大模型的Halo智能AI助手', 'color: #666; font-size: 12px;');
+  console.log('%c👨‍💻 作者: Handsome | 🌐 网站: https://lik.cc', 'color: #999; font-size: 11px;');
+
   // 检查CSS是否已加载
   function likcc_summaraidGPT_checkCSS() {
     const linkElement = document.querySelector('link[href*="ArticleSummary.css"]');
@@ -122,6 +127,16 @@
   }
 
   function updateSummaryTheme(isDark, themeName, themeObj) {
+    // 确保themeObj是对象格式
+    let parsedThemeObj = themeObj;
+    if (typeof themeObj === 'string') {
+      try {
+        parsedThemeObj = JSON.parse(themeObj);
+      } catch (e) {
+        parsedThemeObj = {};
+      }
+    }
+
     document.querySelectorAll('.likcc-summaraidGPT-summary-container').forEach(container => {
       container.classList.remove(
               'likcc-summaraidGPT-summary--dark',
@@ -140,7 +155,7 @@
         else if (themeName === 'green') cls = 'likcc-summaraidGPT-summary--green';
         else if (themeName === 'default' || !themeName) cls = 'likcc-summaraidGPT-summary--default';
         if (cls === 'likcc-summaraidGPT-summary--custom') {
-          applyCustomTheme(themeObj, container);
+          applyCustomTheme(parsedThemeObj, container);
         } else {
           clearCustomThemeVars(container);
         }
@@ -224,11 +239,9 @@
         return response.json();
       })
       .then(data => {
-
         return data;
       })
       .catch(error => {
-
         // 返回默认配置
         return {
           logo: 'icon.svg',
@@ -237,7 +250,7 @@
           typeSpeed: 20,
           darkSelector: '',
           themeName: 'custom',
-          theme: '{bg: \'#f7f9fe\', main: \'#4F8DFD\', contentFontSize: \'16px\', title: \'#3A5A8C\', content: \'#222\', gptName: \'#7B88A8\', contentBg: \'#fff\', border: \'#e3e8f7\', shadow: \'0 2px 12px 0 rgba(60,80,180,0.08)\', tagBg: \'#f0f4ff\', cursor: \'#4F8DFD\'}',
+          theme: '{"bg": "#f7f9fe", "main": "#4F8DFD", "contentFontSize": "16px", "title": "#3A5A8C", "content": "#222", "gptName": "#7B88A8", "contentBg": "#fff", "border": "#e3e8f7", "shadow": "0 2px 12px 0 rgba(60,80,180,0.08)", "tagBg": "#f0f4ff", "cursor": "#4F8DFD"}',
           typewriter: true
         };
       });
@@ -282,18 +295,41 @@
 
         try {
           if (config.theme && typeof config.theme === 'string') {
-
+            // 尝试解析JSON字符串
             themeObj = JSON.parse(config.theme);
-
           } else if (config.theme && typeof config.theme === 'object') {
-
             themeObj = config.theme;
           } else {
-
+            // 提供默认主题对象
+            themeObj = {
+              bg: '#f7f9fe',
+              main: '#4F8DFD',
+              contentFontSize: '16px',
+              title: '#3A5A8C',
+              content: '#222',
+              gptName: '#7B88A8',
+              contentBg: '#fff',
+              border: '#e3e8f7',
+              shadow: '0 2px 12px 0 rgba(60,80,180,0.08)',
+              tagBg: '#f0f4ff',
+              cursor: '#4F8DFD'
+            };
           }
         } catch (e) {
-
-          themeObj = {};
+          // 解析失败时使用默认主题
+          themeObj = {
+            bg: '#f7f9fe',
+            main: '#4F8DFD',
+            contentFontSize: '16px',
+            title: '#3A5A8C',
+            content: '#222',
+            gptName: '#7B88A8',
+            contentBg: '#fff',
+            border: '#e3e8f7',
+            shadow: '0 2px 12px 0 rgba(60,80,180,0.08)',
+            tagBg: '#f0f4ff',
+            cursor: '#4F8DFD'
+          };
         }
 
         // 默认配置
@@ -335,8 +371,8 @@
         } else if (finalThemeName === 'custom') {
           themeClass = 'likcc-summaraidGPT-summary--custom';
           // 应用自定义主题CSS变量
-          if (finalConfig.theme) {
-            applyCustomTheme(finalConfig.theme, summaryContainer);
+          if (themeObj && Object.keys(themeObj).length > 0) {
+            applyCustomTheme(themeObj, summaryContainer);
           }
         } else {
           themeClass = 'likcc-summaraidGPT-summary--default';
@@ -345,7 +381,7 @@
 
         // 集成实时深色模式监听
         if (config.darkSelector) {
-          observeDarkSelector(config.darkSelector, finalThemeName, finalConfig.theme);
+          observeDarkSelector(config.darkSelector, finalThemeName, themeObj);
         }
 
         // 获取内容元素并通过API动态获取摘要
