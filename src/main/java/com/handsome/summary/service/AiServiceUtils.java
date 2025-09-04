@@ -5,7 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.util.function.Consumer;
 
 /**
@@ -13,6 +20,7 @@ import java.util.function.Consumer;
  * 提供所有AI服务共用的通用方法，减少重复代码
  */
 @Slf4j
+@Component
 public class AiServiceUtils {
     
     /**
@@ -406,5 +414,29 @@ public class AiServiceUtils {
                 }
             }
         }
+    }
+    
+    /**
+     * 发送HTTP请求并获取响应
+     * 这是从OpenAiService提取出来的通用HTTP处理方法
+     * @param conn HTTP连接
+     * @param body 请求体
+     * @return 响应字符串
+     * @throws IOException IO异常
+     */
+    @NotNull
+    public static String getOutputStream(HttpURLConnection conn, String body) throws IOException {
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(body.getBytes());
+        }
+
+        StringBuilder response = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                response.append(line);
+            }
+        }
+        return response.toString();
     }
 }

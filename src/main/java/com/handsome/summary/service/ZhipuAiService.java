@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.function.Consumer;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -25,10 +24,8 @@ import org.springframework.stereotype.Component;
  * </p>
  */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class ZhipuAiService implements AiService {
-    final OpenAiService openAiService;
     /**
      * @return 返回AI类型标识（zhipuAi），用于工厂分发
      */
@@ -68,7 +65,7 @@ public class ZhipuAiService implements AiService {
             message.put("role", "user");
             message.put("content", prompt);
             String body = mapper.writeValueAsString(root);
-            return openAiService.getOutputStream(conn, body);
+            return AiServiceUtils.getOutputStream(conn, body);
         } catch (Exception e) {
             String errorMsg = e.getMessage();
             if (conn != null) {
@@ -128,7 +125,7 @@ public class ZhipuAiService implements AiService {
             
             String body = mapper.writeValueAsString(root);
             log.info("智谱AI同步请求体: {}", body);
-            return openAiService.getOutputStream(conn, body);
+            return AiServiceUtils.getOutputStream(conn, body);
         } catch (Exception e) {
             String errorMsg = e.getMessage();
             if (conn != null) {

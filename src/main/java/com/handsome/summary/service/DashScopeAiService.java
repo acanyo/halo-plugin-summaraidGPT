@@ -13,7 +13,6 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.util.function.Consumer;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -26,10 +25,8 @@ import org.springframework.stereotype.Component;
  * </p>
  */
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class DashScopeAiService implements AiService {
-     final OpenAiService openAiService;
     /**
      * @return 返回AI类型标识（dashScope），用于工厂分发
      */
@@ -67,7 +64,7 @@ public class DashScopeAiService implements AiService {
             var request = createDashScopeRequest(config, false);
             request.input().put("prompt", prompt);
             String body = request.mapper().writeValueAsString(request.root());
-            return openAiService.getOutputStream(request.conn(), body);
+            return AiServiceUtils.getOutputStream(request.conn(), body);
         } catch (Exception e) {
             return "[通义千问 摘要生成异常：" + e.getMessage() + "]";
         }
@@ -103,7 +100,7 @@ public class DashScopeAiService implements AiService {
             conversationHistory(conversationHistory, systemPrompt, request.mapper(), request.input());
 
             String body = request.mapper().writeValueAsString(request.root());
-            return openAiService.getOutputStream(request.conn(), body);
+            return AiServiceUtils.getOutputStream(request.conn(), body);
         } catch (Exception e) {
             return "[通义千问 多轮对话异常：" + e.getMessage() + "]";
         }

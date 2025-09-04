@@ -309,6 +309,7 @@ spec:
             - label: Codesphere
               value: "codesphere"
           help: "选择专门用于摘要生成的AI提供商，留空则使用主配置"
+          value: ""
         - $formkit: checkbox
           label: 是否启用文章摘要
           name: enable
@@ -507,6 +508,7 @@ spec:
             - label: Codesphere
               value: "codesphere"
           help: "选择专门用于标签生成的AI提供商，留空则使用主配置"
+          value: ""
         - $formkit: textarea
           label: 标签生成角色设定
           name: tagGenerationPrompt
@@ -543,6 +545,7 @@ spec:
             - label: Codesphere
               value: "codesphere"
           help: "选择专门用于对话的AI提供商，留空则使用主配置"
+          value: ""
         - $el: div
           attrs:
             class: "formkit-help text-xs text-gray-500"

@@ -1,6 +1,5 @@
 package com.handsome.summary.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -8,11 +7,15 @@ import reactor.core.publisher.Mono;
  * AI配置服务 - 提供通用的AI配置获取和服务实例获取功能
  */
 @Service
-@RequiredArgsConstructor
 public class AiConfigService {
     
     private final SettingConfigGetter settingConfigGetter;
     private final AiServiceFactory aiServiceFactory;
+    
+    public AiConfigService(SettingConfigGetter settingConfigGetter, AiServiceFactory aiServiceFactory) {
+        this.settingConfigGetter = settingConfigGetter;
+        this.aiServiceFactory = aiServiceFactory;
+    }
     
     /**
      * 获取指定功能的AI服务实例
