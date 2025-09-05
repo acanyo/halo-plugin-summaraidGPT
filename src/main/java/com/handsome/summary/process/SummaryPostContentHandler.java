@@ -46,7 +46,8 @@ public class SummaryPostContentHandler implements ReactivePostContentHandler {
         properties.setProperty("name", post.getMetadata().getName());
         
         String summaryDOM = PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(
-            "<ai-summaraidGPT kind=\"${kind}\" group=\"${group}\" name=\"${name}\"></ai-summaraidGPT>\n", 
+            "<ai-summaraidGPT kind=\"${kind}\" group=\"${group}\" name=\"${name}\"></ai-summaraidGPT>\n"
+                + "<ai-dialog></ai-dialog>\n",
             properties
         );
         
