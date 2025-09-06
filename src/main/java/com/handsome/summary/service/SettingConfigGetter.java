@@ -9,6 +9,7 @@ public interface SettingConfigGetter {
     Mono<StyleConfig> getStyleConfig();
     Mono<TagsConfig> getTagsConfig();
     Mono<AssistantConfig> getAssistantConfig();
+    Mono<PolishConfig> getPolishConfig();
     
     /**
      * 通用AI获取方法 - 根据功能类型获取对应的AI配置
@@ -114,5 +115,14 @@ public interface SettingConfigGetter {
         private String inputPlaceholder;
         private String dialogType;
         private String buttonPosition;
+    }
+    
+    @Data
+    class PolishConfig {
+        public static final String GROUP = "polish";
+        private String polishAiType;
+        private String polishSystemPrompt;
+        private Integer polishMaxLength;
+        private Boolean polishPreserveParagraphs;
     }
 }

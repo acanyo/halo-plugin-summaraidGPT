@@ -5,12 +5,13 @@ import axios, {AxiosError} from "axios";
 import {markRaw} from "vue";
 import SynchronousAiSummary from '@/views/SynchronousAiSummary.vue'
 import TagViewer from '@/extensions/TagViewer'
+import ArticlePolish from '@/extensions/ArticlePolish'
 
 
 export default definePlugin({
   extensionPoints: {
     "default:editor:extension:create": () => {
-      return [TagViewer];
+      return [TagViewer, ArticlePolish];
     },
     'post:list-item:operation:create': () => {
       return [

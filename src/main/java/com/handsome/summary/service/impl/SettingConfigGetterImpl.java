@@ -45,6 +45,12 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     }
 
     @Override
+    public Mono<PolishConfig> getPolishConfig() {
+        return settingFetcher.fetch(PolishConfig.GROUP, PolishConfig.class)
+            .defaultIfEmpty(new PolishConfig());
+    }
+
+    @Override
     public Mono<AiConfigResult> getAiConfigForFunction(String functionType) {
         return Mono.zip(
             getBasicConfig(),

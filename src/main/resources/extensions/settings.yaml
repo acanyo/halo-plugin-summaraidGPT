@@ -605,3 +605,63 @@ spec:
               value: right
           help: "文章助手按钮的显示位置"
         
+    - group: polish
+      label: 文章润色设置
+      formSchema:
+        - $formkit: select
+          name: polishAiType
+          label: 润色AI类型选择
+          placeholder: "选择用于文章润色的AI提供商"
+          options:
+            - label: 使用主配置AI
+              value: ""
+            - label: OpenAI
+              value: "openAi"
+            - label: 智谱AI
+              value: "zhipuAi"
+            - label: 通义千问
+              value: "dashScope"
+            - label: Codesphere
+              value: "codesphere"
+          help: "选择专门用于文章润色的AI提供商，留空则使用主配置"
+          value: ""
+        - $formkit: textarea
+          name: polishSystemPrompt
+          label: 润色角色设定
+          placeholder: "请输入文章润色的AI角色设定"
+          value: "你是一个专业的文章润色助手，专门帮助用户改善文章的语言表达和流畅性。请遵循以下要求：\n1. 保持原文的核心意思和结构不变\n2. 改善语言表达，使其更加流畅自然\n3. 修正语法错误和用词不当\n4. 提升文章的可读性和专业性\n5. 保持原文的语言风格（正式/非正式）\n6. 直接返回润色后的内容，不要添加任何解释说明"
+          help: "定义AI如何进行文章润色的角色设定和指令"
+        - $formkit: number
+          name: polishMaxLength
+          label: 最大润色长度
+          value: 2000
+          min: 100
+          max: 8000
+          help: "单次润色的最大字符数，超过此长度将提示用户分段润色"
+        - $formkit: checkbox
+          name: polishPreserveParagraphs
+          label: 保持段落结构
+          value: true
+          help: "润色时是否保持原文的段落结构"
+
+    - group: polish
+      label: 文章生成设置
+      formSchema:
+        - $formkit: select
+          name: polishAiType
+          label: 生成AI类型选择
+          placeholder: "选择用于文章润色的AI提供商"
+          options:
+            - label: 使用主配置AI
+              value: ""
+            - label: OpenAI
+              value: "openAi"
+            - label: 智谱AI
+              value: "zhipuAi"
+            - label: 通义千问
+              value: "dashScope"
+            - label: Codesphere
+              value: "codesphere"
+          help: "选择专门用于文章润色的AI提供商，留空则使用主配置"
+          value: ""
+        
