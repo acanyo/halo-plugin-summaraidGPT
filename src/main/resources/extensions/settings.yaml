@@ -638,13 +638,8 @@ spec:
           min: 100
           max: 8000
           help: "单次润色的最大字符数，超过此长度将提示用户分段润色"
-        - $formkit: checkbox
-          name: polishPreserveParagraphs
-          label: 保持段落结构
-          value: true
-          help: "润色时是否保持原文的段落结构"
 
-    - group: polish
+    - group: generate
       label: 文章生成设置
       formSchema:
         - $formkit: select

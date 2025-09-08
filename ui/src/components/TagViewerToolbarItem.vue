@@ -11,7 +11,7 @@ import {
   VAlert
 } from '@halo-dev/components'
 import axios, { AxiosError } from 'axios'
-import LinemdCloudAltTags from '~icons/line-md/cloud-alt-tags'
+import IconWand2 from '~icons/lucide/wand-2'
 import MdiRefresh from '~icons/mdi/refresh'
 
 interface Props {
@@ -347,7 +347,7 @@ const isAvailable = computed(() => {
         :disabled="disabled || !isAvailable"
         @click="toggleDropdown"
       >
-        <component :is="icon || LinemdCloudAltTags" class="h-4 w-4" />
+        <component :is="icon || IconWand2" class="h-4 w-4" />
       </button>
 
              <template #popper>

@@ -18,6 +18,15 @@ export interface ToolbarItem {
   props: Record<string, any>;
 }
 
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    articlePolish: {
+      openPolishDialog: () => ReturnType;
+      polishSelection: () => ReturnType;
+    }
+  }
+}
+
 /**
  * 文章润色TipTap扩展
  * 为编辑器添加AI润色功能的工具栏按钮
@@ -36,7 +45,7 @@ export default Extension.create<ArticlePolishOptions>({
         
         return [
           {
-            priority: 185, // 设置优先级，在标签查看器之前
+            priority: 141, // 设置优先级，在标签查看器之前
             component: markRaw(ArticlePolishToolbarItem),
             props: {
               editor,
@@ -56,30 +65,14 @@ export default Extension.create<ArticlePolishOptions>({
       'Mod-Shift-p': () => {
         const { selection } = this.editor.state;
         if (!selection.empty) {
-          // 触发工具栏按钮点击
-          const event = new CustomEvent('polish:trigger', {
-            detail: { 
-              editor: this.editor,
-              content: this.editor.state.doc.textBetween(selection.from, selection.to, '\n')
-            }
-          });
-          document.dispatchEvent(event);
+          // 直接触发工具栏按钮点击
+          const buttonElement = document.querySelector('.polish-toolbar-item button');
+          if (buttonElement) {
+            (buttonElement as HTMLButtonElement).click();
+          }
         }
         return true;
       },
     }
-  },
-
-  onCreate() {
-    // 监听编辑器选择变化，更新工具栏按钮状态
-    this.editor.on('selectionUpdate', () => {
-      // 触发工具栏更新
-      this.options.getToolbarItems?.({ editor: this.editor });
-    });
-  },
-
-  onDestroy() {
-    // 清理事件监听器
-    this.editor.off('selectionUpdate');
   },
 })

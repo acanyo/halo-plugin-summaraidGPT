@@ -27,6 +27,7 @@
     "@tiptap/extension-text": "^3.3.1",
     "axios": "^1.7.2",
     "canvas-confetti": "^1.9.3",
+    "marked": "^16.2.1",
     "vue": "^3.5.17"
   },
   "devDependencies": {

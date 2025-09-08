@@ -83,6 +83,8 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
                 new FunctionSpecificAiInfo(config.getTagAiType(), config.getTagGenerationPrompt()));
             case "conversation", "assistant" -> getAssistantConfig().map(config -> 
                 new FunctionSpecificAiInfo(config.getAssistantAiType(), config.getConversationSystemPrompt()));
+            case "polish" -> getPolishConfig().map(config -> 
+                new FunctionSpecificAiInfo(config.getPolishAiType(), config.getPolishSystemPrompt()));
             default -> Mono.just(new FunctionSpecificAiInfo(null, null));
         };
     }

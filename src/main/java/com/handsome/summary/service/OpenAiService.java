@@ -345,17 +345,6 @@ public class OpenAiService implements AiService {
 
     @NotNull
     public String getOutputStream(HttpURLConnection conn, String body) throws IOException {
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes());
-        }
-
-        StringBuilder response = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                response.append(line);
-            }
-        }
-        return response.toString();
+        return AiServiceUtils.getOutputStream(conn, body);
     }
 } 

@@ -123,6 +123,5 @@ public interface SettingConfigGetter {
         private String polishAiType;
         private String polishSystemPrompt;
         private Integer polishMaxLength;
-        private Boolean polishPreserveParagraphs;
     }
 }

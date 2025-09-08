@@ -1,22 +1,12 @@
 <template>
   <VDialog
     v-model:visible="dialogVisible"
-    :title="dialogTitle"
-    width="900px"
-    height="600px"
+    title="文章润色"
+    width="1000px"
+    height="700px"
     @close="handleClose"
   >
     <div class="polish-dialog">
-      <!-- 内容长度提示 -->
-      <VAlert
-        v-if="isContentTooLong"
-        type="warning"
-        title="内容过长提示"
-        :description="`当前选中内容长度为 ${originalContent.length} 字符，超过最大限制 ${maxLength} 字符。请选择较短的文本片段进行润色。`"
-        closable
-        @close="handleClose"
-      />
-
       <!-- 错误提示 -->
       <VAlert
         v-if="errorMessage"
@@ -27,68 +17,55 @@
       />
 
       <!-- 内容对比区域 -->
-      <div v-if="!isContentTooLong" class="polish-dialog__content">
-        <div class="content-comparison">
-          <!-- 原始内容 -->
-          <div class="content-panel original-panel">
-            <div class="panel-header">
-              <h4 class="panel-title">
-                <IconDocument />
-                原始内容
-              </h4>
-              <div class="content-stats">
-                字数: {{ originalContent.length }}
-              </div>
-            </div>
-            <div class="panel-content">
-              <div 
-                class="content-display original-content"
-                v-html="formatContent(originalContent)"
-              />
+      <div class="content-comparison">
+        <!-- 原始内容 -->
+        <div class="content-panel original-panel">
+          <div class="panel-header">
+            <h4 class="panel-title">
+              <IconDocument />
+              原始内容
+            </h4>
+            <div class="content-stats">
+              字数: {{ originalContent.length }}
             </div>
           </div>
-
-          <!-- 分隔线 -->
-          <div class="content-divider">
-            <IconArrowRight v-if="!loading" />
-            <VLoading v-else />
-          </div>
-
-          <!-- 润色后内容 -->
-          <div class="content-panel polished-panel">
-            <div class="panel-header">
-              <h4 class="panel-title">
-                <IconSparkles />
-                润色后内容
-              </h4>
-              <div class="content-stats" v-if="polishedContent">
-                字数: {{ polishedContent.length }}
-                <span class="diff-indicator" :class="lengthDiffClass">
-                  ({{ lengthDiff }})
-                </span>
-              </div>
+          <div class="panel-content">
+            <div class="content-text">
+              {{ originalContent }}
             </div>
-            <div class="panel-content">
-              <VEmpty
-                v-if="!polishedContent && !loading"
-                title="等待润色"
-                description="点击下方按钮开始润色选中的文本"
-              >
-                <template #image>
-                  <IconSparkles />
-                </template>
-              </VEmpty>
-              
-              <div 
-                v-else-if="polishedContent"
-                class="content-display polished-content"
-                v-html="formatContent(polishedContent)"
-              />
-              
-              <div v-else-if="loading" class="loading-placeholder">
-                <VLoading />
-                <p>AI正在润色您的文章，请稍候...</p>
-              </div>
+          </div>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="content-divider">
+          <IconArrowRight v-if="!loading" />
+          <VLoading v-else />
+        </div>
+
+        <!-- 润色后内容 -->
+        <div class="content-panel polished-panel">
+          <div class="panel-header">
+            <h4 class="panel-title">
+              <IconSparkles />
+              润色后内容
+            </h4>
+            <div class="content-stats" v-if="polishedContent">
+              字数: {{ polishedContent.length }}
+            </div>
+          </div>
+          <div class="panel-content">
+            <div v-if="loading" class="loading-state">
+              <VLoading />
+              <p>AI正在润色您的文章，请稍候...</p>
+            </div>
+            
+            <div v-else-if="polishedContent" class="content-text">
+              {{ polishedContent }}
+            </div>
+            
+            <div v-else class="empty-state">
+              <IconSparkles />
+              <p>等待润色结果...</p>
             </div>
           </div>
         </div>
@@ -99,17 +76,6 @@
       <div class="dialog-footer">
         <VButton @click="handleClose">
           取消
-        </VButton>
-        
-        <VButton
-          v-if="!isContentTooLong && !polishedContent"
-          type="primary"
-          :loading="loading"
-          :disabled="!canPolish"
-          @click="handlePolish"
-        >
-          <IconSparkles />
-          {{ loading ? '润色中...' : '开始润色' }}
         </VButton>
         
         <VButton
@@ -140,7 +106,6 @@ import {
   VDialog,
   VButton,
   VAlert,
-  VEmpty,
   VLoading,
   Toast
 } from '@halo-dev/components'
@@ -178,39 +143,20 @@ const dialogVisible = computed({
   set: (value) => emit('update:visible', value)
 })
 
-const dialogTitle = '文章润色'
 const loading = ref(false)
 const errorMessage = ref('')
 const originalContent = ref('')
 const polishedContent = ref('')
 
-// 计算属性
-const isContentTooLong = computed(() => {
-  return originalContent.value.length > props.maxLength
-})
-
-const canPolish = computed(() => {
-  return originalContent.value.trim().length > 0 && !loading.value && !isContentTooLong.value
-})
-
-const lengthDiff = computed(() => {
-  if (!polishedContent.value) return 0
-  const diff = polishedContent.value.length - originalContent.value.length
-  return diff > 0 ? `+${diff}` : diff.toString()
-})
-
-const lengthDiffClass = computed(() => {
-  const diff = polishedContent.value.length - originalContent.value.length
-  if (diff > 0) return 'diff-positive'
-  if (diff < 0) return 'diff-negative'
-  return 'diff-neutral'
-})
-
 // 监听器
 watch(() => props.visible, (visible) => {
+  console.log('润色对话框可见性变化:', visible)
   if (visible) {
+    console.log('重置对话框，内容:', props.content)
     resetDialog()
     originalContent.value = props.content
+    // 自动开始润色
+    handlePolish()
   }
 })
 
@@ -226,25 +172,39 @@ const handleClose = () => {
 }
 
 const handlePolish = async () => {
-  if (!canPolish.value) return
+  console.log('开始润色，内容:', originalContent.value)
+  
+  if (!originalContent.value || originalContent.value.trim().length === 0) {
+    console.log('内容为空，跳过润色')
+    return
+  }
 
   try {
     loading.value = true
     errorMessage.value = ''
+    polishedContent.value = ''
+
+    console.log('发送润色请求到:', '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/polish')
+    console.log('请求内容:', originalContent.value)
 
     const response = await axios.post('/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/polish', {
       content: originalContent.value
     })
+
+    console.log('润色响应:', response.data)
 
     if (response.data.success) {
       polishedContent.value = response.data.polishedContent
       Toast.success('文章润色完成')
     } else {
       errorMessage.value = response.data.message || '润色失败'
+      Toast.error('润色失败: ' + (response.data.message || '未知错误'))
     }
   } catch (error: any) {
     console.error('润色请求失败:', error)
+    console.error('错误详情:', error.response?.data)
     errorMessage.value = error.response?.data?.message || '网络错误，请稍后重试'
+    Toast.error('润色失败: ' + (error.response?.data?.message || '网络错误'))
   } finally {
     loading.value = false
   }
@@ -265,14 +225,6 @@ const handleReplace = () => {
   Toast.success('内容已替换')
   handleClose()
 }
-
-const formatContent = (content: string) => {
-  // 简单的HTML格式化，保持换行
-  return content
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    .replace(/^(.*)$/, '<p>$1</p>')
-}
 </script>
 
 <style scoped>
@@ -282,16 +234,11 @@ const formatContent = (content: string) => {
   flex-direction: column;
 }
 
-.polish-dialog__content {
-  flex: 1;
-  overflow: hidden;
-}
-
 .content-comparison {
   display: grid;
   grid-template-columns: 1fr 60px 1fr;
   gap: 16px;
-  height: 100%;
+  height: 500px;
 }
 
 .content-panel {
@@ -326,39 +273,17 @@ const formatContent = (content: string) => {
   color: var(--halo-text-color-secondary);
 }
 
-.diff-indicator {
-  font-weight: 500;
-}
-
-.diff-positive {
-  color: var(--halo-success-color);
-}
-
-.diff-negative {
-  color: var(--halo-warning-color);
-}
-
-.diff-neutral {
-  color: var(--halo-text-color-secondary);
-}
-
 .panel-content {
   flex: 1;
   overflow: auto;
   padding: 16px;
 }
 
-.content-display {
+.content-text {
   line-height: 1.6;
   color: var(--halo-text-color);
-}
-
-.content-display :deep(p) {
-  margin-bottom: 12px;
-}
-
-.content-display :deep(p:last-child) {
-  margin-bottom: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .original-content {
@@ -378,7 +303,7 @@ const formatContent = (content: string) => {
   color: var(--halo-text-color-secondary);
 }
 
-.loading-placeholder {
+.loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -386,6 +311,22 @@ const formatContent = (content: string) => {
   height: 200px;
   gap: 16px;
   color: var(--halo-text-color-secondary);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 16px;
+  color: var(--halo-text-color-secondary);
+}
+
+.empty-state svg {
+  width: 48px;
+  height: 48px;
+  opacity: 0.5;
 }
 
 .dialog-footer {

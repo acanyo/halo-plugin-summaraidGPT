@@ -68,10 +68,14 @@ public class ArticlePolishEndpoint implements CustomEndpoint {
      */
     private Mono<ServerResponse> polishArticleSegment(ServerRequest request) {
         return request.bodyToMono(PolishRequest.class)
+            .doOnNext(req -> log.info("收到润色请求体: {}", req))
             .flatMap(this::processPolishRequest)
-            .flatMap(response -> ServerResponse.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(response))
+            .flatMap(response -> {
+                log.info("润色响应: {}", response);
+                return ServerResponse.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(response);
+            })
             .onErrorResume(e -> {
                 log.error("文章润色处理失败，错误: {}", e.getMessage(), e);
                 return ServerResponse.ok()
@@ -91,11 +95,6 @@ public class ArticlePolishEndpoint implements CustomEndpoint {
         if (request.content() == null || request.content().trim().isEmpty()) {
             return Mono.just(PolishResponse.error(request.content(), "文章内容不能为空"));
         }
-
-        if (request.content().length() < 10) {
-            return Mono.just(PolishResponse.error(request.content(), "文章内容长度不能少于10个字符"));
-        }
-
         if (request.content().length() > 8000) {
             return Mono.just(PolishResponse.error(request.content(), "文章内容长度不能超过8000个字符"));
         }

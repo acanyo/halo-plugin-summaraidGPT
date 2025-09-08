@@ -3,7 +3,7 @@ import { markRaw } from 'vue'
 import type { Editor } from '@tiptap/core'
 import type { Component } from 'vue'
 import TagViewerToolbarItem from '../components/TagViewerToolbarItem.vue'
-import LinemdCloudAltTags from '~icons/line-md/cloud-alt-tags'
+import IconWand2 from '~icons/lucide/wand-2'
 
 interface ToolbarItem {
   priority: number;
@@ -37,12 +37,12 @@ export const TagViewer = Extension.create<TagViewerOptions>({
       ...this.parent?.(),
       getToolbarItems: ({ editor }: { editor: Editor }) => {
         return {
-          priority: 150, // 设置优先级，决定在工具栏中的位置
+          priority: 140, // 设置优先级，在润色按钮之后
           component: markRaw(TagViewerToolbarItem),
           props: {
             editor,
             isActive: false, // 标签查看器不需要激活状态
-            icon: markRaw(LinemdCloudAltTags),
+            icon: markRaw(IconWand2),
             title: 'AI智能标签',
             disabled: false,
           },
