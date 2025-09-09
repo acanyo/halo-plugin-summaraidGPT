@@ -30,7 +30,7 @@ public class AiServiceFactory {
      * @throws RuntimeException 若无任何可用实现时抛出
      */
     public AiService getService(String modelType) {
-        if ("codesphere".equalsIgnoreCase(modelType)) {
+        if ("codesphere".equalsIgnoreCase(modelType) || "siliconFlow".equalsIgnoreCase(modelType)) {
             return serviceMap.getOrDefault("openAi", serviceMap.values().stream().findFirst().orElseThrow());
         }
         return serviceMap.getOrDefault(modelType, serviceMap.values().stream().findFirst().orElseThrow());

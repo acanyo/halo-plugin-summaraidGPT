@@ -41,6 +41,7 @@ public interface SettingConfigGetter {
         private ZhipuAiConfig zhipuAiConfig;
         private DashScopeConfig dashScopeConfig;
         private CodesphereConfig codesphereConfig;
+        private SiliconFlowConfig siliconFlowConfig;
     }
     
     @Data
@@ -66,6 +67,13 @@ public interface SettingConfigGetter {
     class CodesphereConfig {
         private String apiKey;
         private String modelName;
+    }
+    
+    @Data
+    class SiliconFlowConfig {
+        private String apiKey;
+        private String modelName;
+        private String baseUrl;
     }
     
     @Data

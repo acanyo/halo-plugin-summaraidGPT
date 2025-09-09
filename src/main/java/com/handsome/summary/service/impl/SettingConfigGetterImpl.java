@@ -156,6 +156,14 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
                     result.setModelName(codesphereConfig.getModelName());
                 }
             }
+            case "siliconFlow" -> {
+                if (modelConfig.getSiliconFlowConfig() != null) {
+                    var siliconFlowConfig = modelConfig.getSiliconFlowConfig();
+                    result.setApiKey(siliconFlowConfig.getApiKey());
+                    result.setModelName(siliconFlowConfig.getModelName());
+                    result.setBaseUrl(siliconFlowConfig.getBaseUrl());
+                }
+            }
         }
     }
     

@@ -32,10 +32,7 @@ public class SummaryPostContentHandler implements ReactivePostContentHandler {
                 injectSummaryDOM(contentContext);
                 return contentContext;
             })
-            .onErrorResume(e -> {
-                log.error("Summary PostContent handle failed", e);
-                return Mono.just(contentContext);
-            });
+            .onErrorResume(e -> Mono.just(contentContext));
     }
 
     private void injectSummaryDOM(PostContentContext contentContext) {

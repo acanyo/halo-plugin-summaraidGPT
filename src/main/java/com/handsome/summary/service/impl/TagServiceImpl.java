@@ -62,7 +62,6 @@ public class TagServiceImpl implements TagService {
                 .flatMap(contentWrapper -> {
                     String content = contentWrapper.getContent();
                     if (content == null || content.trim().isEmpty()) {
-                        log.warn("文章内容为空，postName: {}", post.getMetadata().getName());
                         return Mono.just(List.<String>of());
                     }
                     
@@ -81,7 +80,6 @@ public class TagServiceImpl implements TagService {
                     
                     // 检查是否是错误信息
                     if (AiServiceUtils.isErrorMessage(raw)) {
-                        log.warn("AI返回错误信息，不进行标签解析: {}", raw);
                         return Mono.just(List.<String>of());
                     }
                     

@@ -58,15 +58,15 @@
                     :actions="false"
                     @submit="handleGenerate"
                   >
-                    <FormKit 
-                      name="topic" 
-                      label="文章主题" 
-                      type="textarea" 
+                    <FormKit
+                      name="topic"
+                      label="文章主题"
+                      type="textarea"
                       placeholder="请输入文章主题或关键词，例如：人工智能的发展趋势"
                       :rows="6"
                       validation="required"
                     />
-                    
+
                     <FormKitMessages />
                   </FormKit>
                 </div>
@@ -87,9 +87,9 @@
                     :actions="false"
                     @submit="handleGenerate"
                   >
-                    <FormKit 
-                      name="format" 
-                      label="内容格式" 
+                    <FormKit
+                      name="format"
+                      label="内容格式"
                       type="select"
                       :options="[
                         { label: '🌐 富文本', value: 'html' },
@@ -98,20 +98,20 @@
                       :allow-create=true
                       placeholder="选择格式类型"
                     />
-                    
-                    <FormKit 
-                      name="style" 
-                      label="写作风格" 
+
+                    <FormKit
+                      name="style"
+                      label="写作风格"
                       type="select"
                       :options="styleOptions"
                       :allow-create=true
                       placeholder="选择写作风格"
                       :help="styleHelpText"
                     />
-                    
-                    <FormKit 
-                      name="maxLength" 
-                      label="生成长度" 
+
+                    <FormKit
+                      name="maxLength"
+                      label="生成长度"
                       type="number"
                       value="2000"
                       :min="200"
@@ -119,7 +119,7 @@
                       :step="100"
                       suffix="字符"
                     />
-                    
+
                     <FormKitMessages />
                   </FormKit>
                 </div>
@@ -155,12 +155,43 @@
 
           <!-- 标题生成标签页 -->
           <div v-if="activeTab === 'title'" class="px-4 pb-4">
+            <!-- 标题生成设置区域 -->
+            <div class="likcc-summaraidgpt-title-settings mb-4">
+              <div class="likcc-summaraidgpt-title-config">
+                <div class="likcc-summaraidgpt-config-row">
+                  <div class="likcc-summaraidgpt-config-item">
+                    <label class="likcc-summaraidgpt-label">标题风格</label>
+                    <FormKit
+                      v-model="titleStyle"
+                      type="select"
+                      :options="titleStyleOptions"
+                      :allow-create="true"
+                      placeholder="选择标题风格"
+                      class="likcc-summaraidgpt-select"
+                    />
+                  </div>
+                  <div class="likcc-summaraidgpt-config-item">
+                    <label class="likcc-summaraidgpt-label">生成数量</label>
+                    <FormKit
+                      v-model="titleCount"
+                      type="number"
+                      :min="3"
+                      :max="10"
+                      :step="1"
+                      class="likcc-summaraidgpt-number"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- 生成按钮 -->
-            <div class="mb-4">
+            <div class="likcc-summaraidgpt-generate-section mb-4">
               <VButton
                 size="sm"
                 type="primary"
                 :loading="titleLoading"
+                :disabled="!canGenerateTitle"
                 @click="generateTitles"
               >
                 <template #icon>
@@ -168,6 +199,9 @@
                 </template>
                 生成标题
               </VButton>
+              <span class="likcc-summaraidgpt-hint">
+                将根据编辑器内容生成 {{ titleCount }} 个{{ titleStyle }}风格的标题
+              </span>
             </div>
 
             <!-- 错误提示 -->
@@ -187,10 +221,10 @@
                   v-for="(title, index) in generatedTitles"
                   :key="index"
                   class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                  @click="selectTitle(title)"
+                  @click="copyTitle(title)"
                 >
                   <span class="text-sm text-gray-900 flex-1">{{ title }}</span>
-                  <span class="text-xs text-gray-500 ml-2">点击选择</span>
+                  <span class="text-xs text-gray-500 ml-2">点击复制</span>
                 </div>
               </div>
             </div>
@@ -198,7 +232,7 @@
             <!-- 空状态 -->
             <div v-else-if="!titleLoading && !titleErrorMessage" class="text-center py-8 mb-4">
               <div class="text-sm text-gray-500">
-                点击"生成标题"按钮开始生成
+                点击"生成标题"按钮开始生成，生成的标题可以点击复制
               </div>
             </div>
           </div>
@@ -252,6 +286,10 @@ const errorMessage = ref('')
 const titleErrorMessage = ref('')
 const generatedTitles = ref<string[]>([])
 
+// 标题生成配置
+const titleStyle = ref('有利于SEO的标题')
+const titleCount = ref('5')
+
 // 表单数据
 const formData = ref({
   topic: '',
@@ -292,6 +330,20 @@ const styleOptions = [
   { label: '对话访谈', value: '对话访谈' }
 ]
 
+// 标题风格选项
+const titleStyleOptions = [
+  { label: '有利于SEO的标题', value: '有利于SEO的标题' },
+  { label: '吸引眼球的标题', value: '吸引眼球的标题' },
+  { label: '简洁明了', value: '简洁明了' },
+  { label: '文艺范', value: '文艺范' },
+  { label: '专业术语', value: '专业术语' },
+  { label: '疑问式', value: '疑问式' },
+  { label: '数字式', value: '数字式' },
+  { label: '对比式', value: '对比式' },
+  { label: '故事式', value: '故事式' },
+  { label: '热点式', value: '热点式' }
+]
+
 // 风格帮助信息
 const styleHelpMap: Record<string, string> = {
   '通俗易懂': '用简单语言解释复杂概念，适合大众阅读',
@@ -321,9 +373,14 @@ const tooltipText = computed(() => {
 })
 
 const canGenerate = computed(() => {
-  return formData.value.topic.trim().length > 0 && 
-         formData.value.topic.length <= 1000 && 
+  return formData.value.topic.trim().length > 0 &&
+         formData.value.topic.length <= 1000 &&
          !loading.value
+})
+
+const canGenerateTitle = computed(() => {
+  const content = props.editor.getText()
+  return content.trim().length > 0 && !titleLoading.value
 })
 
 // 风格帮助文本计算属性
@@ -341,7 +398,7 @@ const handleOpenDropdown = (visible: boolean) => {
     dropdownVisible.value = false
     return
   }
-  
+
   // 重置表单和状态
   resetForm()
   activeTab.value = 'article'
@@ -376,7 +433,7 @@ const handleGenerate = async () => {
     errorMessage.value = ''
 
     const response = await generateContent()
-    
+
     if (response.success && response.content) {
       // 直接插入生成的内容到编辑器
       debugger
@@ -399,7 +456,7 @@ const handleGenerate = async () => {
 
 const generateContent = async (): Promise<GenerateResponse> => {
   const baseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
-  
+
   return await axios.post(`${baseUrl}/generate/article`, {
     topic: formData.value.topic,
     format: formData.value.format,
@@ -424,13 +481,13 @@ const generateTitles = async () => {
     }
 
     const response = await generateTitleContent(content)
-    
+
     if (response.success && response.content) {
       // 解析生成的标题（假设以换行符分隔）
       const titles = response.content.split('\n')
         .map(title => title.trim())
         .filter(title => title.length > 0)
-      
+
       generatedTitles.value = titles
       Toast.success(`成功生成 ${titles.length} 个标题`)
     } else {
@@ -449,21 +506,94 @@ const generateTitles = async () => {
 
 const generateTitleContent = async (content: string): Promise<GenerateResponse> => {
   const baseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
-  
+
   return await axios.post(`${baseUrl}/generate/title`, {
     content: content,
-    style: '通俗易懂',
-    count: 5
+    style: titleStyle.value,
+    count: parseInt(titleCount.value, 10)
   }).then(res => res.data)
 }
 
-const selectTitle = (title: string) => {
-  // 将选中的标题插入到编辑器开头
-  const currentContent = props.editor.getText()
-  const newContent = title + '\n\n' + currentContent
-  props.editor.chain().focus().clearContent().insertContent(newContent).run()
-  Toast.success('标题已插入到文章开头')
-  dropdownVisible.value = false
+const copyTitle = async (title: string) => {
+  // 清理标题中的列表标记
+  const cleanTitle = cleanTitleFromListMarkers(title)
+
+  try {
+    // 使用现代浏览器的Clipboard API复制清理后的标题
+    await navigator.clipboard.writeText(cleanTitle)
+    Toast.success('标题已复制到剪贴板，您可以粘贴到标题字段中')
+    dropdownVisible.value = false
+  } catch (error) {
+    // 如果Clipboard API不可用，使用传统方法
+    console.warn('Clipboard API不可用，使用传统复制方法:', error)
+
+    // 创建临时文本区域元素
+    const textArea = document.createElement('textarea')
+    textArea.value = cleanTitle
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    textArea.style.top = '-999999px'
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+
+    try {
+      const successful = document.execCommand('copy')
+      if (successful) {
+        Toast.success('标题已复制到剪贴板，您可以粘贴到标题字段中')
+      } else {
+        Toast.error('复制失败，请手动复制')
+      }
+    } catch (err) {
+      console.error('复制失败:', err)
+      Toast.error('复制失败，请手动复制')
+    } finally {
+      document.body.removeChild(textArea)
+    }
+
+    dropdownVisible.value = false
+  }
+}
+
+// 清理标题中的列表标记
+const cleanTitleFromListMarkers = (title: string): string => {
+  if (!title || typeof title !== 'string') {
+    return title
+  }
+
+  console.log('原始标题:', title)
+
+  // 定义各种列表标记的正则表达式
+  const listMarkers = [
+    // 有序列表：1. 2. 10. 等
+    /^\d+\.\s*/,
+    // 字母有序列表：a. b. c. 等
+    /^[a-zA-Z]\.\s*/,
+    // 罗马数字：i. ii. iii. 等（简单匹配）
+    /^[ivxlcdm]+\.\s*/i,
+    // 无序列表标记
+    /^[-•*+]\s*/,
+    // 其他常见标记
+    /^[#*]\s*/,
+    // 括号数字：(1) (2) 等
+    /^\(\d+\)\s*/,
+    // 括号字母：(a) (b) 等
+    /^\([a-zA-Z]\)\s*/,
+  ]
+
+  let cleanedTitle = title.trim()
+
+  // 逐个尝试匹配并移除列表标记
+  for (const marker of listMarkers) {
+    if (marker.test(cleanedTitle)) {
+      cleanedTitle = cleanedTitle.replace(marker, '').trim()
+      console.log('检测到列表标记，清理后:', cleanedTitle)
+      break // 只处理第一个匹配的标记
+    }
+  }
+
+  console.log('最终清理后的标题:', cleanedTitle)
+  return cleanedTitle
 }
 
 </script>
@@ -558,6 +688,55 @@ const selectTitle = (title: string) => {
 
 
 
+/* 标题生成配置样式 */
+.likcc-summaraidgpt-title-settings {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.likcc-summaraidgpt-title-config {
+  width: 100%;
+}
+
+.likcc-summaraidgpt-config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.likcc-summaraidgpt-config-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.likcc-summaraidgpt-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  margin: 0;
+}
+
+.likcc-summaraidgpt-select,
+.likcc-summaraidgpt-number {
+  width: 100%;
+}
+
+.likcc-summaraidgpt-generate-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.likcc-summaraidgpt-hint {
+  font-size: 12px;
+  color: #6b7280;
+  flex: 1;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .generate-dropdown {
@@ -567,6 +746,15 @@ const selectTitle = (title: string) => {
   .generate-content {
     grid-template-columns: 1fr;
     height: auto;
+  }
+
+  .likcc-summaraidgpt-config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .likcc-summaraidgpt-generate-section {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

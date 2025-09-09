@@ -43,7 +43,6 @@ public class ArticlePolishService {
         
         // 参数验证
         if (!StringUtils.hasText(content)) {
-            log.warn("润色服务收到空内容");
             return Mono.error(new IllegalArgumentException("文章内容不能为空"));
         }
         
@@ -57,7 +56,7 @@ public class ArticlePolishService {
             .flatMap(aiConfig -> validateAndPolish(content, aiConfig))
             .doOnNext(polishedContent -> 
                 log.info("文章润色完成，原文长度: {}, 润色后长度: {}",
-                    content != null ? content.length() : 0, polishedContent.length()))
+                    content.length(), polishedContent.length()))
             .onErrorMap(this::mapPolishError);
     }
     
@@ -167,7 +166,6 @@ public class ArticlePolishService {
      */
     private String extractPolishedContent(String response) {
         if (!StringUtils.hasText(response)) {
-            log.warn("AI响应为空");
             return "";
         }
         
@@ -184,8 +182,6 @@ public class ArticlePolishService {
             log.info("AI返回纯文本响应，直接使用");
             return trimmedResponse;
         }
-        
-        log.warn("AI响应中未找到有效内容，返回原始响应");
         return response;
     }
     
@@ -193,23 +189,18 @@ public class ArticlePolishService {
      * 从JSON字符串中提取内容
      */
     private String extractContentFromJsonString(String jsonString) {
-        try {
-            // 尝试提取 "content" 字段
-            Matcher contentMatcher = CONTENT_PATTERN.matcher(jsonString);
-            if (contentMatcher.find()) {
-                return unescapeJsonString(contentMatcher.group(1));
-            }
-            
-            // 尝试提取 "text" 字段
-            Matcher textMatcher = TEXT_PATTERN.matcher(jsonString);
-            if (textMatcher.find()) {
-                return unescapeJsonString(textMatcher.group(1));
-            }
-            
-        } catch (Exception e) {
-            log.warn("解析AI响应时出错: {}", e.getMessage());
+        // 尝试提取 "content" 字段
+        Matcher contentMatcher = CONTENT_PATTERN.matcher(jsonString);
+        if (contentMatcher.find()) {
+            return unescapeJsonString(contentMatcher.group(1));
         }
-        
+
+        // 尝试提取 "text" 字段
+        Matcher textMatcher = TEXT_PATTERN.matcher(jsonString);
+        if (textMatcher.find()) {
+            return unescapeJsonString(textMatcher.group(1));
+        }
+
         return null;
     }
     

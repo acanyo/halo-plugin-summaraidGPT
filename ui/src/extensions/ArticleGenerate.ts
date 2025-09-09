@@ -19,7 +19,7 @@ export interface ArticleGenerateOptions {
 
 export default Extension.create<ArticleGenerateOptions>({
   name: 'articleGenerate',
-  
+
   addOptions() {
     return {
       getToolbarItems: ({ editor }) => {

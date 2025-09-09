@@ -151,7 +151,6 @@ public class ConversationEndpoint implements CustomEndpoint {
 
                 // 检查AI响应是否包含错误信息
                 if (AiServiceUtils.isErrorMessage(aiResponse)) {
-                    log.warn("AI返回错误信息: {}", aiResponse);
                     return ApiResponse.error(aiResponse, aiResponse, aiConfig.getAiType());
                 }
 

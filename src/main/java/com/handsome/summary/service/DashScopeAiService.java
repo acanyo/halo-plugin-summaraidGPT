@@ -217,8 +217,7 @@ public class DashScopeAiService implements AiService {
                     }
                     
                 } catch (Exception e) {
-                    log.warn("解析通义千问流式数据失败: {}", e.getMessage());
-                    // 继续处理下一行，不中断整个流程
+                    throw new RuntimeException(e);
                 }
             }
             

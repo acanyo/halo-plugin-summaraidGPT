@@ -71,7 +71,6 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
         .flatMap(summary -> {
             // 检查是否是错误信息，如果是则不保存到数据库
             if (AiServiceUtils.isErrorMessage(summary)) {
-                log.warn("AI返回错误信息，不保存到数据库: {}", summary);
                 return Mono.error(new RuntimeException(summary));
             }
             return saveSummaryToDatabase(summary, post).thenReturn(summary);

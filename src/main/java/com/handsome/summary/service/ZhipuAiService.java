@@ -221,14 +221,9 @@ public class ZhipuAiService implements AiService {
                     onComplete.run();
                     break;
                 }
-                
-                                  try {
                       // 解析JSON数据并提取内容
                      AiServiceUtils.parseStreamResponse(onData, mapper, data);
-                  } catch (Exception e) {
-                    log.warn("解析智谱AI流式数据失败: {}", e.getMessage());
-                    // 继续处理下一行，不中断整个流程
-                }
+
             }
             
         } catch (IOException e) {
