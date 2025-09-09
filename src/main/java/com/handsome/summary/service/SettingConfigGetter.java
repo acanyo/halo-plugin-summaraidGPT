@@ -10,6 +10,7 @@ public interface SettingConfigGetter {
     Mono<TagsConfig> getTagsConfig();
     Mono<AssistantConfig> getAssistantConfig();
     Mono<PolishConfig> getPolishConfig();
+    Mono<GenerateConfig> getGenerateConfig();
     
     /**
      * 通用AI获取方法 - 根据功能类型获取对应的AI配置
@@ -123,5 +124,12 @@ public interface SettingConfigGetter {
         private String polishAiType;
         private String polishSystemPrompt;
         private Integer polishMaxLength;
+    }
+    
+    @Data
+    class GenerateConfig {
+        public static final String GROUP = "generate";
+        private String generateAiType;
+        private String generateSystemPrompt;
     }
 }

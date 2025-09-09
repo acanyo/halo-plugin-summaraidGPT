@@ -6,12 +6,13 @@ import {markRaw} from "vue";
 import SynchronousAiSummary from '@/views/SynchronousAiSummary.vue'
 import TagViewer from '@/extensions/TagViewer'
 import ArticlePolish from '@/extensions/ArticlePolish'
+import ArticleGenerate from '@/extensions/ArticleGenerate'
 
 
 export default definePlugin({
   extensionPoints: {
     "default:editor:extension:create": () => {
-      return [TagViewer, ArticlePolish];
+      return [TagViewer, ArticlePolish, ArticleGenerate];
     },
     'post:list-item:operation:create': () => {
       return [

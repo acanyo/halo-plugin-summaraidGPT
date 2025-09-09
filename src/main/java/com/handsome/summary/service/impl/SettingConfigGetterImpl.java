@@ -51,6 +51,12 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     }
 
     @Override
+    public Mono<GenerateConfig> getGenerateConfig() {
+        return settingFetcher.fetch(GenerateConfig.GROUP, GenerateConfig.class)
+            .defaultIfEmpty(new GenerateConfig());
+    }
+
+    @Override
     public Mono<AiConfigResult> getAiConfigForFunction(String functionType) {
         return Mono.zip(
             getBasicConfig(),
@@ -85,6 +91,8 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
                 new FunctionSpecificAiInfo(config.getAssistantAiType(), config.getConversationSystemPrompt()));
             case "polish" -> getPolishConfig().map(config -> 
                 new FunctionSpecificAiInfo(config.getPolishAiType(), config.getPolishSystemPrompt()));
+            case "generate" -> getGenerateConfig().map(config -> 
+                new FunctionSpecificAiInfo(config.getGenerateAiType(), config.getGenerateSystemPrompt()));
             default -> Mono.just(new FunctionSpecificAiInfo(null, null));
         };
     }

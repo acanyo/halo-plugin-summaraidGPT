@@ -18,6 +18,7 @@
     "tabWidth": 2
   },
   "dependencies": {
+    "@formkit/vue": "^1.6.9",
     "@halo-dev/api-client": "^2.21.0",
     "@halo-dev/components": "^2.21.0",
     "@halo-dev/console-shared": "^2.21.0",
@@ -28,6 +29,7 @@
     "axios": "^1.7.2",
     "canvas-confetti": "^1.9.3",
     "marked": "^16.2.1",
+    "naive-ui": "^2.42.0",
     "vue": "^3.5.17"
   },
   "devDependencies": {

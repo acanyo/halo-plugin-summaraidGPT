@@ -315,8 +315,8 @@ spec:
           name: enable
           id: enable
           key: enable
-          value: false
-          help: "开启后将不会注入摘要框"
+          value: true
+          help: "关闭后将不会注入摘要框"
         - $formkit: textarea
           name: summarySystemPrompt
           label: 摘要模型人设
@@ -643,9 +643,9 @@ spec:
       label: 文章生成设置
       formSchema:
         - $formkit: select
-          name: polishAiType
+          name: generateAiType
           label: 生成AI类型选择
-          placeholder: "选择用于文章润色的AI提供商"
+          placeholder: "选择用于文章生成的AI提供商"
           options:
             - label: 使用主配置AI
               value: ""
@@ -657,6 +657,12 @@ spec:
               value: "dashScope"
             - label: Codesphere
               value: "codesphere"
-          help: "选择专门用于文章润色的AI提供商，留空则使用主配置"
+          help: "选择专门用于文章生成的AI提供商，留空则使用主配置"
           value: ""
+        - $formkit: textarea
+          name: generateSystemPrompt
+          label: 文章生成角色设定
+          placeholder: "请输入文章生成的AI角色设定"
+          value: "你是一个专业的文章创作助手，能够根据用户的需求和主题生成高质量的文章内容。请遵循以下要求：\n1. 根据用户提供的主题和要求生成结构清晰的文章\n2. 文章内容要有逻辑性和可读性\n3. 语言表达要自然流畅，符合中文写作习惯\n4. 适当使用段落和标题来组织内容\n5. 确保文章内容原创且有意义\n6. 根据用户指定的长度要求控制文章篇幅\n7.你需要充分考虑SE0最佳实践，包括关键词优化、结构优化等"
+          help: "定义AI如何进行文章生成的角色设定和指令"
         
