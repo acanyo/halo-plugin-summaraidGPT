@@ -3,7 +3,7 @@ import { markRaw } from 'vue'
 import type { Editor } from '@tiptap/core'
 import type { Component } from 'vue'
 import TagViewerToolbarItem from '../components/TagViewerToolbarItem.vue'
-import IconWand2 from '~icons/lucide/wand-2'
+import IconTag from '~icons/lucide/tag'
 
 interface ToolbarItem {
   priority: number;
@@ -42,7 +42,7 @@ export const TagViewer = Extension.create<TagViewerOptions>({
           props: {
             editor,
             isActive: false, // 标签查看器不需要激活状态
-            icon: markRaw(IconWand2),
+            icon: markRaw(IconTag),
             title: 'AI智能标签',
             disabled: false,
           },

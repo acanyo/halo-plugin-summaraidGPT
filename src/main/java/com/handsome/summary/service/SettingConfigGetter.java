@@ -11,11 +11,22 @@ public interface SettingConfigGetter {
     Mono<AssistantConfig> getAssistantConfig();
     Mono<PolishConfig> getPolishConfig();
     Mono<GenerateConfig> getGenerateConfig();
+    Mono<TitleConfig> getTitleConfig();
     
     /**
      * 通用AI获取方法 - 根据功能类型获取对应的AI配置
      */
     Mono<AiConfigResult> getAiConfigForFunction(String functionType);
+    
+    /**
+     * 快速获取标题生成AI类型
+     */
+    String getTitleAiType();
+    
+    /**
+     * 快速获取标题生成系统提示词
+     */
+    String getTitleSystemPrompt();
 
     @Data
     class BasicConfig {
@@ -131,5 +142,13 @@ public interface SettingConfigGetter {
         public static final String GROUP = "generate";
         private String generateAiType;
         private String generateSystemPrompt;
+    }
+    
+    @Data
+    class TitleConfig {
+        public static final String GROUP = "title";
+        private String titleAiType;
+        private String titleSystemPrompt;
+        private Integer titleDefaultCount;
     }
 }

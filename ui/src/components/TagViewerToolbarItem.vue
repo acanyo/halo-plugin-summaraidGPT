@@ -11,7 +11,7 @@ import {
   VAlert
 } from '@halo-dev/components'
 import axios, { AxiosError } from 'axios'
-import IconWand2 from '~icons/lucide/wand-2'
+import IconTag from '~icons/lucide/tag'
 import MdiRefresh from '~icons/mdi/refresh'
 
 interface Props {
@@ -86,9 +86,9 @@ const fetchAITags = async () => {
   errorMessage.value = ''
 
   try {
-    const postName = getPostNameFromUrl()
+    const postName = checkPostName()
     if (!postName) {
-      throw new Error('未找到文章ID，请确保在文章编辑页面使用此功能')
+      throw new Error('请先保存文章，保存后即可使用AI标签生成功能')
     }
 
     const { data } = await axios.post<TagResponse>(
@@ -130,9 +130,9 @@ const handleOpenDropdown = (visible: boolean) => {
     return
   }
 
-  const postName = getPostNameFromUrl()
+  const postName = checkPostName()
   if (!postName) {
-    Toast.error('未找到文章ID，请确保在文章编辑页面使用此功能')
+    Toast.warning('请先保存文章，保存后即可使用AI标签生成功能')
     dropdownVisible.value = false
     return
   }
@@ -145,9 +145,9 @@ const handleOpenDropdown = (visible: boolean) => {
 // 手动切换下拉框
 const toggleDropdown = () => {
   if (!dropdownVisible.value) {
-    const postName = getPostNameFromUrl()
+    const postName = checkPostName()
     if (!postName) {
-      Toast.error('未找到文章ID，请确保在文章编辑页面使用此功能')
+      Toast.warning('请先保存文章，保存后即可使用AI标签生成功能')
       return
     }
     dropdownVisible.value = true
@@ -193,9 +193,9 @@ const confirmSelection = async () => {
     return
   }
 
-  const postName = getPostNameFromUrl()
+  const postName = checkPostName()
   if (!postName) {
-    Toast.error('未找到文章ID，无法应用标签')
+    Toast.warning('请先保存文章，保存后即可使用AI标签生成功能')
     return
   }
 
@@ -320,34 +320,33 @@ const confirmSelection = async () => {
   }
 }
 
-// 计算是否可用（基于URL中是否有postName）
-const isAvailable = computed(() => {
-  return !!getPostNameFromUrl()
-})
+// 检查是否有文章名称
+const checkPostName = () => {
+  return getPostNameFromUrl()
+}
 </script>
 
 <template>
   <div class="likcc-summaraidGPT-tag-viewer">
     <VDropdown
       v-model:visible="dropdownVisible"
-      :disabled="disabled || !isAvailable"
+      :disabled="disabled"
       :triggers="['click']"
       :auto-close="false"
       :close-on-content-click="false"
       @update:visible="handleOpenDropdown"
     >
       <button
-        v-tooltip="isAvailable ? title : '请在文章编辑页面使用此功能'"
+        v-tooltip="title"
         :class="{
           'bg-gray-200 text-black': isActive,
-          'text-gray-600 hover:text-gray-900 hover:bg-gray-100': !isActive && isAvailable,
-          'text-gray-400 cursor-not-allowed': !isAvailable
+          'text-gray-600 hover:text-gray-900 hover:bg-gray-100': !isActive
         }"
         class="likcc-summaraidGPT-tag-viewer-btn"
-        :disabled="disabled || !isAvailable"
+        :disabled="disabled"
         @click="toggleDropdown"
       >
-        <component :is="icon || IconWand2" class="h-4 w-4" />
+        <component :is="icon || IconTag" class="h-4 w-4" />
       </button>
 
              <template #popper>
@@ -357,7 +356,7 @@ const isAvailable = computed(() => {
             <VAlert
               type="info"
               title="AI智能标签生成"
-              description="基于文章内容智能生成相关标签，您可以选择需要的标签应用到文章"
+              description="基于文章内容智能生成相关标签，您可以选择需要的标签应用到文章,建议使用前先保存最新的文章！"
               :closable="false"
               class="text-xs"
             />

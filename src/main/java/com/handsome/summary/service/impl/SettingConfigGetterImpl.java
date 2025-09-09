@@ -57,6 +57,12 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     }
 
     @Override
+    public Mono<TitleConfig> getTitleConfig() {
+        return settingFetcher.fetch(TitleConfig.GROUP, TitleConfig.class)
+            .defaultIfEmpty(new TitleConfig());
+    }
+
+    @Override
     public Mono<AiConfigResult> getAiConfigForFunction(String functionType) {
         return Mono.zip(
             getBasicConfig(),
@@ -93,6 +99,8 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
                 new FunctionSpecificAiInfo(config.getPolishAiType(), config.getPolishSystemPrompt()));
             case "generate" -> getGenerateConfig().map(config -> 
                 new FunctionSpecificAiInfo(config.getGenerateAiType(), config.getGenerateSystemPrompt()));
+            case "title" -> getTitleConfig().map(config -> 
+                new FunctionSpecificAiInfo(config.getTitleAiType(), config.getTitleSystemPrompt()));
             default -> Mono.just(new FunctionSpecificAiInfo(null, null));
         };
     }
@@ -149,6 +157,20 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
                 }
             }
         }
+    }
+    
+    @Override
+    public String getTitleAiType() {
+        return getTitleConfig()
+            .map(TitleConfig::getTitleAiType)
+            .block();
+    }
+
+    @Override
+    public String getTitleSystemPrompt() {
+        return getTitleConfig()
+            .map(TitleConfig::getTitleSystemPrompt)
+            .block();
     }
     
     /**

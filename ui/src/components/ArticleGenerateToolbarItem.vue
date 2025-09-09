@@ -14,7 +14,7 @@
         :disabled="disabled"
         @click="toggleDropdown"
       >
-        <IconEdit class="h-4 w-4" />
+        <IconWand2 class="h-4 w-4" />
       </button>
 
       <template #popper>
@@ -23,112 +23,121 @@
           <div class="p-3">
             <VAlert
               type="info"
-              title="AI文章生成"
-              description="使用AI根据您的主题和要求生成文章内容，支持多种写作风格和格式"
+              title="AI智能生成"
+              description="使用AI根据您的需求生成文章内容或标题，支持多种写作风格和格式"
               :closable="false"
               class="text-xs"
             />
           </div>
 
-          <!-- 主要内容区域 -->
-          <div class="generate-content">
-            <!-- 左侧：文章主题区域 -->
-            <div class="topic-section">
-              <div class="section-header">
-                <h4 class="section-title">
-                  <IconEdit />
-                  文章主题
-                </h4>
-              </div>
-              <div class="section-content">
-                <FormKit
-                  type="form"
-                  v-model="formData"
-                  :actions="false"
-                  @submit="handleGenerate"
-                >
-                  <FormKit 
-                    name="topic" 
-                    label="文章主题" 
-                    type="textarea" 
-                    placeholder="请输入文章主题或关键词，例如：人工智能的发展趋势"
-                    :rows="6"
-                    validation="required"
-                  />
-                  
-                  <FormKitMessages />
-                </FormKit>
-              </div>
-            </div>
-
-            <!-- 右侧：生成设置区域 -->
-            <div class="format-section">
-              <div class="section-header">
-                <h4 class="section-title">
-                  <IconSparkles />
-                  生成设置
-                </h4>
-              </div>
-              <div class="section-content">
-                <FormKit
-                  type="form"
-                  v-model="formData"
-                  :actions="false"
-                  @submit="handleGenerate"
-                >
-                  <FormKit 
-                    name="format" 
-                    label="内容格式" 
-                    type="select"
-                    :options="[
-                      { label: '🌐 富文本', value: 'html' },
-                      { label: '📝 Markdown', value: 'markdown' }
-                     
-                    ]"
-                    :allow-create=true
-                    placeholder="选择格式类型"
-                  />
-                  
-                  <FormKit 
-                    name="style" 
-                    label="写作风格" 
-                    type="select"
-                    :options="styleOptions"
-                    :allow-create=true
-                    placeholder="选择写作风格"
-                    :help="styleHelpText"
-                  />
-                  
-                  <FormKit 
-                    name="maxLength" 
-                    label="生成长度" 
-                    type="number"
-                    value="2000"
-                    :min="200"
-                    :max="8000"
-                    :step="100"
-                    suffix="字符"
-                  />
-                  
-                  <FormKitMessages />
-                </FormKit>
-              </div>
-            </div>
-          </div>
-
-          <!-- 错误提示 -->
-          <div v-if="errorMessage" class="p-3">
-            <VAlert
-              type="error"
-              :title="errorMessage"
-              closable
-              @close="errorMessage = ''"
+          <!-- 标签页导航 -->
+          <div class="p-3">
+            <VTabbar
+              v-model:activeId="activeTab"
+              :items="tabItems"
+              type="default"
             />
           </div>
 
-          <!-- 底部操作 -->
-          <div class="p-3 border-t border-gray-100">
-            <div class="flex items-center justify-end gap-2">
+          <!-- 文章生成标签页 -->
+          <div v-if="activeTab === 'article'" class="px-4 pb-4">
+            <!-- 主要内容区域 -->
+            <div class="generate-content">
+              <!-- 左侧：文章主题区域 -->
+              <div class="topic-section">
+                <div class="section-header">
+                  <h4 class="section-title">
+                    <IconEdit />
+                    文章主题
+                  </h4>
+                </div>
+                <div class="section-content">
+                  <FormKit
+                    type="form"
+                    v-model="formData"
+                    :actions="false"
+                    @submit="handleGenerate"
+                  >
+                    <FormKit 
+                      name="topic" 
+                      label="文章主题" 
+                      type="textarea" 
+                      placeholder="请输入文章主题或关键词，例如：人工智能的发展趋势"
+                      :rows="6"
+                      validation="required"
+                    />
+                    
+                    <FormKitMessages />
+                  </FormKit>
+                </div>
+              </div>
+
+              <!-- 右侧：生成设置区域 -->
+              <div class="format-section">
+                <div class="section-header">
+                  <h4 class="section-title">
+                    <IconSparkles />
+                    生成设置
+                  </h4>
+                </div>
+                <div class="section-content">
+                  <FormKit
+                    type="form"
+                    v-model="formData"
+                    :actions="false"
+                    @submit="handleGenerate"
+                  >
+                    <FormKit 
+                      name="format" 
+                      label="内容格式" 
+                      type="select"
+                      :options="[
+                        { label: '🌐 富文本', value: 'html' },
+                        { label: '📝 Markdown', value: 'markdown' }
+                      ]"
+                      :allow-create=true
+                      placeholder="选择格式类型"
+                    />
+                    
+                    <FormKit 
+                      name="style" 
+                      label="写作风格" 
+                      type="select"
+                      :options="styleOptions"
+                      :allow-create=true
+                      placeholder="选择写作风格"
+                      :help="styleHelpText"
+                    />
+                    
+                    <FormKit 
+                      name="maxLength" 
+                      label="生成长度" 
+                      type="number"
+                      value="2000"
+                      :min="200"
+                      :max="8000"
+                      :step="100"
+                      suffix="字符"
+                    />
+                    
+                    <FormKitMessages />
+                  </FormKit>
+                </div>
+              </div>
+            </div>
+
+            <!-- 错误提示 -->
+            <div v-if="errorMessage" class="mt-4">
+              <VAlert
+                type="error"
+                :title="errorMessage"
+                closable
+                @close="errorMessage = ''"
+              />
+            </div>
+
+            <!-- 底部操作 -->
+            <div class="mt-4 mb-4 flex items-center justify-end gap-2">
               <VButton
                 size="sm"
                 type="primary"
@@ -143,10 +152,59 @@
               </VButton>
             </div>
           </div>
+
+          <!-- 标题生成标签页 -->
+          <div v-if="activeTab === 'title'" class="px-4 pb-4">
+            <!-- 生成按钮 -->
+            <div class="mb-4">
+              <VButton
+                size="sm"
+                type="primary"
+                :loading="titleLoading"
+                @click="generateTitles"
+              >
+                <template #icon>
+                  <IconSparkles />
+                </template>
+                生成标题
+              </VButton>
+            </div>
+
+            <!-- 错误提示 -->
+            <div v-if="titleErrorMessage" class="mb-4">
+              <VAlert
+                type="error"
+                :title="titleErrorMessage"
+                closable
+                @close="titleErrorMessage = ''"
+              />
+            </div>
+
+            <!-- 生成的标题列表 -->
+            <div v-if="generatedTitles.length > 0" class="max-h-64 overflow-y-auto">
+              <div class="space-y-2">
+                <div
+                  v-for="(title, index) in generatedTitles"
+                  :key="index"
+                  class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  @click="selectTitle(title)"
+                >
+                  <span class="text-sm text-gray-900 flex-1">{{ title }}</span>
+                  <span class="text-xs text-gray-500 ml-2">点击选择</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-else-if="!titleLoading && !titleErrorMessage" class="text-center py-8 mb-4">
+              <div class="text-sm text-gray-500">
+                点击"生成标题"按钮开始生成
+              </div>
+            </div>
+          </div>
         </div>
       </template>
     </VDropdown>
-
   </div>
 </template>
 
@@ -157,7 +215,8 @@ import {
   VButton,
   VDropdown,
   Toast,
-  VAlert
+  VAlert,
+  VTabbar
 } from '@halo-dev/components'
 import { FormKit, FormKitMessages } from '@formkit/vue'
 import axios from 'axios'
@@ -165,6 +224,7 @@ import axios from 'axios'
 // Icons
 import IconSparkles from '~icons/lucide/sparkles'
 import IconEdit from '~icons/lucide/edit-3'
+import IconWand2 from '~icons/lucide/wand-2'
 
 interface Props {
   editor: Editor
@@ -185,8 +245,12 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 响应式数据
 const dropdownVisible = ref(false)
+const activeTab = ref<'article' | 'title'>('article')
 const loading = ref(false)
+const titleLoading = ref(false)
 const errorMessage = ref('')
+const titleErrorMessage = ref('')
+const generatedTitles = ref<string[]>([])
 
 // 表单数据
 const formData = ref({
@@ -195,6 +259,18 @@ const formData = ref({
   style: '通俗易懂',
   maxLength: 2000
 })
+
+// 标签页选项
+const tabItems = [
+  {
+    id: 'article',
+    label: '文章生成'
+  },
+  {
+    id: 'title',
+    label: '标题生成'
+  }
+]
 
 // 写作风格选项
 const styleOptions = [
@@ -241,7 +317,7 @@ const tooltipText = computed(() => {
   if (props.disabled) {
     return '请先选择要生成的位置'
   }
-  return 'AI文章生成 - 根据主题生成文章内容'
+  return 'AI智能生成 - 生成文章内容或标题'
 })
 
 const canGenerate = computed(() => {
@@ -268,12 +344,14 @@ const handleOpenDropdown = (visible: boolean) => {
   
   // 重置表单和状态
   resetForm()
+  activeTab.value = 'article'
   dropdownVisible.value = true
 }
 
 const toggleDropdown = () => {
   if (!dropdownVisible.value) {
     resetForm()
+    activeTab.value = 'article'
     dropdownVisible.value = true
   } else {
     dropdownVisible.value = false
@@ -301,6 +379,7 @@ const handleGenerate = async () => {
     
     if (response.success && response.content) {
       // 直接插入生成的内容到编辑器
+      debugger
       props.editor.chain().focus().insertContent(response.content).run()
       Toast.success('文章生成完成并已插入到编辑器')
       dropdownVisible.value = false
@@ -328,6 +407,63 @@ const generateContent = async (): Promise<GenerateResponse> => {
     type: 'full',
     maxLength: formData.value.maxLength
   }).then(res => res.data)
+}
+
+
+const generateTitles = async () => {
+  try {
+    titleLoading.value = true
+    titleErrorMessage.value = ''
+
+    // 获取编辑器内容
+    const content = props.editor.getText()
+    if (!content.trim()) {
+      titleErrorMessage.value = '请先输入文章内容'
+      Toast.warning('请先输入文章内容')
+      return
+    }
+
+    const response = await generateTitleContent(content)
+    
+    if (response.success && response.content) {
+      // 解析生成的标题（假设以换行符分隔）
+      const titles = response.content.split('\n')
+        .map(title => title.trim())
+        .filter(title => title.length > 0)
+      
+      generatedTitles.value = titles
+      Toast.success(`成功生成 ${titles.length} 个标题`)
+    } else {
+      titleErrorMessage.value = response.message || '标题生成失败'
+      Toast.error(titleErrorMessage.value)
+    }
+  } catch (error) {
+    console.error('标题生成失败:', error)
+    const errorMsg = error instanceof Error ? error.message : '标题生成失败，请稍后重试'
+    titleErrorMessage.value = errorMsg
+    Toast.error(errorMsg)
+  } finally {
+    titleLoading.value = false
+  }
+}
+
+const generateTitleContent = async (content: string): Promise<GenerateResponse> => {
+  const baseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
+  
+  return await axios.post(`${baseUrl}/generate/title`, {
+    content: content,
+    style: '通俗易懂',
+    count: 5
+  }).then(res => res.data)
+}
+
+const selectTitle = (title: string) => {
+  // 将选中的标题插入到编辑器开头
+  const currentContent = props.editor.getText()
+  const newContent = title + '\n\n' + currentContent
+  props.editor.chain().focus().clearContent().insertContent(newContent).run()
+  Toast.success('标题已插入到文章开头')
+  dropdownVisible.value = false
 }
 
 </script>
@@ -368,8 +504,8 @@ const generateContent = async (): Promise<GenerateResponse> => {
 
 /* 生成下拉框样式 */
 .generate-dropdown {
-  width: 800px;
-  max-height: 600px;
+  width: 900px;
+  max-height: 650px;
   overflow: hidden;
 }
 

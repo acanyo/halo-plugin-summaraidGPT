@@ -665,4 +665,38 @@ spec:
           placeholder: "请输入文章生成的AI角色设定"
           value: "你是一个专业的文章创作助手，能够根据用户的需求和主题生成高质量的文章内容。请遵循以下要求：\n1. 根据用户提供的主题和要求生成结构清晰的文章\n2. 文章内容要有逻辑性和可读性\n3. 语言表达要自然流畅，符合中文写作习惯\n4. 适当使用段落和标题来组织内容\n5. 确保文章内容原创且有意义\n6. 根据用户指定的长度要求控制文章篇幅\n7.你需要充分考虑SE0最佳实践，包括关键词优化、结构优化等"
           help: "定义AI如何进行文章生成的角色设定和指令"
+    - group: title
+      label: 标题生成设置
+      formSchema:
+        - $formkit: select
+          name: titleAiType
+          label: 标题生成AI类型选择
+          placeholder: "选择用于标题生成的AI提供商"
+          options:
+            - label: 使用主配置AI
+              value: ""
+            - label: OpenAI
+              value: "openAi"
+            - label: 智谱AI
+              value: "zhipuAi"
+            - label: 通义千问
+              value: "dashScope"
+            - label: Codesphere
+              value: "codesphere"
+          help: "选择专门用于标题生成的AI提供商，留空则使用主配置"
+          value: ""
+        - $formkit: textarea
+          name: titleSystemPrompt
+          label: 标题生成角色设定
+          placeholder: "请输入标题生成的AI角色设定"
+          value: "你是一个专业的标题创作助手，能够根据文章内容生成吸引人的标题。请遵循以下要求：\n1. 根据文章内容的核心主题和关键信息生成标题\n2. 标题要简洁有力，能够吸引读者注意\n3. 标题要准确反映文章内容，避免标题党\n4. 考虑SEO优化，包含相关关键词\n5. 标题长度适中，一般控制在10-30个字符\n6. 可以生成多个不同风格的标题供选择\n7. 标题要有创意和吸引力，但保持真实性"
+          help: "定义AI如何进行标题生成的角色设定和指令"
+        - $formkit: number
+          name: titleDefaultCount
+          label: 默认生成标题数量
+          placeholder: "请输入默认生成的标题数量"
+          value: 5
+          min: 1
+          max: 20
+          help: "设置默认生成多少个标题供用户选择"
         
