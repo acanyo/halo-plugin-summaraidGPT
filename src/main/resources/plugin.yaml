@@ -18,7 +18,7 @@ spec:
   repo: https://github.com/acanyo/halo-plugin-summaraidGPT
   issues: https://www.lik.cc/subject/subject-brhugeis
   displayName: "智阅GPT-智能AI助手"
-  description: "智阅点睛，一键洞见——Halo智能AI助手"
+  description: "AI摘要|AI对话|AI创作|AI润色|AI标题|标签生成，一站式焕新内容生产力。"
   license:
     - name: "GPL-3.0"
       url: "https://github.com/halo-dev/plugin-starter/blob/main/LICENSE"
