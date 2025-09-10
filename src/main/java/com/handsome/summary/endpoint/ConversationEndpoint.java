@@ -38,6 +38,7 @@ public class ConversationEndpoint implements CustomEndpoint {
     
     public record DialogConfig(
         String assistantIcon,
+        String conversationIcon,
         String assistantName,
         String inputPlaceholder,
         String dialogType,
@@ -269,6 +270,7 @@ public class ConversationEndpoint implements CustomEndpoint {
         return settingConfigGetter.getAssistantConfig()
             .map(config -> new DialogConfig(
                 config.getAssistantIcon() != null ? config.getAssistantIcon() : "/plugins/summaraidGPT/assets/static/icon.svg",
+                config.getConversationIcon() != null ? config.getConversationIcon() : "/plugins/summaraidGPT/assets/static/icon.svg",
                 config.getAssistantName() != null ? config.getAssistantName() : "智阅GPT助手",
                 config.getInputPlaceholder() != null ? config.getInputPlaceholder() : "请输入您想了解的问题...",
                 config.getDialogType() != null ? config.getDialogType() : "overlay",
@@ -282,6 +284,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                 log.error("获取对话框配置失败", e);
                 // 返回默认配置
                 DialogConfig defaultConfig = new DialogConfig(
+                    "/plugins/summaraidGPT/assets/static/icon.svg",
                     "/plugins/summaraidGPT/assets/static/icon.svg",
                     "智阅GPT助手",
                     "请输入您想了解的问题...",

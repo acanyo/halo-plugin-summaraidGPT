@@ -131,6 +131,7 @@ public interface SettingConfigGetter {
         public static final String GROUP = "assistant";
         private String assistantAiType;
         private String assistantIcon;
+        private String conversationIcon;
         private String conversationSystemPrompt;
         private String assistantName;
         private String inputPlaceholder;

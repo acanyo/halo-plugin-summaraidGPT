@@ -610,6 +610,13 @@ spec:
           key: assistantIcon
           value: "/plugins/summaraidGPT/assets/static/icon.svg"
           help: "文章助手对话框的图标"
+        - $formkit: attachment
+          label: 聊天框头像
+          name: conversationIcon
+          id: conversationIcon
+          key: conversationIcon
+          value: "/plugins/summaraidGPT/assets/static/icon.svg"
+          help: "文章助手聊天框的头像"
         - $formkit: textarea
           label: 对话助手人设
           name: conversationSystemPrompt
