@@ -195,18 +195,39 @@
     callback(); // 保证初始状态
   }
 
+  // 全局变量存储文章名称
+  let globalPostName = null;
+
+  // 获取文章名称(postName)
+  function getPostName() {
+    // 如果全局变量已存在，直接返回
+    if (globalPostName) {
+      return globalPostName;
+    }
+
+    // 从ai-summaraidGPT标签获取name属性并存储到全局变量
+    const aiSummaryTag = document.querySelector('ai-summaraidGPT');
+    if (aiSummaryTag) {
+      globalPostName = aiSummaryTag.getAttribute('name');
+      return globalPostName;
+    }
+
+    return null;
+  }
+
   // 通过API获取摘要内容
   function fetchSummaryContent(permalink, contentElement, config) {
     const apiUrl = `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/updateContent`;
-    // 将permalink中的/替换为__以适配API
-    const encodedPermalink = permalink.replace(/\//g, '__');
+
+    // 从ai-summaraidGPT标签获取postName
+    const postName = getPostName();
 
     fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: encodedPermalink
+      body: postName
     })
     .then(response => {
       if (!response.ok) {
@@ -351,6 +372,9 @@
 
         // 合并配置
         const finalConfig = { ...defaultConfig, ...config };
+
+        // 先获取并存储文章名称到全局变量
+        getPostName();
 
         // 创建摘要框HTML片段
         const summaryBoxHTML = likcc_summaraidGPT_createSummaryBoxHTML(finalConfig);

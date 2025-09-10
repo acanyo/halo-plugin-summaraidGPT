@@ -78,7 +78,7 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
             .POST("/updateContent", this::updateContent,
                 builder -> builder.operationId("UpdateContent")
                     .tag(tag)
-                    .description("根据 permalink 更新文章内容")
+                    .description("根据文章名称更新文章内容")
                     .response(responseBuilder().implementation(String.class))
             )
             .POST("/syncAll", this::syncAllSummaries,
@@ -137,8 +137,8 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
      */
     private Mono<ServerResponse> updateContent(ServerRequest request) {
         return request.bodyToMono(String.class)
-            .map(this::normalizePermalink)
-            .flatMap(this::findSummaryByPermalink)
+            .map(this::normalizePostName)
+            .flatMap(this::findSummaryByPostName)
             .flatMap(this::processUpdateRequest)
             .flatMap(response -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -146,26 +146,25 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
             .onErrorResume(this::handleUpdateError);
     }
 
-    // 规范化permalink处理
-    private String normalizePermalink(String permalink) {
-        if (permalink == null || permalink.trim().isEmpty()) {
-            throw new IllegalArgumentException("permalink不能为空");
+    // 规范化文章名称处理
+    private String normalizePostName(String postName) {
+        if (postName == null || postName.trim().isEmpty()) {
+            throw new IllegalArgumentException("文章名称不能为空");
         }
-        var processed = permalink.trim().replace("__", "/");
-        return processed.startsWith("/") ? processed : "/" + processed;
+        return postName.trim();
     }
 
-    private Mono<Summary> findSummaryByPermalink(String permalink) {
+    private Mono<Summary> findSummaryByPostName(String postName) {
         var listOptions = new ListOptions();
         listOptions.setFieldSelector(FieldSelector.of(
-            and(equal("summarySpec.postUrl", permalink), 
-                isNotNull("summarySpec.postUrl"))
+            and(equal("summarySpec.postMetadataName", postName), 
+                isNotNull("summarySpec.postMetadataName"))
         ));
         
         return extensionClient.listAll(Summary.class, listOptions, Sort.unsorted())
             .next()
             .switchIfEmpty(Mono.error(new IllegalArgumentException(
-                "未找到对应的摘要记录：" + permalink)));
+                "未找到对应的摘要记录：" + postName)));
     }
 
     private Mono<ApiResponse> processUpdateRequest(Summary summary) {

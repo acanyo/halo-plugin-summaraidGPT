@@ -52,13 +52,14 @@ public class ArticleGenerateServiceImpl implements ArticleGenerateService {
             SettingConfigGetter.BasicConfig basicConfig = createBasicConfig(aiConfig);
             return aiService.chatCompletionRaw(prompt, basicConfig);
         })
-        .map(response -> {
-            String content = AiServiceUtils.extractContentFromResponse(response);
-            if (AiServiceUtils.isErrorMessage(content)) {
-                throw new RuntimeException("AI生成失败: " + content);
-            }
-            return GenerateResponse.success(content, request.type());
-        })
+            .<GenerateResponse>handle((response, sink) -> {
+                String content = AiServiceUtils.extractContentFromResponse(response);
+                if (AiServiceUtils.isErrorMessage(content)) {
+                    sink.error(new RuntimeException("AI生成失败: " + content));
+                    return;
+                }
+                sink.next(GenerateResponse.success(content, request.type()));
+            })
         .doOnSuccess(response -> log.info("文章生成成功，长度: {}", response.length()))
         .doOnError(error -> log.error("文章生成失败", error));
     }
@@ -161,6 +162,12 @@ public class ArticleGenerateServiceImpl implements ArticleGenerateService {
                 codesphereConfig.setApiKey(aiConfig.getApiKey());
                 codesphereConfig.setModelName(aiConfig.getModelName());
                 modelConfig.setCodesphereConfig(codesphereConfig);
+            }
+            case "siliconFlow" -> {
+                SettingConfigGetter.SiliconFlowConfig siliconFlowConfig = new SettingConfigGetter.SiliconFlowConfig();
+                siliconFlowConfig.setApiKey(aiConfig.getApiKey());
+                siliconFlowConfig.setModelName(aiConfig.getModelName());
+                modelConfig.setSiliconFlowConfig(siliconFlowConfig);
             }
         }
         

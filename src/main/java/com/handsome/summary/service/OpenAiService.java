@@ -149,7 +149,7 @@ public class OpenAiService implements AiService {
             return AiServiceUtils.getOutputStream(request.conn(), body);
         } catch (Exception e) {
             log.error("OpenAI API调用异常: {}", e.getMessage(), e);
-            return "[" + config.getGlobalAiType() + " 摘要生成异常：" + e.getMessage() + "]";
+            return "[" + config.getGlobalAiType() + " 生成异常：" + e.getMessage() + "]";
         }
     }
 
