@@ -655,7 +655,19 @@ spec:
             - label: 右侧
               value: right
           help: "文章助手按钮的显示位置"
-        
+        - $formkit: list
+          name: suggestions
+          label: 默认对话建议
+          addLabel: 添加
+          min: 1
+          max: 5
+          value: [ "你是谁?", "如何设计网站封面?", "如何学习编程?", "讲讲AI的未来发展", "什么是人工智能"]
+          help: "默认对话建议,只建议添加5个！这样不影响美观！"
+          itemType: string
+          children:
+            - $formkit: text
+              index: "$index"
+              validation: required
     - group: polish
       label: 文章润色设置
       formSchema:

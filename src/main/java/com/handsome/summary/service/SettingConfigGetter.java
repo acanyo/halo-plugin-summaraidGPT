@@ -2,6 +2,7 @@ package com.handsome.summary.service;
 
 import lombok.Data;
 import reactor.core.publisher.Mono;
+import java.util.List;
 
 public interface SettingConfigGetter {
     Mono<BasicConfig> getBasicConfig();
@@ -135,6 +136,7 @@ public interface SettingConfigGetter {
         private String inputPlaceholder;
         private String dialogType;
         private String buttonPosition;
+        private List<String> suggestions;
     }
     
     @Data

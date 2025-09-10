@@ -2,6 +2,8 @@ package com.handsome.summary.endpoint;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 
+import java.util.List;
+
 import com.handsome.summary.service.AiConfigService;
 import com.handsome.summary.service.AiServiceUtils;
 import com.handsome.summary.service.SettingConfigGetter;
@@ -39,7 +41,8 @@ public class ConversationEndpoint implements CustomEndpoint {
         String assistantName,
         String inputPlaceholder,
         String dialogType,
-        String buttonPosition
+        String buttonPosition,
+        List<String> suggestions
     ) {}
     
     public record SummaryConfig(
@@ -269,7 +272,8 @@ public class ConversationEndpoint implements CustomEndpoint {
                 config.getAssistantName() != null ? config.getAssistantName() : "智阅GPT助手",
                 config.getInputPlaceholder() != null ? config.getInputPlaceholder() : "请输入您想了解的问题...",
                 config.getDialogType() != null ? config.getDialogType() : "overlay",
-                config.getButtonPosition() != null ? config.getButtonPosition() : "right"
+                config.getButtonPosition() != null ? config.getButtonPosition() : "right",
+                config.getSuggestions() != null ? config.getSuggestions() : List.of("你是谁?", "如何设计网站封面?", "如何学习编程?", "讲讲AI的未来发展", "什么是人工智能")
             ))
             .flatMap(dialogConfig -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -282,7 +286,8 @@ public class ConversationEndpoint implements CustomEndpoint {
                     "智阅GPT助手",
                     "请输入您想了解的问题...",
                     "overlay",
-                    "right"
+                    "right",
+                    List.of("你是谁?", "如何设计网站封面?", "如何学习编程?", "讲讲AI的未来发展", "什么是人工智能")
                 );
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)
