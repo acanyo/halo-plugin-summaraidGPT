@@ -132,6 +132,13 @@ public class ArticleTitleServiceImpl implements ArticleTitleService {
                 codesphereConfig.setModelName(aiConfig.getModelName());
                 modelConfig.setCodesphereConfig(codesphereConfig);
             }
+            case "siliconFlow" -> {
+                SettingConfigGetter.SiliconFlowConfig siliconFlowConfig = new SettingConfigGetter.SiliconFlowConfig();
+                siliconFlowConfig.setApiKey(aiConfig.getApiKey());
+                siliconFlowConfig.setModelName(aiConfig.getModelName());
+                siliconFlowConfig.setBaseUrl(aiConfig.getBaseUrl());
+                modelConfig.setSiliconFlowConfig(siliconFlowConfig);
+            }
         }
         
         basicConfig.setAiModelConfig(modelConfig);

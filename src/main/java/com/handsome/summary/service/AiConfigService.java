@@ -73,7 +73,8 @@ public class AiConfigService {
                 codesphereConfig.setApiKey(aiConfigResult.getApiKey());
                 codesphereConfig.setModelName(aiConfigResult.getModelName());
                 aiModelConfig.setCodesphereConfig(codesphereConfig);
-            }case "siliconFlow" -> {
+            }
+            case "siliconFlow" -> {
                 SettingConfigGetter.SiliconFlowConfig siliconFlowConfig = new SettingConfigGetter.SiliconFlowConfig();
                 siliconFlowConfig.setApiKey(aiConfigResult.getApiKey());
                 siliconFlowConfig.setModelName(aiConfigResult.getModelName());

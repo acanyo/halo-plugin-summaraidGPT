@@ -167,6 +167,7 @@ public class ArticleGenerateServiceImpl implements ArticleGenerateService {
                 SettingConfigGetter.SiliconFlowConfig siliconFlowConfig = new SettingConfigGetter.SiliconFlowConfig();
                 siliconFlowConfig.setApiKey(aiConfig.getApiKey());
                 siliconFlowConfig.setModelName(aiConfig.getModelName());
+                siliconFlowConfig.setBaseUrl(aiConfig.getBaseUrl());
                 modelConfig.setSiliconFlowConfig(siliconFlowConfig);
             }
         }
