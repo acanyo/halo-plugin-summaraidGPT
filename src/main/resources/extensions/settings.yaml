@@ -578,6 +578,13 @@ spec:
     - group: assistant
       label: 文章助手设置
       formSchema:
+        - $formkit: checkbox
+          label: 是否启用文章助手
+          name: enableAssistant
+          id: enableAssistant
+          key: enableAssistant
+          value: true
+          help: "关闭后将不启用文章助手"
         - $formkit: select
           name: assistantAiType
           label: 对话AI类型选择

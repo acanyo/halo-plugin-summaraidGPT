@@ -129,6 +129,7 @@ public interface SettingConfigGetter {
     @Data
     class AssistantConfig {
         public static final String GROUP = "assistant";
+        private Boolean enableAssistant;
         private String assistantAiType;
         private String assistantIcon;
         private String conversationIcon;
