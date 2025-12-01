@@ -1,16 +1,13 @@
 (function() {
   'use strict';
 
-  // 防止脚本重复加载（只阻止脚本多次执行，不阻止重新初始化）
-  if (window.likcc_summaraidGPT_scriptLoaded) {
-    return;
+  // 版权信息打印（只在首次加载时显示）
+  if (!window.likcc_summaraidGPT_scriptLoaded) {
+    console.log('%c智阅GPT-智能AI助手', 'color: #4F8DFD; font-size: 16px; font-weight: bold;');
+    console.log('%c🚀 智阅点睛，一键洞见——基于AI大模型的Halo智能AI助手', 'color: #666; font-size: 12px;');
+    console.log('%c👨‍💻 作者: Handsome | 🌐 网站: https://lik.cc', 'color: #999; font-size: 11px;');
+    window.likcc_summaraidGPT_scriptLoaded = true;
   }
-  window.likcc_summaraidGPT_scriptLoaded = true;
-
-  // 版权信息打印
-  console.log('%c智阅GPT-智能AI助手', 'color: #4F8DFD; font-size: 16px; font-weight: bold;');
-  console.log('%c🚀 智阅点睛，一键洞见——基于AI大模型的Halo智能AI助手', 'color: #666; font-size: 12px;');
-  console.log('%c👨‍💻 作者: Handsome | 🌐 网站: https://lik.cc', 'color: #999; font-size: 11px;');
 
   // 检查CSS是否已加载
   function likcc_summaraidGPT_checkCSS() {
@@ -437,9 +434,10 @@
 
   // 自动初始化 - 处理页面中的ai-summaraidGPT标签
   function autoInitSummaryBox() {
-    // 检查是否有未处理的标签
     const widgets = document.querySelectorAll('ai-summaraidGPT');
-    if (widgets.length > 0) {
+    const summaryContainer = document.querySelector('.likcc-summaraidGPT-summary-container');
+    
+    if (widgets.length > 0 && !summaryContainer) {
       likcc_summaraidGPT_initSummaryBox();
     }
   }
