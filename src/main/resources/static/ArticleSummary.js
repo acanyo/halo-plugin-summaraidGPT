@@ -1,10 +1,11 @@
 (function() {
   'use strict';
 
-  // 防止重复初始化
-  if (window.likcc_summaraidGPT_summaryInitialized) {
+  // 防止脚本重复加载（只阻止脚本多次执行，不阻止重新初始化）
+  if (window.likcc_summaraidGPT_scriptLoaded) {
     return;
   }
+  window.likcc_summaraidGPT_scriptLoaded = true;
 
   // 版权信息打印
   console.log('%c智阅GPT-智能AI助手', 'color: #4F8DFD; font-size: 16px; font-weight: bold;');
@@ -195,8 +196,13 @@
     callback(); // 保证初始状态
   }
 
-  // 全局变量存储文章名称
+  // 全局变量存储文章名称（页面切换时需要重置）
   let globalPostName = null;
+
+  // 重置状态（用于页面切换时）
+  function resetState() {
+    globalPostName = null;
+  }
 
   // 获取文章名称(postName)
   function getPostName() {
@@ -431,7 +437,11 @@
 
   // 自动初始化 - 处理页面中的ai-summaraidGPT标签
   function autoInitSummaryBox() {
-    likcc_summaraidGPT_initSummaryBox();
+    // 检查是否有未处理的标签
+    const widgets = document.querySelectorAll('ai-summaraidGPT');
+    if (widgets.length > 0) {
+      likcc_summaraidGPT_initSummaryBox();
+    }
   }
 
   // 页面加载完成后自动处理标签
@@ -446,7 +456,16 @@
   document.addEventListener('pjax:success', autoInitSummaryBox);
   document.addEventListener('pjax:complete', autoInitSummaryBox);
 
-  // 标记已初始化
-  window.likcc_summaraidGPT_summaryInitialized = true;
+  // 支持 swup 页面切换
+  document.addEventListener('swup:content-replaced', function() {
+    resetState();
+    autoInitSummaryBox();
+  });
+
+  // 暴露重新初始化方法，方便外部调用
+  window.likcc_summaraidGPT_reinit = function(userConfig = {}) {
+    resetState();
+    return likcc_summaraidGPT_initSummaryBox(userConfig);
+  };
 
 })();
