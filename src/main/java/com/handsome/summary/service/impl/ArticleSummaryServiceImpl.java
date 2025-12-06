@@ -46,7 +46,8 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
 
     // 常量定义
     public static final String AI_SUMMARY_UPDATED = "summary.lik.cc/ai-summary-updated";
-    public static final String ENABLE_BLACK_LIST = "summary.lik.cc/enable-black-list";
+    public static final String ENABLE_BLACK_LIST = "summary.xhhao.com/enable-black-list";
+    public static final String UPDATE_SUMMARY = "summary.xhhao.com/update-summary";
     public static final String DEFAULT_AI_SYSTEM_PROMPT = "你是专业摘要助手，请为以下文章生成简明摘要：";
     public static final String DEFAULT_SUMMARY_ERROR_MESSAGE = "文章摘要生成异常：";
 
@@ -267,10 +268,17 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
         var annotations = nullSafeAnnotations(post);
         boolean blackList = Boolean.parseBoolean(annotations.getOrDefault(ENABLE_BLACK_LIST, "false"));
         
-        // 黑名单检查 - 最高优先级
+        // 黑名单检查
         if (blackList) {
             log.info("文章在黑名单中，跳过更新，文章: {}", postMetadataName);
             return Mono.just(buildResponse(false, "文章在黑名单中，不进行摘要更新", summaryContent, true));
+        }
+        
+        // 手动更新摘要检查（用户手动设置后不再覆盖）
+        boolean manualUpdate = Boolean.parseBoolean(annotations.getOrDefault(UPDATE_SUMMARY, "false"));
+        if (manualUpdate) {
+            log.info("文章已手动更新摘要，跳过AI更新，文章: {}", postMetadataName);
+            return Mono.just(buildResponse(false, "文章已手动更新摘要，跳过AI更新", summaryContent, false));
         }
         
         // 获取当前文章的摘要内容
@@ -280,7 +288,7 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
             summaryContent != null ? summaryContent : "暂无摘要");
         
         // 检查摘要内容是否发生变化
-        boolean summaryChanged = !java.util.Objects.equals(currentSummary, summaryContent);
+        boolean summaryChanged = !Objects.equals(currentSummary, summaryContent);
         
         if (!summaryChanged) {
             log.info("文章摘要内容未发生变化，跳过更新，文章: {}", postMetadataName);

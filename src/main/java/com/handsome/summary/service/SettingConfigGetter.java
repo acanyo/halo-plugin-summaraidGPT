@@ -92,6 +92,7 @@ public interface SettingConfigGetter {
         private String summaryAiType;
         private String summarySystemPrompt;
         private Boolean enable;
+        private Boolean enableUiInjection;  // 是否注入前端UI（CSS/JS/DOM）
         private String summaryTitle;
         private String gptName;
         private String darkSelector;

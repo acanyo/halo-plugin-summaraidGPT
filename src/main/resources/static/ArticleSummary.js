@@ -195,27 +195,57 @@
 
   // 全局变量存储文章名称（页面切换时需要重置）
   let globalPostName = null;
+  // 是否为隐藏数据模式（不显示UI，只入库）
+  let isHiddenDataMode = false;
 
   // 重置状态（用于页面切换时）
   function resetState() {
     globalPostName = null;
+    isHiddenDataMode = false;
   }
 
   // 获取文章名称(postName)
   function getPostName() {
-    // 如果全局变量已存在，直接返回
     if (globalPostName) {
       return globalPostName;
     }
 
-    // 从ai-summaraidGPT标签获取name属性并存储到全局变量
     const aiSummaryTag = document.querySelector('ai-summaraidGPT');
     if (aiSummaryTag) {
       globalPostName = aiSummaryTag.getAttribute('name');
+      isHiddenDataMode = false;
+      return globalPostName;
+    }
+    const aiDataTag = document.querySelector('ai-summaraidGPT-data');
+    if (aiDataTag) {
+      globalPostName = aiDataTag.getAttribute('name');
+      isHiddenDataMode = true;
       return globalPostName;
     }
 
     return null;
+  }
+
+  // 通过API获取摘要内容（静默模式）
+  function fetchSummaryContentSilent() {
+    const postName = getPostName();
+    if (!postName) return;
+
+    const apiUrl = `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/updateContent`;
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: postName
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .catch(error => {
+      console.warn('摘要入库失败:', error);
+    });
   }
 
   // 通过API获取摘要内容
@@ -248,7 +278,7 @@
     })
     .catch(error => {
       console.warn('获取摘要失败:', error);
-      contentElement.innerHTML = '摘要加载失败，请稍后重试';
+      contentElement.innerHTML = '摘要加载失败，请稀后重试';
     });
   }
 
@@ -435,10 +465,14 @@
   // 自动初始化 - 处理页面中的ai-summaraidGPT标签
   function autoInitSummaryBox() {
     const widgets = document.querySelectorAll('ai-summaraidGPT');
+    const dataWidgets = document.querySelectorAll('ai-summaraidGPT-data');
     const summaryContainer = document.querySelector('.likcc-summaraidGPT-summary-container');
     
     if (widgets.length > 0 && !summaryContainer) {
       likcc_summaraidGPT_initSummaryBox();
+    } else if (dataWidgets.length > 0 && widgets.length === 0) {
+      getPostName();
+      fetchSummaryContentSilent();
     }
   }
 

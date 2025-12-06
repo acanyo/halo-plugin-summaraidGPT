@@ -8,5 +8,12 @@ spec:
     kind: Post
   formSchema:
     - $formkit: "checkbox"
-      name: "enableBlacklist"
+      name: "summary.xhhao.com/enable-black-list"
       label: "禁用AI摘要-智阅GPT"
+      on-value: "true"
+      off-value: "false"
+    - $formkit: "checkbox"
+      name: "summary.xhhao.com/update-summary"
+      label: "手动更新摘要-智阅GPT"
+      on-value: "true"
+      off-value: "false"

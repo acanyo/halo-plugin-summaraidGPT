@@ -438,7 +438,7 @@ const checkPostName = () => {
                 <span class="text-green-600">已有 {{ tagStats.existing }} 个</span>，
                 <span class="text-orange-500">新增 {{ tagStats.new }} 个</span>
               </div>
-              <!-- 标签云布局 - 每行3个 -->
+              <!-- 标签云布局 -->
               <div class="px-3 py-2 grid grid-cols-3 gap-2">
                 <div
                   v-for="tag in tags"

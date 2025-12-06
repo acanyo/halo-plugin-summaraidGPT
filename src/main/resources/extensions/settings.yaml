@@ -363,7 +363,14 @@ spec:
           id: enable
           key: enable
           value: true
-          help: "关闭后将不会注入摘要框"
+          help: "关闭后将不会生成摘要内容"
+        - $formkit: checkbox
+          label: 是否注入前端UI
+          name: enableUiInjection
+          id: enableUiInjection
+          key: enableUiInjection
+          value: true
+          help: "关闭后不注入摘要框UI（CSS/JS/DOM），但仍会生成摘要内容入库，适合自定义前端展示的场景"
         - $formkit: textarea
           name: summarySystemPrompt
           label: 摘要模型人设
