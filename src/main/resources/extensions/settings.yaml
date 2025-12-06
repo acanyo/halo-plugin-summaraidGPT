@@ -570,10 +570,10 @@ spec:
           name: tagGenerationCount
           id: tagGenerationCount
           key: tagGenerationCount
-          value: 6
+          value: 5
           min: 1
-          max: 5
-          help: "每篇文章生成的标签数量"
+          max: 20
+          help: "每篇文章生成的标签数量（1-20个）"
           
     - group: assistant
       label: 文章助手设置

@@ -3,7 +3,7 @@ package com.handsome.summary.service.impl;
 
 import com.handsome.summary.service.AiConfigService;
 import com.handsome.summary.service.AiServiceUtils;
-
+import com.handsome.summary.service.SettingConfigGetter;
 import com.handsome.summary.service.TagService;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -37,18 +37,43 @@ public class TagServiceImpl implements TagService {
     private final AiConfigService aiConfigService;
     private final PostContentService postContentService;
     private final ReactiveExtensionClient extensionClient;
+    private final SettingConfigGetter settingConfigGetter;
+
+    /**
+     * 获取所有已有标签的 displayName 列表
+     */
+    private Mono<Set<String>> getAllExistingTagNames() {
+        return extensionClient.listAll(Tag.class, new ListOptions(), Sort.unsorted())
+            .map(tag -> tag.getSpec().getDisplayName())
+            .filter(name -> name != null && !name.isBlank())
+            .collect(Collectors.toSet());
+    }
 
     @Override
     public Mono<List<String>> generateTagsForPost(Post post) {
+        return generateTagsWithSourceInfo(post)
+            .map(result -> result.tags().stream()
+                .map(TagInfo::name)
+                .toList());
+    }
+    
+    @Override
+    public Mono<TagGenerationResult> generateTagsWithSourceInfo(Post post) {
         return Mono.zip(
                 aiConfigService.getAiConfigForFunction("tags"),
-                aiConfigService.getAiServiceForFunction("tags")
+                aiConfigService.getAiServiceForFunction("tags"),
+                settingConfigGetter.getTagsConfig(),
+                getAllExistingTagNames()
         ).flatMap(tuple -> {
             var aiConfig = tuple.getT1();
             var aiService = tuple.getT2();
+            var tagsConfig = tuple.getT3();
+            var existingTagNames = tuple.getT4();
 
-            // 默认标签数量为4，可以从配置中获取
-            int limit = 4;
+            // 从配置获取标签数量，默认为6
+            int limit = tagsConfig.getTagGenerationCount() != null ? tagsConfig.getTagGenerationCount() : 6;
+            log.info("标签生成数量配置: {}", limit);
+            
             var ref = new Object() {
                 String roleText = aiConfig.getSystemPrompt();
             };
@@ -62,16 +87,27 @@ public class TagServiceImpl implements TagService {
                 .flatMap(contentWrapper -> {
                     String content = contentWrapper.getContent();
                     if (content == null || content.trim().isEmpty()) {
-                        return Mono.just(List.<String>of());
+                        return Mono.just(TagGenerationResult.empty());
                     }
                     
-                    String prompt = "请你按照以下要求：" + ref.roleText + "\n"
-                        + "返回标签数量不超过" + limit
-                        + "，仅返回中文标签，使用逗号或换行分隔，不要编号与解释。\n"
-                        + "文章正文如下：\n"
-                        + content;
-
-                    log.info("开始调用AI生成标签，AI类型: {}, 提示词长度: {}", aiConfig.getAiType(), prompt.length());
+                    // 构建包含已有标签的提示词
+                    StringBuilder promptBuilder = new StringBuilder();
+                    promptBuilder.append("请你按照以下要求：").append(ref.roleText).append("\n");
+                    promptBuilder.append("请你给我符合文章内容的").append(limit).append("个标签");
+                    promptBuilder.append("，仅返回中文标签，使用逗号或换行分隔，不要编号与解释。\n");
+                    
+                    // 添加已有标签提示
+                    if (!existingTagNames.isEmpty()) {
+                        promptBuilder.append("\n【重要】系统中已有以下标签，请优先从中选择合适的标签，只有当已有标签完全不匹配时才创建新标签：\n");
+                        promptBuilder.append(String.join("、", existingTagNames));
+                        promptBuilder.append("\n\n");
+                    }
+                    
+                    promptBuilder.append("文章正文如下：\n").append(content);
+                    
+                    String prompt = promptBuilder.toString();
+                    log.info("开始调用AI生成标签，AI类型: {}, 提示词长度: {}, 已有标签数: {}", 
+                        aiConfig.getAiType(), prompt.length(), existingTagNames.size());
                     
                     // 创建兼容的BasicConfig
                     var compatibleConfig = aiConfigService.createCompatibleBasicConfig(aiConfig);
@@ -80,16 +116,27 @@ public class TagServiceImpl implements TagService {
                     
                     // 检查是否是错误信息
                     if (AiServiceUtils.isErrorMessage(raw)) {
-                        return Mono.just(List.<String>of());
+                        return Mono.just(TagGenerationResult.empty());
                     }
                     
-                    List<String> tags = parseTagsFromRaw(raw, limit);
-                    log.info("解析后的标签: {}", tags);
-                    return Mono.just(tags);
+                    List<String> tagNames = parseTagsFromRaw(raw, limit);
+                    log.info("解析后的标签: {}", tagNames);
+                    
+                    // 构建带来源信息的标签列表
+                    List<TagInfo> tagInfoList = tagNames.stream()
+                        .map(name -> new TagInfo(name, existingTagNames.contains(name)))
+                        .toList();
+                    
+                    int existingCount = (int) tagInfoList.stream().filter(TagInfo::isExisting).count();
+                    int newCount = tagInfoList.size() - existingCount;
+                    
+                    log.info("标签生成结果: 总数={}, 已有={}, 新增={}", tagInfoList.size(), existingCount, newCount);
+                    
+                    return Mono.just(new TagGenerationResult(tagInfoList, tagInfoList.size(), existingCount, newCount));
                 })
                 .onErrorResume(e -> {
                     log.error("生成标签失败: {}", e.getMessage(), e);
-                    return Mono.just(List.of());
+                    return Mono.just(TagGenerationResult.empty());
                 });
         });
     }

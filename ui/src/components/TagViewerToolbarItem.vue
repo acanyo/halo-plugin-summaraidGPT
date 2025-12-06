@@ -22,10 +22,18 @@ interface Props {
   title?: string
 }
 
+interface TagItem {
+  name: string
+  isExisting: boolean
+}
+
 interface TagResponse {
   success: boolean
   message?: string
-  tags: string[]
+  tags: TagItem[]
+  totalCount: number
+  existingCount: number
+  newCount: number
 }
 
 interface HaloTag {
@@ -65,14 +73,18 @@ const { isActive = false, disabled = false, title = 'AI智能标签', icon } = d
 
 const dropdownVisible = ref(false)
 const loading = ref(false)
-const tags = ref<string[]>([])
+const tags = ref<TagItem[]>([])
 const selectedTags = ref<string[]>([])
 const errorMessage = ref('')
+const tagStats = ref({ total: 0, existing: 0, new: 0 })
 
 // 计算属性：是否全选
 const isAllSelected = computed(() => {
   return tags.value.length > 0 && selectedTags.value.length === tags.value.length
 })
+
+// 获取标签名称列表
+const tagNames = computed(() => tags.value.map(t => t.name))
 
 // 从URL中获取postName
 const getPostNameFromUrl = () => {
@@ -104,6 +116,11 @@ const fetchAITags = async () => {
 
     if (data.success && Array.isArray(data.tags)) {
       tags.value = data.tags
+      tagStats.value = {
+        total: data.totalCount || data.tags.length,
+        existing: data.existingCount || 0,
+        new: data.newCount || 0
+      }
       if (tags.value.length === 0) {
         errorMessage.value = '未能生成相关标签'
       }
@@ -182,7 +199,7 @@ const handleSelectAll = () => {
     selectedTags.value = []
   } else {
     // 如果未全选，则全选
-    selectedTags.value = [...tags.value]
+    selectedTags.value = tags.value.map(t => t.name)
   }
 }
 
@@ -415,31 +432,44 @@ const checkPostName = () => {
 
             <!-- 标签列表 -->
             <div v-else-if="tags.length > 0" class="py-2">
-              <label
-                v-for="tag in tags"
-                :key="tag"
-                class="flex items-center space-x-2 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
-                :class="{ 'bg-blue-50 border-blue-200': selectedTags.includes(tag) }"
-              >
-                <input
-                  type="checkbox"
-                  :checked="selectedTags.includes(tag)"
-                  class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                  @change="() => toggleTag(tag)"
+              <!-- 统计信息 -->
+              <div class="px-3 py-1.5 mb-2 text-xs text-gray-500 border-b border-gray-100">
+                共 {{ tagStats.total }} 个标签：
+                <span class="text-green-600">已有 {{ tagStats.existing }} 个</span>，
+                <span class="text-orange-500">新增 {{ tagStats.new }} 个</span>
+              </div>
+              <!-- 标签云布局 - 每行3个 -->
+              <div class="px-3 py-2 grid grid-cols-3 gap-2">
+                <div
+                  v-for="tag in tags"
+                  :key="tag.name"
+                  class="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 select-none text-center"
+                  :class="selectedTags.includes(tag.name) 
+                    ? 'bg-blue-50 border-blue-300 text-blue-700 shadow-sm' 
+                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'"
+                  @click="toggleTag(tag.name)"
                 >
-                <span
-                  class="text-sm select-none flex-1 cursor-pointer"
-                  :class="{ 'text-blue-700 font-medium': selectedTags.includes(tag) }"
-                >
-                  {{ tag }}
-                </span>
-                <span
-                  v-if="selectedTags.includes(tag)"
-                  class="text-blue-600 text-xs"
-                >
-                  ✓
-                </span>
-              </label>
+                  <span class="text-sm font-medium truncate">{{ tag.name }}</span>
+                  <span
+                    v-if="tag.isExisting"
+                    class="shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700"
+                  >
+                    已有
+                  </span>
+                  <span
+                    v-else
+                    class="shrink-0 inline-flex items-center px-1 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700"
+                  >
+                    新增
+                  </span>
+                  <span
+                    v-if="selectedTags.includes(tag.name)"
+                    class="shrink-0 text-blue-500 text-xs"
+                  >
+                    ✓
+                  </span>
+                </div>
+              </div>
             </div>
 
             <!-- 空状态 -->
