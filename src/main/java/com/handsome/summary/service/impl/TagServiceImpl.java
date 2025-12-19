@@ -24,7 +24,7 @@ import run.halo.app.extension.Metadata;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.router.selector.FieldSelector;
 
-import static run.halo.app.extension.index.query.QueryFactory.in;
+import static run.halo.app.extension.index.query.Queries.in;
 
 /**
  * 标签生成服务实现。

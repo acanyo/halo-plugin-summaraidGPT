@@ -21,9 +21,9 @@ import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.ListOptions;
-import static run.halo.app.extension.index.query.QueryFactory.and;
-import static run.halo.app.extension.index.query.QueryFactory.equal;
-import static run.halo.app.extension.index.query.QueryFactory.isNotNull;
+import static run.halo.app.extension.index.query.Queries.and;
+import static run.halo.app.extension.index.query.Queries.equal;
+import static run.halo.app.extension.index.query.Queries.isNull;
 import org.springframework.data.domain.Sort;
 import run.halo.app.extension.router.selector.FieldSelector;
 import com.handsome.summary.extension.Summary;
@@ -157,8 +157,8 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
     private Mono<Summary> findSummaryByPostName(String postName) {
         var listOptions = new ListOptions();
         listOptions.setFieldSelector(FieldSelector.of(
-            and(equal("summarySpec.postMetadataName", postName), 
-                isNotNull("summarySpec.postMetadataName"))
+            and(equal("summarySpec.postMetadataName", postName),
+                isNull("summarySpec.postMetadataName").not())
         ));
         
         return extensionClient.listAll(Summary.class, listOptions, Sort.unsorted())

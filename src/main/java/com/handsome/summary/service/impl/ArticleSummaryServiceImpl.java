@@ -1,9 +1,9 @@
 package com.handsome.summary.service.impl;
 
 import static run.halo.app.extension.MetadataUtil.nullSafeAnnotations;
-import static run.halo.app.extension.index.query.QueryFactory.and;
-import static run.halo.app.extension.index.query.QueryFactory.equal;
-import static run.halo.app.extension.index.query.QueryFactory.isNotNull;
+import static run.halo.app.extension.index.query.Queries.and;
+import static run.halo.app.extension.index.query.Queries.equal;
+import static run.halo.app.extension.index.query.Queries.isNull;
 
 
 import com.handsome.summary.extension.Summary;
@@ -89,7 +89,7 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
         var listOptions = new ListOptions();
         listOptions.setFieldSelector(FieldSelector.of(
             and(equal("summarySpec.postMetadataName", postMetadataName),
-                isNotNull("summarySpec.postSummary"))
+                isNull("summarySpec.postSummary").not())
         ));
         return client.listAll(Summary.class, listOptions, Sort.unsorted());
     }

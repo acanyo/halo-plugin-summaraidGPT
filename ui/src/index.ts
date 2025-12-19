@@ -1,8 +1,8 @@
-import type {ListedPost} from "@halo-dev/api-client";
+import type { ListedPost } from "@halo-dev/api-client";
 import {Dialog, Toast, VDropdownDivider, VDropdownItem} from "@halo-dev/components";
-import {definePlugin} from "@halo-dev/console-shared";
+import {definePlugin} from "@halo-dev/ui-shared";
 import axios, {AxiosError} from "axios";
-import {markRaw} from "vue";
+import {markRaw, type Ref} from "vue";
 import SynchronousAiSummary from '@/views/SynchronousAiSummary.vue'
 import TagViewer from '@/extensions/TagViewer'
 import ArticlePolish from '@/extensions/ArticlePolish'
@@ -14,7 +14,7 @@ export default definePlugin({
     "default:editor:extension:create": () => {
       return [TagViewer, ArticlePolish, ArticleGenerate];
     },
-    'post:list-item:operation:create': () => {
+    'post:list-item:operation:create': (post: Ref<ListedPost>) => {
       return [
         {
           priority: 21,
@@ -31,7 +31,8 @@ export default definePlugin({
               component: markRaw(VDropdownItem),
               label: '同步摘要内容',
               visible: true,
-              action: async (item?: ListedPost) => {
+              action: () => {
+                const item = post.value;
                 if (!item) return;
                 Dialog.warning({
                   title: '同步摘要内容',

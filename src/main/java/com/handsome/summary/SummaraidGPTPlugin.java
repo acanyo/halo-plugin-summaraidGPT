@@ -1,14 +1,13 @@
 package com.handsome.summary;
 
-import static run.halo.app.extension.index.IndexAttributeFactory.simpleAttribute;
-
 import com.handsome.summary.extension.Summary;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import run.halo.app.extension.Scheme;
 import run.halo.app.extension.SchemeManager;
-import run.halo.app.extension.index.IndexSpec;
+import run.halo.app.extension.index.IndexSpecs;
 import run.halo.app.plugin.BasePlugin;
 import run.halo.app.plugin.PluginContext;
 
@@ -39,21 +38,18 @@ public class SummaraidGPTPlugin extends BasePlugin {
     }
     private void registerScheme() {
         schemeManager.register(Summary.class, indexSpecs -> {
-            indexSpecs.add(new IndexSpec()
-                .setName("summarySpec.postMetadataName")
-                .setIndexFunc(simpleAttribute(Summary.class,
-                    selectedComment -> selectedComment.getSummarySpec().getPostMetadataName())
-                ));
-            indexSpecs.add(new IndexSpec()
-                .setName("summarySpec.postUrl")
-                .setIndexFunc(simpleAttribute(Summary.class,
-                    selectedComment -> selectedComment.getSummarySpec().getPostUrl())
-                ));
-            indexSpecs.add(new IndexSpec()
-                .setName("summarySpec.postSummary")
-                .setIndexFunc(simpleAttribute(Summary.class,
-                    selectedComment -> selectedComment.getSummarySpec().getPostSummary())
-                ));
+            indexSpecs.add(IndexSpecs.<Summary, String>single("summarySpec.postMetadataName", String.class)
+                .indexFunc(summary -> Optional.ofNullable(summary.getSummarySpec())
+                    .map(Summary.SummarySpec::getPostMetadataName)
+                    .orElse(null)));
+            indexSpecs.add(IndexSpecs.<Summary, String>single("summarySpec.postUrl", String.class)
+                .indexFunc(summary -> Optional.ofNullable(summary.getSummarySpec())
+                    .map(Summary.SummarySpec::getPostUrl)
+                    .orElse(null)));
+            indexSpecs.add(IndexSpecs.<Summary, String>single("summarySpec.postSummary", String.class)
+                .indexFunc(summary -> Optional.ofNullable(summary.getSummarySpec())
+                    .map(Summary.SummarySpec::getPostSummary)
+                    .orElse(null)));
         });
     }
 
