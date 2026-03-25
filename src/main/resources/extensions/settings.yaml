@@ -417,6 +417,50 @@ spec:
       label: 摘要框样式设置
       formSchema:
         - $formkit: select
+          name: uiStyle
+          key: uiStyle
+          id: uiStyle
+          label: UI 风格
+          value: "classic"
+          placeholder: "请选择 UI 风格"
+          options:
+            - label: 经典样式
+              value: classic
+            - label: 内联摘要
+              value: inline
+            - label: 简约卡片
+              value: simple
+          help: "控制摘要框的布局和视觉样式"
+        - $formkit: select
+          if: $get(uiStyle).value == "inline" || $get(uiStyle).value == "simple"
+          name: fixedTone
+          key: fixedTone
+          id: fixedTone
+          label: 固定风格色调
+          value: "violet"
+          options:
+            - label: 知性紫
+              value: violet
+            - label: 石墨灰
+              value: graphite
+            - label: 琥珀棕
+              value: copper
+          help: "用于固定风格的强调色，不影响经典样式主题配置"
+        - $formkit: select
+          if: $get(uiStyle).value == "inline" || $get(uiStyle).value == "simple"
+          name: fixedDensity
+          key: fixedDensity
+          id: fixedDensity
+          label: 固定风格密度
+          value: "compact"
+          options:
+            - label: 紧凑
+              value: compact
+            - label: 舒展
+              value: comfortable
+          help: "控制固定风格的留白和字号密度"
+        - $formkit: select
+          if: $get(uiStyle).value == "classic"
           name: themeName
           key: themeName
           id: themeName
@@ -434,8 +478,9 @@ spec:
               value: dark
             - label: 绿色主题
               value: green
-          help: "选择主题类型，自定义主题使用下方配色设置"
+          help: "选择配色主题，自定义主题使用下方配色设置"
         - $formkit: attachment
+          if: $get(uiStyle).value == "classic"
           label: Logo图片
           name: logo
           id: logo
@@ -444,19 +489,19 @@ spec:
           help: "摘要框Logo图片路径"
         - $formkit: text
           label: 背景色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeBg
           id: themeBg
           key: themeBg
           value: "#f7f9fe"
         - $el: div
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           attrs:
             class: "formkit-help text-xs text-gray-500"
             innerHTML: "摘要框背景色，支持纯色和渐变色，如：linear-gradient(45deg, #f7f9fe, #e3e8f7)<a href='https://pxlab.cn/color/index.html' title='前往获取渐变色' target='_blank' class='text-blue-500 hover:text-blue-700'>获取渐变色</a>"
         - $formkit: color
           label: 主色调
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeMain
           id: themeMain
           key: themeMain
@@ -464,7 +509,7 @@ spec:
           help: "主色调，用于边框和强调"
         - $formkit: color
           label: 标题颜色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeTitle
           id: themeTitle
           key: themeTitle
@@ -472,7 +517,7 @@ spec:
           help: "标题文字颜色"
         - $formkit: color
           label: 内容颜色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeContent
           id: themeContent
           key: themeContent
@@ -480,7 +525,7 @@ spec:
           help: "内容文字颜色"
         - $formkit: color
           label: AI名称颜色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeGptName
           id: themeGptName
           key: themeGptName
@@ -488,7 +533,7 @@ spec:
           help: "AI模型名称颜色"
         - $formkit: color
           label: 内容背景色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeContentBg
           id: themeContentBg
           key: themeContentBg
@@ -496,7 +541,7 @@ spec:
           help: "内容区域背景色"
         - $formkit: color
           label: 边框颜色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeBorder
           id: themeBorder
           key: themeBorder
@@ -504,7 +549,7 @@ spec:
           help: "边框颜色"
         - $formkit: text
           label: 阴影效果
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeShadow
           id: themeShadow
           key: themeShadow
@@ -512,7 +557,7 @@ spec:
           help: "阴影效果CSS值"
         - $formkit: color
           label: 标签背景色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeTagBg
           id: themeTagBg
           key: themeTagBg
@@ -520,7 +565,7 @@ spec:
           help: "标签背景色"
         - $formkit: color
           label: 标签文字颜色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeTagColor
           id: themeTagColor
           key: themeTagColor
@@ -528,7 +573,7 @@ spec:
           help: "标签文字颜色"
         - $formkit: color
           label: 光标颜色
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeCursor
           id: themeCursor
           key: themeCursor
@@ -536,7 +581,7 @@ spec:
           help: "打字机光标颜色"
         - $formkit: text
           label: 内容字体大小
-          if: $get(themeName).value == "custom"
+          if: $get(uiStyle).value == "classic" && $get(themeName).value == "custom"
           name: themeContentFontSize
           id: themeContentFontSize
           key: themeContentFontSize

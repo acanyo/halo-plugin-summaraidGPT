@@ -52,6 +52,9 @@ public class ConversationEndpoint implements CustomEndpoint {
         String gptName,
         Integer typeSpeed,
         String darkSelector,
+        String uiStyle,
+        String fixedTone,
+        String fixedDensity,
         String themeName,
         String theme,
         Boolean typewriter
@@ -315,7 +318,10 @@ public class ConversationEndpoint implements CustomEndpoint {
                 summaryConfig.getGptName() != null ? summaryConfig.getGptName() : "智阅GPT",
                 summaryConfig.getTypeSpeed() != null ? summaryConfig.getTypeSpeed() : 20,
                 summaryConfig.getDarkSelector() != null ? summaryConfig.getDarkSelector() : "",
-                styleConfig.getThemeName() != null ? styleConfig.getThemeName() : "custom",
+                resolveUiStyle(styleConfig),
+                resolveFixedTone(styleConfig),
+                resolveFixedDensity(styleConfig),
+                resolveThemeName(styleConfig),
                 buildThemeString(styleConfig),
                 summaryConfig.getTypewriter() != null ? summaryConfig.getTypewriter() : true
             );
@@ -332,6 +338,9 @@ public class ConversationEndpoint implements CustomEndpoint {
                 "智阅GPT",
                 20,
                 "",
+                "classic",
+                "violet",
+                "compact",
                 "custom",
                 "{\"bg\":\"#f7f9fe\",\"main\":\"#4F8DFD\",\"contentFontSize\":\"16px\",\"title\":\"#3A5A8C\",\"content\":\"#222\",\"gptName\":\"#7B88A8\",\"contentBg\":\"#fff\",\"border\":\"#e3e8f7\",\"shadow\":\"0 2px 12px 0 rgba(60,80,180,0.08)\",\"tagBg\":\"#f0f4ff\",\"cursor\":\"#4F8DFD\"}",
                 true
@@ -359,6 +368,49 @@ public class ConversationEndpoint implements CustomEndpoint {
             styleConfig.getThemeTagBg() != null ? styleConfig.getThemeTagBg() : "#f0f4ff",
             styleConfig.getThemeCursor() != null ? styleConfig.getThemeCursor() : "#4F8DFD"
         );
+    }
+
+    private String resolveUiStyle(SettingConfigGetter.StyleConfig styleConfig) {
+        if (styleConfig.getUiStyle() != null) {
+            if ("simple".equals(styleConfig.getUiStyle())) {
+                return "simple";
+            }
+            if ("inline".equals(styleConfig.getUiStyle())) {
+                return "inline";
+            }
+            if ("note".equals(styleConfig.getUiStyle())
+                || "minimal".equals(styleConfig.getUiStyle())
+                || "stripe".equals(styleConfig.getUiStyle())
+                || "quiet".equals(styleConfig.getUiStyle())) {
+                return "simple";
+            }
+            return "classic";
+        }
+        if ("spotlight".equals(styleConfig.getThemeName())) {
+            return "simple";
+        }
+        return "classic";
+    }
+
+    private String resolveFixedTone(SettingConfigGetter.StyleConfig styleConfig) {
+        if ("graphite".equals(styleConfig.getFixedTone()) || "copper".equals(styleConfig.getFixedTone())) {
+            return styleConfig.getFixedTone();
+        }
+        return "violet";
+    }
+
+    private String resolveFixedDensity(SettingConfigGetter.StyleConfig styleConfig) {
+        if ("comfortable".equals(styleConfig.getFixedDensity())) {
+            return "comfortable";
+        }
+        return "compact";
+    }
+
+    private String resolveThemeName(SettingConfigGetter.StyleConfig styleConfig) {
+        if ("spotlight".equals(styleConfig.getThemeName())) {
+            return "default";
+        }
+        return styleConfig.getThemeName() != null ? styleConfig.getThemeName() : "custom";
     }
 
     @Override

@@ -62,9 +62,7 @@ public class SummaryHeadProcessor implements TemplateHeadProcessor {
         
         // 根据启用的功能选择性注入资源
         if (isSummaryEnabled) {
-            // 摘要功能相关资源
-            scriptBuilder.append("<link rel=\"stylesheet\" href=\"/plugins/summaraidGPT/assets/static/ArticleSummary.css?version=")
-                        .append(version).append("\" />\n");
+            // 摘要功能相关资源，样式已内置在 Lit 组件中
             scriptBuilder.append("<script src=\"/plugins/summaraidGPT/assets/static/ArticleSummary.js?version=")
                         .append(version).append("\"></script>\n");
         }
@@ -85,4 +83,3 @@ public class SummaryHeadProcessor implements TemplateHeadProcessor {
     }
 
 }
-

@@ -5,3 +5,4 @@ pluginManagement {
 }
 rootProject.name = 'plugin-summaraidGPT'
 include 'ui'
+include 'packages'

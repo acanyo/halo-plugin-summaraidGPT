@@ -103,6 +103,9 @@ public interface SettingConfigGetter {
     @Data
     class StyleConfig {
         public static final String GROUP = "style";
+        private String uiStyle;
+        private String fixedTone;
+        private String fixedDensity;
         private String themeName;
         private String logo;
         private String themeBg;

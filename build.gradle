@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation platform('run.halo.tools.platform:plugin:2.22.0-alpha.1')
+    implementation platform('run.halo.tools.platform:plugin:2.23.0')
     compileOnly 'run.halo.app:api'
     testImplementation 'run.halo.app:api'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -40,6 +40,10 @@ tasks.register('processUiResources', Copy) {
     shouldRunAfter tasks.named('processResources')
 }
 
+tasks.named('processResources') {
+    dependsOn project(':packages').tasks.named('assemble')
+}
+
 tasks.named('classes') {
     dependsOn tasks.named('processUiResources')
 }
@@ -47,6 +51,5 @@ tasks.named('classes') {
 halo {
     debug = true
     suspend = true
-    version = '2.22.0-alpha.1'
+    version = '2.23.1'
 }
-
