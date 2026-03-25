@@ -392,13 +392,6 @@ spec:
           value: "智阅GPT"
           help: "AI模型名称，显示在摘要框中"
 
-        - $formkit: text
-          label: 深色模式选择器
-          name: darkSelector
-          id: darkSelector
-          key: darkSelector
-          value: "data-theme=dark"
-          help: "用于自动判断深色模式的选择器"
         - $formkit: number
           label: 打字机速度
           name: typeSpeed

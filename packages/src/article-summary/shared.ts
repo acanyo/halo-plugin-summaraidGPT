@@ -80,12 +80,46 @@ export function parseTheme(theme: SummaryTheme | string | null | undefined): Sum
 }
 
 export function matchesDarkSelector(selector: string): boolean {
-  if (!selector) {
+  const html = document.documentElement;
+  const body = document.body;
+  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+
+  const dataScheme = html.getAttribute('data-color-scheme') || body.getAttribute('data-color-scheme');
+  if (dataScheme === 'dark') {
+    return true;
+  }
+  if (dataScheme === 'light') {
+    return false;
+  }
+  if (dataScheme === 'auto') {
+    return prefersDark;
+  }
+
+  if (
+    html.classList.contains('color-scheme-dark') ||
+    body.classList.contains('color-scheme-dark') ||
+    html.classList.contains('dark') ||
+    body.classList.contains('dark')
+  ) {
+    return true;
+  }
+
+  if (
+    html.classList.contains('color-scheme-light') ||
+    body.classList.contains('color-scheme-light') ||
+    html.classList.contains('light') ||
+    body.classList.contains('light')
+  ) {
     return false;
   }
 
-  const html = document.documentElement;
-  const body = document.body;
+  if (html.classList.contains('color-scheme-auto') || body.classList.contains('color-scheme-auto')) {
+    return prefersDark;
+  }
+
+  if (!selector) {
+    return false;
+  }
 
   const dataAttrMatch = selector.match(/^data-([\w-]+)=(.+)$/);
   if (dataAttrMatch) {
@@ -107,21 +141,16 @@ export function buildThemeObserver(
   selector: string,
   callback: () => void,
 ): MutationObserver[] {
-  if (!selector) {
-    return [];
-  }
-
   const html = document.documentElement;
   const body = document.body;
-
-  const dataAttrMatch = selector.match(/^data-([\w-]+)=(.+)$/);
   const observerConfig: MutationObserverInit = {
     attributes: true,
-    attributeFilter: ['class'],
+    attributeFilter: ['class', 'data-color-scheme'],
   };
 
+  const dataAttrMatch = selector.match(/^data-([\w-]+)=(.+)$/);
   if (dataAttrMatch) {
-    observerConfig.attributeFilter = ['class', `data-${dataAttrMatch[1]}`];
+    observerConfig.attributeFilter = ['class', 'data-color-scheme', `data-${dataAttrMatch[1]}`];
   }
 
   const htmlObserver = new MutationObserver(callback);

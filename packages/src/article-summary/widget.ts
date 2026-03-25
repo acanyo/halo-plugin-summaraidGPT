@@ -77,11 +77,16 @@ export class ArticleSummaryWidget extends LitElement {
   private themeObservers: MutationObserver[] = [];
   private typewriterTimer?: number;
   private initialized = false;
+  private prefersColorSchemeQuery?: MediaQueryList;
+  private readonly handleSystemColorSchemeChange = () => {
+    this.refreshThemeMode();
+  };
 
   connectedCallback(): void {
     super.connectedCallback();
     this.refreshThemeMode();
     this.bindThemeObservers();
+    this.bindSystemColorSchemeListener();
   }
 
   protected firstUpdated(): void {
@@ -99,6 +104,7 @@ export class ArticleSummaryWidget extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.unbindThemeObservers();
+    this.unbindSystemColorSchemeListener();
     this.stopTypewriter();
   }
 
@@ -197,8 +203,36 @@ export class ArticleSummaryWidget extends LitElement {
     this.themeObservers = [];
   }
 
+  private bindSystemColorSchemeListener(): void {
+    if (!window.matchMedia) {
+      return;
+    }
+
+    this.prefersColorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    if (typeof this.prefersColorSchemeQuery.addEventListener === 'function') {
+      this.prefersColorSchemeQuery.addEventListener('change', this.handleSystemColorSchemeChange);
+      return;
+    }
+
+    this.prefersColorSchemeQuery.addListener?.(this.handleSystemColorSchemeChange);
+  }
+
+  private unbindSystemColorSchemeListener(): void {
+    if (!this.prefersColorSchemeQuery) {
+      return;
+    }
+
+    if (typeof this.prefersColorSchemeQuery.removeEventListener === 'function') {
+      this.prefersColorSchemeQuery.removeEventListener('change', this.handleSystemColorSchemeChange);
+    } else {
+      this.prefersColorSchemeQuery.removeListener?.(this.handleSystemColorSchemeChange);
+    }
+
+    this.prefersColorSchemeQuery = undefined;
+  }
+
   private get effectiveThemeName(): ThemeVariant {
-    if (this.darkSelector && this.isDark) {
+    if (this.isDark) {
       return 'dark';
     }
 
@@ -268,11 +302,17 @@ export class ArticleSummaryWidget extends LitElement {
   }
 
   private get fixedStyleClassName(): string {
-    return [
+    const classes = [
       'likcc-summaraidGPT-fixed',
       `likcc-summaraidGPT-tone--${this.effectiveFixedTone}`,
       `likcc-summaraidGPT-density--${this.effectiveFixedDensity}`,
-    ].join(' ');
+    ];
+
+    if (this.isDark) {
+      classes.push('likcc-summaraidGPT-fixed--dark');
+    }
+
+    return classes.join(' ');
   }
 
   protected render() {

@@ -113,6 +113,16 @@ export const articleSummaryStyles = css`
     --likcc-summaraid-fixed-content-line: 1.74;
   }
 
+  .likcc-summaraidGPT-fixed--dark {
+    --likcc-summaraid-fixed-accent: #8fa0ff;
+    --likcc-summaraid-fixed-accent-soft: rgba(143, 160, 255, 0.14);
+    --likcc-summaraid-fixed-accent-faint: rgba(143, 160, 255, 0.07);
+    --likcc-summaraid-fixed-line: rgba(143, 160, 255, 0.26);
+    --likcc-summaraid-fixed-text: #e8edf7;
+    --likcc-summaraid-fixed-muted: #aab6cc;
+    --likcc-summaraid-fixed-surface: #171c25;
+  }
+
   .likcc-summaraidGPT-simple-container,
   .likcc-summaraidGPT-inline-container {
     margin: 0.16rem 0 0.1rem;
