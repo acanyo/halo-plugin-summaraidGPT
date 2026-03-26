@@ -24,13 +24,15 @@ jobs:
           java-version: '21'
 
       - name: Install pnpm
-        run: npm install -g pnpm@9 && echo $(npm prefix)/bin >> $GITHUB_PATH
+        run: npm install -g pnpm@9
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: |
+          export PATH="$PATH:/usr/local/bin:/root/.local/share/npm/bin"
+          ./gradlew build
 
       - name: Find JAR files
         id: find-jar
