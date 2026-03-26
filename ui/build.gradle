@@ -5,6 +5,12 @@ plugins {
 
 group 'cc.lik.pluginsummaraidgpt.ui'
 
+node {
+    version = '20.20.1'
+    pnpmVersion = '10.22.0'
+    download = true
+}
+
 tasks.register('pnpmBuild', PnpmTask) {
     group = 'build'
     description = 'Build the UI project using pnpm'
