@@ -23,6 +23,11 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
