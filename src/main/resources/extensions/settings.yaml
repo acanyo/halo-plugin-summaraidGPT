@@ -131,6 +131,8 @@ spec:
               value: "codesphere"
             - label: 硅基流动
               value: "siliconFlow"
+            - label: MiniMax
+              value: "miniMax"
           value: "openAi"
           help: "设置全局默认的AI提供商，当各功能模块AI类型为空时使用此配置"
         - $formkit: group
@@ -151,6 +153,10 @@ spec:
             codesphereConfig:
               apiKey: ""
               modelName: "zhipu-free"
+            miniMaxConfig:
+              apiKey: ""
+              modelName: "minimax-m2.7"
+              baseUrl: "https://api.minimax.chat/v1"
           children:
             - $formkit: group
               name: openAiConfig
@@ -335,6 +341,55 @@ spec:
                   help: "硅基流动API地址，使用默认地址即可"
                   value: "https://api.siliconflow.cn"
 
+            - $formkit: group
+              name: miniMaxConfig
+              label: MiniMax 配置
+              help: "配置MiniMax AI模型参数"
+              children:
+                - $formkit: password
+                  name: apiKey
+                  label: MiniMax API密钥
+                  placeholder: "请输入MiniMax的API Key"
+                  help: "必填，请前往MiniMax官网获取API Key"
+                - $el: div
+                  attrs:
+                    class: "formkit-help text-xs text-gray-500"
+                    innerHTML: "MiniMax AI助手 <a href='https://www.minimaxi.com/' title='前往MiniMax获取API Key' target='_blank' class='text-blue-500 hover:text-blue-700'>MiniMax 官网</a>，支持多种高性能模型。"
+                - $formkit: select
+                  name: modelName
+                  label: MiniMax 模型名称
+                  searchable: true
+                  allowCreate: true
+                  placeholder: "请选择或输入模型名称"
+                  options:
+                    - label: minimax-01 (最新旗舰)
+                      value: minimax-01
+                    - label: minimax-m2.7 (默认推荐)
+                      value: minimax-m2.7
+                    - label: minimax-m2.7-flax
+                      value: minimax-m2.7-flax
+                    - label: minimax-m2
+                      value: minimax-m2
+                    - label: abab6.5s-chat
+                      value: abab6.5s-chat
+                    - label: abab6-chat
+                      value: abab6-chat
+                    - label: abab5.5-chat
+                      value: abab5.5-chat
+                  help: "选择或自定义MiniMax模型名称"
+                - $el: a
+                  attrs:
+                    href: "https://www.minimaxi.com/document"
+                    target: "_blank"
+                    class: "text-blue-500 hover:text-blue-700 text-sm"
+                  children: "查看 MiniMax 模型列表 ←"
+                - $formkit: text
+                  name: baseUrl
+                  label: API地址
+                  placeholder: "https://api.minimax.chat/v1"
+                  help: "MiniMax API地址，使用默认地址即可"
+                  value: "https://api.minimax.chat/v1"
+
     - group: summary
       label: 摘要设置
       formSchema:
@@ -355,6 +410,8 @@ spec:
               value: "codesphere"
             - label: 硅基流动
               value: "siliconFlow"
+            - label: MiniMax
+              value: "miniMax"
           help: "选择专门用于摘要生成的AI提供商，留空则使用主配置"
           value: ""
         - $formkit: checkbox
@@ -601,6 +658,8 @@ spec:
               value: "codesphere"
             - label: 硅基流动
               value: "siliconFlow"
+            - label: MiniMax
+              value: "miniMax"
           help: "选择专门用于标签生成的AI提供商，留空则使用主配置"
           value: ""
         - $formkit: textarea
@@ -647,6 +706,8 @@ spec:
               value: "codesphere"
             - label: 硅基流动
               value: "siliconFlow"
+            - label: MiniMax
+              value: "miniMax"
           help: "选择专门用于对话的AI提供商，留空则使用主配置,暂不支持思考模型,请注意！"
           value: ""
         - $el: div
@@ -747,6 +808,8 @@ spec:
               value: "codesphere"
             - label: 硅基流动
               value: "siliconFlow"
+            - label: MiniMax
+              value: "miniMax"
           help: "选择专门用于文章润色的AI提供商，留空则使用主配置"
           value: ""
         - $formkit: textarea
@@ -783,6 +846,8 @@ spec:
               value: "codesphere"
             - label: 硅基流动
               value: "siliconFlow"
+            - label: MiniMax
+              value: "miniMax"
           help: "选择专门用于文章生成的AI提供商，留空则使用主配置"
           value: ""
         - $formkit: textarea
@@ -811,6 +876,8 @@ spec:
               value: "codesphere"
             - label: 硅基流动
               value: "siliconFlow"
+            - label: MiniMax
+              value: "miniMax"
           help: "选择专门用于标题生成的AI提供商，留空则使用主配置"
           value: ""
         - $formkit: textarea
