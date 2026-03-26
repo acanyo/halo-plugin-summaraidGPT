@@ -32,7 +32,7 @@ jobs:
       - name: Build with Gradle
         run: |
           export PATH="$PATH:/usr/local/bin:/root/.local/share/npm/bin"
-          ./gradlew build -x :ui:pnpmInstall -x :ui:pnpmBuild -x :ui:pnpmCheck
+          ./gradlew build -x :ui:assemble -x :ui:pnpmInstall -x :ui:pnpmBuild -x :ui:pnpmCheck -x :ui:nodeSetup -x :ui:pnpmSetup
 
       - name: Find JAR files
         id: find-jar
