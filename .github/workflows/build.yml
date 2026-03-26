@@ -24,7 +24,7 @@ jobs:
           java-version: '21'
 
       - name: Install pnpm
-        run: corepack enable && corepack prepare pnpm@9 --activate
+        run: corepack enable && corepack prepare pnpm@9 --activate && echo $(pnpm bin) >> $GITHUB_PATH
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
