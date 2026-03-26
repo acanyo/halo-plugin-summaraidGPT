@@ -33,14 +33,15 @@ jobs:
         run: |
           export PATH="$PATH:/usr/local/bin:/root/.local/share/npm/bin"
           rm -rf .gradle build ui/.gradle ui/build packages/.gradle packages/build
-          echo 'pluginManagement {
+          printf 'pluginManagement {
     repositories {
         gradlePluginPortal()
     }
 }
-rootProject.name = '\''plugin-summaraidGPT'\''
-// include '\''ui'\''
-// include '\''packages'\''' > settings.gradle
+rootProject.name = "plugin-summaraidGPT"
+// include "ui"
+// include "packages"
+' > settings.gradle
           cat settings.gradle
           ./gradlew classes test --no-build-cache --rerun-tasks
 
