@@ -33,7 +33,9 @@ jobs:
         run: |
           export PATH="$PATH:/usr/local/bin:/root/.local/share/npm/bin"
           rm -rf .gradle build ui/.gradle ui/build packages/.gradle packages/build
-          sed -i "s/include 'ui'/\/\/ include 'ui'/" settings.gradle
+          sed -i "s|^include 'ui'|// include 'ui'|" settings.gradle
+          sed -i "s|^include 'packages'|// include 'packages'|" settings.gradle
+          cat settings.gradle
           ./gradlew classes test --no-build-cache --rerun-tasks
 
       - name: Find JAR files
