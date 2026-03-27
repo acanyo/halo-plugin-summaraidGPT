@@ -43,6 +43,7 @@ public interface SettingConfigGetter {
         private DashScopeConfig dashScopeConfig;
         private CodesphereConfig codesphereConfig;
         private SiliconFlowConfig siliconFlowConfig;
+        private MiniMaxConfig miniMaxConfig;
     }
     
     @Data
@@ -72,6 +73,13 @@ public interface SettingConfigGetter {
     
     @Data
     class SiliconFlowConfig {
+        private String apiKey;
+        private String modelName;
+        private String baseUrl;
+    }
+
+    @Data
+    class MiniMaxConfig {
         private String apiKey;
         private String modelName;
         private String baseUrl;
