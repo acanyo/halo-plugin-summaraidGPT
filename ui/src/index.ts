@@ -4,7 +4,6 @@ import {definePlugin} from "@halo-dev/ui-shared";
 import axios, {AxiosError} from "axios";
 import {markRaw, type Ref} from "vue";
 import SynchronousAiSummary from '@/views/SynchronousAiSummary.vue'
-import TagViewer from '@/extensions/TagViewer'
 import ArticlePolish from '@/extensions/ArticlePolish'
 import ArticleGenerate from '@/extensions/ArticleGenerate'
 
@@ -12,7 +11,7 @@ import ArticleGenerate from '@/extensions/ArticleGenerate'
 export default definePlugin({
   extensionPoints: {
     "default:editor:extension:create": () => {
-      return [TagViewer, ArticlePolish, ArticleGenerate];
+      return [ArticlePolish, ArticleGenerate];
     },
     'post:list-item:operation:create': (post: Ref<ListedPost>) => {
       return [

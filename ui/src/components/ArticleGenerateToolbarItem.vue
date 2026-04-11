@@ -24,7 +24,7 @@
             <VAlert
               type="info"
               title="AI智能生成"
-              description="使用AI根据您的需求生成文章内容或标题，支持多种写作风格和格式"
+              description="使用AI生成文章、标题和标签，常用写作操作集中在一个入口里"
               :closable="false"
               class="text-xs"
             />
@@ -236,6 +236,122 @@
               </div>
             </div>
           </div>
+
+          <div v-if="activeTab === 'tags'" class="px-4 pb-4">
+            <div class="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div class="text-sm font-medium text-gray-900">AI标签生成</div>
+                  <div class="mt-1 text-xs text-gray-500">
+                    基于当前文章内容生成建议标签，确认后会直接写回文章。
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <VButton
+                    v-if="!tagLoading && tags.length > 0"
+                    size="sm"
+                    type="secondary"
+                    @click="handleSelectAll"
+                  >
+                    {{ isAllSelected ? '取消全选' : '全选' }}
+                  </VButton>
+                  <VButton
+                    size="sm"
+                    type="secondary"
+                    :loading="tagLoading"
+                    @click="handleRefreshTags"
+                  >
+                    <template #icon>
+                      <MdiRefresh class="h-3.5 w-3.5" />
+                    </template>
+                    {{ tags.length > 0 ? '重新生成' : '生成标签' }}
+                  </VButton>
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-gray-200 bg-white">
+              <div v-if="tagLoading" class="flex items-center justify-center py-10">
+                <VLoading />
+                <span class="ml-2 text-sm text-gray-500">AI 正在生成标签...</span>
+              </div>
+
+              <div v-else-if="tagErrorMessage" class="p-6">
+                <VEmpty
+                  title="标签生成失败"
+                  :description="tagErrorMessage"
+                >
+                  <template #actions>
+                    <VButton size="sm" type="primary" @click="handleRefreshTags">
+                      重试
+                    </VButton>
+                  </template>
+                </VEmpty>
+              </div>
+
+              <div v-else-if="tags.length > 0">
+                <div class="border-b border-gray-100 px-4 py-3 text-xs text-gray-500">
+                  共 {{ tagStats.total }} 个标签，
+                  <span class="text-green-600">已有 {{ tagStats.existing }}</span>
+                  ，
+                  <span class="text-orange-500">新增 {{ tagStats.new }}</span>
+                </div>
+
+                <div class="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto p-4">
+                  <button
+                    v-for="tag in tags"
+                    :key="tag.name"
+                    type="button"
+                    class="inline-flex items-center justify-center gap-1 rounded-lg border px-3 py-2 text-center text-sm font-medium transition-all duration-150"
+                    :class="selectedTags.includes(tag.name)
+                      ? 'border-blue-300 bg-blue-50 text-blue-700 shadow-sm'
+                      : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100'"
+                    @click="toggleTag(tag.name)"
+                  >
+                    <span class="truncate">{{ tag.name }}</span>
+                    <span
+                      v-if="tag.isExisting"
+                      class="rounded bg-green-100 px-1 py-0.5 text-[10px] font-medium text-green-700"
+                    >
+                      已有
+                    </span>
+                    <span
+                      v-else
+                      class="rounded bg-orange-100 px-1 py-0.5 text-[10px] font-medium text-orange-700"
+                    >
+                      新增
+                    </span>
+                  </button>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+                  <span class="text-xs text-gray-500">已选择 {{ selectedTags.length }} 个标签</span>
+                  <VButton
+                    size="sm"
+                    type="primary"
+                    :disabled="selectedTags.length === 0"
+                    :loading="tagLoading"
+                    @click="confirmSelection"
+                  >
+                    应用到文章
+                  </VButton>
+                </div>
+              </div>
+
+              <div v-else class="p-6">
+                <VEmpty
+                  title="还没有生成标签"
+                  description="点击上方“生成标签”，系统会根据文章内容给出建议标签。"
+                >
+                  <template #actions>
+                    <VButton size="sm" type="primary" @click="handleRefreshTags">
+                      生成标签
+                    </VButton>
+                  </template>
+                </VEmpty>
+              </div>
+            </div>
+          </div>
         </div>
       </template>
     </VDropdown>
@@ -243,22 +359,24 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Editor } from '@tiptap/core'
 import {
   VButton,
   VDropdown,
+  VLoading,
   Toast,
+  VEmpty,
   VAlert,
   VTabbar
 } from '@halo-dev/components'
 import { FormKit, FormKitMessages } from '@formkit/vue'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 
-// Icons
 import IconSparkles from '~icons/lucide/sparkles'
 import IconEdit from '~icons/lucide/edit-3'
 import IconWand2 from '~icons/lucide/wand-2'
+import MdiRefresh from '~icons/mdi/refresh'
 
 interface Props {
   editor: Editor
@@ -272,25 +390,56 @@ interface GenerateResponse {
   message?: string
 }
 
+interface TagItem {
+  name: string
+  isExisting: boolean
+}
+
+interface TagResponse {
+  success: boolean
+  message?: string
+  tags: TagItem[]
+  totalCount: number
+  existingCount: number
+  newCount: number
+}
+
+interface HaloTag {
+  metadata: {
+    name: string
+  }
+  spec: {
+    displayName: string
+  }
+}
+
+interface HaloTagListResponse {
+  items: HaloTag[]
+}
+
+type ActiveTab = 'article' | 'title' | 'tags'
+
 const props = withDefaults(defineProps<Props>(), {
   isActive: false,
   disabled: false
 })
 
-// 响应式数据
 const dropdownVisible = ref(false)
-const activeTab = ref<'article' | 'title'>('article')
+const activeTab = ref<ActiveTab>('article')
 const loading = ref(false)
 const titleLoading = ref(false)
+const tagLoading = ref(false)
 const errorMessage = ref('')
 const titleErrorMessage = ref('')
+const tagErrorMessage = ref('')
 const generatedTitles = ref<string[]>([])
+const tags = ref<TagItem[]>([])
+const selectedTags = ref<string[]>([])
+const tagStats = ref({ total: 0, existing: 0, new: 0 })
 
-// 标题生成配置
 const titleStyle = ref('有利于SEO的标题')
 const titleCount = ref('5')
 
-// 表单数据
 const formData = ref({
   topic: '',
   format: 'html',
@@ -298,7 +447,6 @@ const formData = ref({
   maxLength: 2000
 })
 
-// 标签页选项
 const tabItems = [
   {
     id: 'article',
@@ -307,10 +455,13 @@ const tabItems = [
   {
     id: 'title',
     label: '标题生成'
+  },
+  {
+    id: 'tags',
+    label: 'AI标签'
   }
 ]
 
-// 写作风格选项
 const styleOptions = [
   { label: '通俗易懂', value: '通俗易懂' },
   { label: '正式学术', value: '正式学术' },
@@ -330,7 +481,6 @@ const styleOptions = [
   { label: '对话访谈', value: '对话访谈' }
 ]
 
-// 标题风格选项
 const titleStyleOptions = [
   { label: '有利于SEO的标题', value: '有利于SEO的标题' },
   { label: '吸引眼球的标题', value: '吸引眼球的标题' },
@@ -344,7 +494,6 @@ const titleStyleOptions = [
   { label: '热点式', value: '热点式' }
 ]
 
-// 风格帮助信息
 const styleHelpMap: Record<string, string> = {
   '通俗易懂': '用简单语言解释复杂概念，适合大众阅读',
   '正式学术': '严谨的学术写作风格，适合论文和研究报告',
@@ -364,18 +513,17 @@ const styleHelpMap: Record<string, string> = {
   '对话访谈': '问答形式，互动性强'
 }
 
-// 计算属性
 const tooltipText = computed(() => {
   if (props.disabled) {
     return '请先选择要生成的位置'
   }
-  return 'AI智能生成 - 生成文章内容或标题'
+  return 'AI智能生成 - 生成文章、标题或标签'
 })
 
 const canGenerate = computed(() => {
   return formData.value.topic.trim().length > 0 &&
-         formData.value.topic.length <= 1000 &&
-         !loading.value
+    formData.value.topic.length <= 1000 &&
+    !loading.value
 })
 
 const canGenerateTitle = computed(() => {
@@ -383,7 +531,10 @@ const canGenerateTitle = computed(() => {
   return content.trim().length > 0 && !titleLoading.value
 })
 
-// 风格帮助文本计算属性
+const isAllSelected = computed(() => {
+  return tags.value.length > 0 && selectedTags.value.length === tags.value.length
+})
+
 const styleHelpText = computed(() => {
   const style = formData.value.style
   if (!style) {
@@ -392,14 +543,18 @@ const styleHelpText = computed(() => {
   return styleHelpMap[style] || '自定义写作风格，将按照您的描述生成文章'
 })
 
-// 方法
+watch(activeTab, (tab) => {
+  if (tab === 'tags' && dropdownVisible.value && tags.value.length === 0 && !tagLoading.value) {
+    void fetchAITags()
+  }
+})
+
 const handleOpenDropdown = (visible: boolean) => {
   if (!visible) {
     dropdownVisible.value = false
     return
   }
 
-  // 重置表单和状态
   resetForm()
   activeTab.value = 'article'
   dropdownVisible.value = true
@@ -423,6 +578,12 @@ const resetForm = () => {
     maxLength: 2000
   }
   errorMessage.value = ''
+  titleErrorMessage.value = ''
+  generatedTitles.value = []
+  tagErrorMessage.value = ''
+  tags.value = []
+  selectedTags.value = []
+  tagStats.value = { total: 0, existing: 0, new: 0 }
 }
 
 const handleGenerate = async () => {
@@ -435,8 +596,6 @@ const handleGenerate = async () => {
     const response = await generateContent()
 
     if (response.success && response.content) {
-      // 直接插入生成的内容到编辑器
-      debugger
       props.editor.chain().focus().insertContent(response.content).run()
       Toast.success('文章生成完成并已插入到编辑器')
       dropdownVisible.value = false
@@ -457,7 +616,7 @@ const handleGenerate = async () => {
 const generateContent = async (): Promise<GenerateResponse> => {
   const baseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
 
-  return await axios.post(`${baseUrl}/generate/article`, {
+  return axios.post(`${baseUrl}/generate/article`, {
     topic: formData.value.topic,
     format: formData.value.format,
     style: formData.value.style,
@@ -466,13 +625,11 @@ const generateContent = async (): Promise<GenerateResponse> => {
   }).then(res => res.data)
 }
 
-
 const generateTitles = async () => {
   try {
     titleLoading.value = true
     titleErrorMessage.value = ''
 
-    // 获取编辑器内容
     const content = props.editor.getText()
     if (!content.trim()) {
       titleErrorMessage.value = '请先输入文章内容'
@@ -483,7 +640,6 @@ const generateTitles = async () => {
     const response = await generateTitleContent(content)
 
     if (response.success && response.content) {
-      // 解析生成的标题（假设以换行符分隔）
       const titles = response.content.split('\n')
         .map(title => title.trim())
         .filter(title => title.length > 0)
@@ -507,11 +663,202 @@ const generateTitles = async () => {
 const generateTitleContent = async (content: string): Promise<GenerateResponse> => {
   const baseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
 
-  return await axios.post(`${baseUrl}/generate/title`, {
-    content: content,
+  return axios.post(`${baseUrl}/generate/title`, {
+    content,
     style: titleStyle.value,
     count: parseInt(titleCount.value, 10)
   }).then(res => res.data)
+}
+
+const getPostNameFromUrl = () => {
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.get('name')
+}
+
+const checkPostName = () => {
+  return getPostNameFromUrl()
+}
+
+const fetchAITags = async () => {
+  tagLoading.value = true
+  tagErrorMessage.value = ''
+
+  try {
+    const postName = checkPostName()
+    if (!postName) {
+      throw new Error('请先保存文章，保存后即可使用AI标签生成功能')
+    }
+
+    const { data } = await axios.post<TagResponse>(
+      '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/generateTags',
+      {
+        postName,
+        ensure: true
+      },
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+
+    if (data.success && Array.isArray(data.tags)) {
+      tags.value = data.tags
+      tagStats.value = {
+        total: data.totalCount || data.tags.length,
+        existing: data.existingCount || 0,
+        new: data.newCount || 0
+      }
+
+      if (tags.value.length === 0) {
+        tagErrorMessage.value = '未能生成相关标签'
+      }
+    } else {
+      throw new Error(data.message || '生成标签失败')
+    }
+  } catch (error) {
+    console.error('获取AI标签失败:', error)
+    if (error instanceof AxiosError) {
+      tagErrorMessage.value = error.response?.data?.detail || error.response?.data?.message || '请求失败，请重试'
+    } else {
+      tagErrorMessage.value = error instanceof Error ? error.message : '生成标签失败'
+    }
+    Toast.error(tagErrorMessage.value)
+  } finally {
+    tagLoading.value = false
+  }
+}
+
+const handleRefreshTags = () => {
+  selectedTags.value = []
+  void fetchAITags()
+}
+
+const toggleTag = (tag: string) => {
+  const index = selectedTags.value.indexOf(tag)
+  if (index > -1) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
+  }
+}
+
+const handleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedTags.value = []
+    return
+  }
+
+  selectedTags.value = tags.value.map(tag => tag.name)
+}
+
+const confirmSelection = async () => {
+  if (selectedTags.value.length === 0) {
+    Toast.warning('请选择至少一个标签')
+    return
+  }
+
+  const postName = checkPostName()
+  if (!postName) {
+    Toast.warning('请先保存文章，保存后即可使用AI标签生成功能')
+    return
+  }
+
+  tagLoading.value = true
+
+  try {
+    const { data: existingTagsResponse } = await axios.get<HaloTagListResponse>(
+      '/apis/content.halo.run/v1alpha1/tags',
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+
+    const existingTagsMap = new Map<string, string>()
+    existingTagsResponse.items?.forEach((tag) => {
+      if (selectedTags.value.includes(tag.spec.displayName)) {
+        existingTagsMap.set(tag.spec.displayName, tag.metadata.name)
+      }
+    })
+
+    const createPromises = selectedTags.value
+      .filter(tagName => !existingTagsMap.has(tagName))
+      .map(async (tagDisplayName) => {
+        try {
+          const slug = `tag-${Math.random().toString(36).slice(2, 10)}`
+          const { data: tag } = await axios.post<HaloTag>(
+            '/apis/content.halo.run/v1alpha1/tags',
+            {
+              apiVersion: 'content.halo.run/v1alpha1',
+              kind: 'Tag',
+              metadata: {
+                generateName: 'tag-',
+                annotations: {}
+              },
+              spec: {
+                displayName: tagDisplayName,
+                slug,
+                color: '#ffffff',
+                cover: ''
+              }
+            },
+            {
+              headers: { 'Content-Type': 'application/json' }
+            }
+          )
+
+          return tag.metadata.name
+        } catch (error) {
+          console.error(`创建标签 "${tagDisplayName}" 失败:`, error)
+          return null
+        }
+      })
+
+    const newTagNames = (await Promise.all(createPromises)).filter((name): name is string => Boolean(name))
+    const allTagNames = [
+      ...Array.from(existingTagsMap.values()),
+      ...newTagNames
+    ]
+
+    if (allTagNames.length === 0) {
+      throw new Error('没有成功创建或找到任何标签')
+    }
+
+    const { data: post } = await axios.get(
+      `/apis/content.halo.run/v1alpha1/posts/${postName}`,
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+
+    const existingTags = post.spec?.tags || []
+    const updatedPost = {
+      ...post,
+      spec: {
+        ...post.spec,
+        tags: [...new Set([...existingTags, ...allTagNames])]
+      }
+    }
+
+    await axios.put(
+      `/apis/content.halo.run/v1alpha1/posts/${postName}`,
+      updatedPost,
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    )
+
+    Toast.success(`成功应用 ${selectedTags.value.length} 个标签到文章`)
+    dropdownVisible.value = false
+    selectedTags.value = []
+  } catch (error) {
+    console.error('应用标签失败:', error)
+    if (error instanceof AxiosError) {
+      Toast.error(error.response?.data?.message || error.response?.data?.detail || '应用标签失败，请重试')
+    } else {
+      Toast.error(error instanceof Error ? error.message : '应用标签失败')
+    }
+  } finally {
+    tagLoading.value = false
+  }
 }
 
 const copyTitle = async (title: string) => {

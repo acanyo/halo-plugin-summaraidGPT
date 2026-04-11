@@ -155,8 +155,7 @@ spec:
               modelName: "zhipu-free"
             miniMaxConfig:
               apiKey: ""
-              modelName: "minimax-m2.7"
-              baseUrl: "https://api.minimax.chat/v1"
+              modelName: "MiniMax-M2.7"
           children:
             - $formkit: group
               name: openAiConfig
@@ -344,17 +343,17 @@ spec:
             - $formkit: group
               name: miniMaxConfig
               label: MiniMax 配置
-              help: "配置MiniMax AI模型参数"
+              help: "配置 MiniMax AI 模型参数，默认使用官方推荐的 Anthropic 兼容接口"
               children:
                 - $formkit: password
                   name: apiKey
                   label: MiniMax API密钥
                   placeholder: "请输入MiniMax的API Key"
-                  help: "必填，请前往MiniMax官网获取API Key"
+                  help: "必填，请前往 MiniMax 开放平台获取 API Key"
                 - $el: div
                   attrs:
                     class: "formkit-help text-xs text-gray-500"
-                    innerHTML: "MiniMax AI助手 <a href='https://www.minimaxi.com/' title='前往MiniMax获取API Key' target='_blank' class='text-blue-500 hover:text-blue-700'>MiniMax 官网</a>，支持多种高性能模型。"
+                    innerHTML: "MiniMax 开放平台 <a href='https://platform.minimaxi.com/' title='前往 MiniMax 开放平台获取 API Key' target='_blank' class='text-blue-500 hover:text-blue-700'>获取 API Key</a>，推荐使用 Anthropic 兼容接口。"
                 - $formkit: select
                   name: modelName
                   label: MiniMax 模型名称
@@ -362,39 +361,35 @@ spec:
                   allowCreate: true
                   placeholder: "请选择或输入模型名称"
                   options:
-                    - label: minimax-01 (最新旗舰)
-                      value: minimax-01
-                    - label: minimax-m2.7 (默认推荐)
-                      value: minimax-m2.7
-                    - label: minimax-m2.7-flax
-                      value: minimax-m2.7-flax
-                    - label: minimax-m2
-                      value: minimax-m2
-                    - label: abab6.5s-chat
-                      value: abab6.5s-chat
-                    - label: abab6-chat
-                      value: abab6-chat
-                    - label: abab5.5-chat
-                      value: abab5.5-chat
-                  help: "选择或自定义MiniMax模型名称"
+                    - label: MiniMax-M2.7
+                      value: MiniMax-M2.7
+                    - label: MiniMax-M2.7-highspeed
+                      value: MiniMax-M2.7-highspeed
+                    - label: MiniMax-M2.5
+                      value: MiniMax-M2.5
+                    - label: MiniMax-M2.5-highspeed
+                      value: MiniMax-M2.5-highspeed
+                    - label: MiniMax-M2.1
+                      value: MiniMax-M2.1
+                    - label: MiniMax-M2.1-highspeed
+                      value: MiniMax-M2.1-highspeed
+                    - label: MiniMax-M2
+                      value: MiniMax-M2
+                  help: "选择或自定义 MiniMax 文本模型名称"
                 - $el: a
                   attrs:
-                    href: "https://www.minimaxi.com/document"
+                    href: "https://platform.minimaxi.com/docs/api-reference/text-anthropic-api"
                     target: "_blank"
                     class: "text-blue-500 hover:text-blue-700 text-sm"
-                  children: "查看 MiniMax 模型列表 ←"
-                - $formkit: text
-                  name: baseUrl
-                  label: API地址
-                  placeholder: "https://api.minimax.chat/v1"
-                  help: "MiniMax API地址，使用默认地址即可"
-                  value: "https://api.minimax.chat/v1"
+                  children: "查看 MiniMax 接入文档 ←"
 
     - group: summary
       label: 摘要设置
       formSchema:
         - $formkit: select
           name: summaryAiType
+          id: summaryAiType
+          key: summaryAiType
           label: 摘要AI类型选择
           placeholder: "选择用于摘要生成的AI提供商"
           options:
@@ -414,6 +409,122 @@ spec:
               value: "miniMax"
           help: "选择专门用于摘要生成的AI提供商，留空则使用主配置"
           value: ""
+        - $formkit: select
+          if: $get(summaryAiType).value == "openAi"
+          name: summaryModelName
+          id: summaryModelName
+          key: summaryModelName
+          label: 摘要模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: gpt-4-turbo
+              value: gpt-4-turbo
+            - label: gpt-3.5-turbo
+              value: gpt-3.5-turbo
+          help: "为摘要单独指定 OpenAI 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(summaryAiType).value == "zhipuAi"
+          name: summaryModelName
+          id: summaryModelName
+          key: summaryModelName
+          label: 摘要模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: GLM-4.5-Flash
+              value: GLM-4.5-Flash
+            - label: GLM-4.5
+              value: GLM-4.5
+            - label: GLM-4.5-Air
+              value: GLM-4.5-Air
+          help: "为摘要单独指定智谱模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(summaryAiType).value == "dashScope"
+          name: summaryModelName
+          id: summaryModelName
+          key: summaryModelName
+          label: 摘要模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: qwen-max
+              value: qwen-max
+            - label: qwen-plus
+              value: qwen-plus
+            - label: qwen-turbo
+              value: qwen-turbo
+          help: "为摘要单独指定通义千问模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(summaryAiType).value == "codesphere"
+          name: summaryModelName
+          id: summaryModelName
+          key: summaryModelName
+          label: 摘要模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: glm-4-flash
+              value: glm-4-flash
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: claude-3-5-sonnet
+              value: claude-3-5-sonnet
+          help: "为摘要单独指定 Codesphere 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(summaryAiType).value == "siliconFlow"
+          name: summaryModelName
+          id: summaryModelName
+          key: summaryModelName
+          label: 摘要模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: Qwen/QwQ-32B
+              value: Qwen/QwQ-32B
+            - label: deepseek-ai/DeepSeek-V2.5
+              value: deepseek-ai/DeepSeek-V2.5
+            - label: deepseek-ai/DeepSeek-V2
+              value: deepseek-ai/DeepSeek-V2
+            - label: deepseek-ai/DeepSeek-Coder-V2
+              value: deepseek-ai/DeepSeek-Coder-V2
+          help: "为摘要单独指定硅基流动模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(summaryAiType).value == "miniMax"
+          name: summaryModelName
+          id: summaryModelName
+          key: summaryModelName
+          label: 摘要模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: MiniMax-M2.7
+              value: MiniMax-M2.7
+            - label: MiniMax-M2.7-highspeed
+              value: MiniMax-M2.7-highspeed
+            - label: MiniMax-M2.5
+              value: MiniMax-M2.5
+            - label: MiniMax-M2.5-highspeed
+              value: MiniMax-M2.5-highspeed
+            - label: MiniMax-M2.1
+              value: MiniMax-M2.1
+            - label: MiniMax-M2.1-highspeed
+              value: MiniMax-M2.1-highspeed
+            - label: MiniMax-M2
+              value: MiniMax-M2
+          help: "为摘要单独指定 MiniMax 模型，留空则使用 AI 设置中的默认模型"
         - $formkit: checkbox
           label: 是否启用文章摘要
           name: enable
@@ -643,6 +754,8 @@ spec:
       formSchema:
         - $formkit: select
           name: tagAiType
+          id: tagAiType
+          key: tagAiType
           label: 标签AI类型选择
           placeholder: "选择用于标签生成的AI提供商"
           options:
@@ -662,6 +775,122 @@ spec:
               value: "miniMax"
           help: "选择专门用于标签生成的AI提供商，留空则使用主配置"
           value: ""
+        - $formkit: select
+          if: $get(tagAiType).value == "openAi"
+          name: tagModelName
+          id: tagModelName
+          key: tagModelName
+          label: 标签模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: gpt-4-turbo
+              value: gpt-4-turbo
+            - label: gpt-3.5-turbo
+              value: gpt-3.5-turbo
+          help: "为标签生成单独指定 OpenAI 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(tagAiType).value == "zhipuAi"
+          name: tagModelName
+          id: tagModelName
+          key: tagModelName
+          label: 标签模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: GLM-4.5-Flash
+              value: GLM-4.5-Flash
+            - label: GLM-4.5
+              value: GLM-4.5
+            - label: GLM-4.5-Air
+              value: GLM-4.5-Air
+          help: "为标签生成单独指定智谱模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(tagAiType).value == "dashScope"
+          name: tagModelName
+          id: tagModelName
+          key: tagModelName
+          label: 标签模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: qwen-max
+              value: qwen-max
+            - label: qwen-plus
+              value: qwen-plus
+            - label: qwen-turbo
+              value: qwen-turbo
+          help: "为标签生成单独指定通义千问模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(tagAiType).value == "codesphere"
+          name: tagModelName
+          id: tagModelName
+          key: tagModelName
+          label: 标签模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: glm-4-flash
+              value: glm-4-flash
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: claude-3-5-sonnet
+              value: claude-3-5-sonnet
+          help: "为标签生成单独指定 Codesphere 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(tagAiType).value == "siliconFlow"
+          name: tagModelName
+          id: tagModelName
+          key: tagModelName
+          label: 标签模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: Qwen/QwQ-32B
+              value: Qwen/QwQ-32B
+            - label: deepseek-ai/DeepSeek-V2.5
+              value: deepseek-ai/DeepSeek-V2.5
+            - label: deepseek-ai/DeepSeek-V2
+              value: deepseek-ai/DeepSeek-V2
+            - label: deepseek-ai/DeepSeek-Coder-V2
+              value: deepseek-ai/DeepSeek-Coder-V2
+          help: "为标签生成单独指定硅基流动模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(tagAiType).value == "miniMax"
+          name: tagModelName
+          id: tagModelName
+          key: tagModelName
+          label: 标签模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: MiniMax-M2.7
+              value: MiniMax-M2.7
+            - label: MiniMax-M2.7-highspeed
+              value: MiniMax-M2.7-highspeed
+            - label: MiniMax-M2.5
+              value: MiniMax-M2.5
+            - label: MiniMax-M2.5-highspeed
+              value: MiniMax-M2.5-highspeed
+            - label: MiniMax-M2.1
+              value: MiniMax-M2.1
+            - label: MiniMax-M2.1-highspeed
+              value: MiniMax-M2.1-highspeed
+            - label: MiniMax-M2
+              value: MiniMax-M2
+          help: "为标签生成单独指定 MiniMax 模型，留空则使用 AI 设置中的默认模型"
         - $formkit: textarea
           label: 标签生成角色设定
           name: tagGenerationPrompt
@@ -691,6 +920,8 @@ spec:
           help: "关闭后将不启用文章助手"
         - $formkit: select
           name: assistantAiType
+          id: assistantAiType
+          key: assistantAiType
           label: 对话AI类型选择
           placeholder: "选择用于对话的AI提供商"
           options:
@@ -710,6 +941,122 @@ spec:
               value: "miniMax"
           help: "选择专门用于对话的AI提供商，留空则使用主配置,暂不支持思考模型,请注意！"
           value: ""
+        - $formkit: select
+          if: $get(assistantAiType).value == "openAi"
+          name: assistantModelName
+          id: assistantModelName
+          key: assistantModelName
+          label: 对话模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: gpt-4-turbo
+              value: gpt-4-turbo
+            - label: gpt-3.5-turbo
+              value: gpt-3.5-turbo
+          help: "为对话单独指定 OpenAI 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(assistantAiType).value == "zhipuAi"
+          name: assistantModelName
+          id: assistantModelName
+          key: assistantModelName
+          label: 对话模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: GLM-4.5-Flash
+              value: GLM-4.5-Flash
+            - label: GLM-4.5
+              value: GLM-4.5
+            - label: GLM-4.5-Air
+              value: GLM-4.5-Air
+          help: "为对话单独指定智谱模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(assistantAiType).value == "dashScope"
+          name: assistantModelName
+          id: assistantModelName
+          key: assistantModelName
+          label: 对话模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: qwen-max
+              value: qwen-max
+            - label: qwen-plus
+              value: qwen-plus
+            - label: qwen-turbo
+              value: qwen-turbo
+          help: "为对话单独指定通义千问模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(assistantAiType).value == "codesphere"
+          name: assistantModelName
+          id: assistantModelName
+          key: assistantModelName
+          label: 对话模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: glm-4-flash
+              value: glm-4-flash
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: claude-3-5-sonnet
+              value: claude-3-5-sonnet
+          help: "为对话单独指定 Codesphere 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(assistantAiType).value == "siliconFlow"
+          name: assistantModelName
+          id: assistantModelName
+          key: assistantModelName
+          label: 对话模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: Qwen/QwQ-32B
+              value: Qwen/QwQ-32B
+            - label: deepseek-ai/DeepSeek-V2.5
+              value: deepseek-ai/DeepSeek-V2.5
+            - label: deepseek-ai/DeepSeek-V2
+              value: deepseek-ai/DeepSeek-V2
+            - label: deepseek-ai/DeepSeek-Coder-V2
+              value: deepseek-ai/DeepSeek-Coder-V2
+          help: "为对话单独指定硅基流动模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(assistantAiType).value == "miniMax"
+          name: assistantModelName
+          id: assistantModelName
+          key: assistantModelName
+          label: 对话模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: MiniMax-M2.7
+              value: MiniMax-M2.7
+            - label: MiniMax-M2.7-highspeed
+              value: MiniMax-M2.7-highspeed
+            - label: MiniMax-M2.5
+              value: MiniMax-M2.5
+            - label: MiniMax-M2.5-highspeed
+              value: MiniMax-M2.5-highspeed
+            - label: MiniMax-M2.1
+              value: MiniMax-M2.1
+            - label: MiniMax-M2.1-highspeed
+              value: MiniMax-M2.1-highspeed
+            - label: MiniMax-M2
+              value: MiniMax-M2
+          help: "为对话单独指定 MiniMax 模型，留空则使用 AI 设置中的默认模型"
         - $el: div
           attrs:
             class: "formkit-help text-xs text-gray-500"
@@ -793,6 +1140,8 @@ spec:
       formSchema:
         - $formkit: select
           name: polishAiType
+          id: polishAiType
+          key: polishAiType
           label: 润色AI类型选择
           placeholder: "选择用于文章润色的AI提供商"
           options:
@@ -812,6 +1161,122 @@ spec:
               value: "miniMax"
           help: "选择专门用于文章润色的AI提供商，留空则使用主配置"
           value: ""
+        - $formkit: select
+          if: $get(polishAiType).value == "openAi"
+          name: polishModelName
+          id: polishModelName
+          key: polishModelName
+          label: 润色模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: gpt-4-turbo
+              value: gpt-4-turbo
+            - label: gpt-3.5-turbo
+              value: gpt-3.5-turbo
+          help: "为润色单独指定 OpenAI 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(polishAiType).value == "zhipuAi"
+          name: polishModelName
+          id: polishModelName
+          key: polishModelName
+          label: 润色模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: GLM-4.5-Flash
+              value: GLM-4.5-Flash
+            - label: GLM-4.5
+              value: GLM-4.5
+            - label: GLM-4.5-Air
+              value: GLM-4.5-Air
+          help: "为润色单独指定智谱模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(polishAiType).value == "dashScope"
+          name: polishModelName
+          id: polishModelName
+          key: polishModelName
+          label: 润色模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: qwen-max
+              value: qwen-max
+            - label: qwen-plus
+              value: qwen-plus
+            - label: qwen-turbo
+              value: qwen-turbo
+          help: "为润色单独指定通义千问模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(polishAiType).value == "codesphere"
+          name: polishModelName
+          id: polishModelName
+          key: polishModelName
+          label: 润色模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: glm-4-flash
+              value: glm-4-flash
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: claude-3-5-sonnet
+              value: claude-3-5-sonnet
+          help: "为润色单独指定 Codesphere 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(polishAiType).value == "siliconFlow"
+          name: polishModelName
+          id: polishModelName
+          key: polishModelName
+          label: 润色模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: Qwen/QwQ-32B
+              value: Qwen/QwQ-32B
+            - label: deepseek-ai/DeepSeek-V2.5
+              value: deepseek-ai/DeepSeek-V2.5
+            - label: deepseek-ai/DeepSeek-V2
+              value: deepseek-ai/DeepSeek-V2
+            - label: deepseek-ai/DeepSeek-Coder-V2
+              value: deepseek-ai/DeepSeek-Coder-V2
+          help: "为润色单独指定硅基流动模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(polishAiType).value == "miniMax"
+          name: polishModelName
+          id: polishModelName
+          key: polishModelName
+          label: 润色模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: MiniMax-M2.7
+              value: MiniMax-M2.7
+            - label: MiniMax-M2.7-highspeed
+              value: MiniMax-M2.7-highspeed
+            - label: MiniMax-M2.5
+              value: MiniMax-M2.5
+            - label: MiniMax-M2.5-highspeed
+              value: MiniMax-M2.5-highspeed
+            - label: MiniMax-M2.1
+              value: MiniMax-M2.1
+            - label: MiniMax-M2.1-highspeed
+              value: MiniMax-M2.1-highspeed
+            - label: MiniMax-M2
+              value: MiniMax-M2
+          help: "为润色单独指定 MiniMax 模型，留空则使用 AI 设置中的默认模型"
         - $formkit: textarea
           name: polishSystemPrompt
           label: 润色角色设定
@@ -831,6 +1296,8 @@ spec:
       formSchema:
         - $formkit: select
           name: generateAiType
+          id: generateAiType
+          key: generateAiType
           label: 生成AI类型选择
           placeholder: "选择用于文章生成的AI提供商"
           options:
@@ -850,6 +1317,122 @@ spec:
               value: "miniMax"
           help: "选择专门用于文章生成的AI提供商，留空则使用主配置"
           value: ""
+        - $formkit: select
+          if: $get(generateAiType).value == "openAi"
+          name: generateModelName
+          id: generateModelName
+          key: generateModelName
+          label: 生成模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: gpt-4-turbo
+              value: gpt-4-turbo
+            - label: gpt-3.5-turbo
+              value: gpt-3.5-turbo
+          help: "为文章生成单独指定 OpenAI 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(generateAiType).value == "zhipuAi"
+          name: generateModelName
+          id: generateModelName
+          key: generateModelName
+          label: 生成模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: GLM-4.5-Flash
+              value: GLM-4.5-Flash
+            - label: GLM-4.5
+              value: GLM-4.5
+            - label: GLM-4.5-Air
+              value: GLM-4.5-Air
+          help: "为文章生成单独指定智谱模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(generateAiType).value == "dashScope"
+          name: generateModelName
+          id: generateModelName
+          key: generateModelName
+          label: 生成模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: qwen-max
+              value: qwen-max
+            - label: qwen-plus
+              value: qwen-plus
+            - label: qwen-turbo
+              value: qwen-turbo
+          help: "为文章生成单独指定通义千问模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(generateAiType).value == "codesphere"
+          name: generateModelName
+          id: generateModelName
+          key: generateModelName
+          label: 生成模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: glm-4-flash
+              value: glm-4-flash
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: claude-3-5-sonnet
+              value: claude-3-5-sonnet
+          help: "为文章生成单独指定 Codesphere 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(generateAiType).value == "siliconFlow"
+          name: generateModelName
+          id: generateModelName
+          key: generateModelName
+          label: 生成模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: Qwen/QwQ-32B
+              value: Qwen/QwQ-32B
+            - label: deepseek-ai/DeepSeek-V2.5
+              value: deepseek-ai/DeepSeek-V2.5
+            - label: deepseek-ai/DeepSeek-V2
+              value: deepseek-ai/DeepSeek-V2
+            - label: deepseek-ai/DeepSeek-Coder-V2
+              value: deepseek-ai/DeepSeek-Coder-V2
+          help: "为文章生成单独指定硅基流动模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(generateAiType).value == "miniMax"
+          name: generateModelName
+          id: generateModelName
+          key: generateModelName
+          label: 生成模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: MiniMax-M2.7
+              value: MiniMax-M2.7
+            - label: MiniMax-M2.7-highspeed
+              value: MiniMax-M2.7-highspeed
+            - label: MiniMax-M2.5
+              value: MiniMax-M2.5
+            - label: MiniMax-M2.5-highspeed
+              value: MiniMax-M2.5-highspeed
+            - label: MiniMax-M2.1
+              value: MiniMax-M2.1
+            - label: MiniMax-M2.1-highspeed
+              value: MiniMax-M2.1-highspeed
+            - label: MiniMax-M2
+              value: MiniMax-M2
+          help: "为文章生成单独指定 MiniMax 模型，留空则使用 AI 设置中的默认模型"
         - $formkit: textarea
           name: generateSystemPrompt
           label: 文章生成角色设定
@@ -861,6 +1444,8 @@ spec:
       formSchema:
         - $formkit: select
           name: titleAiType
+          id: titleAiType
+          key: titleAiType
           label: 标题生成AI类型选择
           placeholder: "选择用于标题生成的AI提供商"
           options:
@@ -880,6 +1465,122 @@ spec:
               value: "miniMax"
           help: "选择专门用于标题生成的AI提供商，留空则使用主配置"
           value: ""
+        - $formkit: select
+          if: $get(titleAiType).value == "openAi"
+          name: titleModelName
+          id: titleModelName
+          key: titleModelName
+          label: 标题模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: gpt-4-turbo
+              value: gpt-4-turbo
+            - label: gpt-3.5-turbo
+              value: gpt-3.5-turbo
+          help: "为标题生成单独指定 OpenAI 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(titleAiType).value == "zhipuAi"
+          name: titleModelName
+          id: titleModelName
+          key: titleModelName
+          label: 标题模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: GLM-4.5-Flash
+              value: GLM-4.5-Flash
+            - label: GLM-4.5
+              value: GLM-4.5
+            - label: GLM-4.5-Air
+              value: GLM-4.5-Air
+          help: "为标题生成单独指定智谱模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(titleAiType).value == "dashScope"
+          name: titleModelName
+          id: titleModelName
+          key: titleModelName
+          label: 标题模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: qwen-max
+              value: qwen-max
+            - label: qwen-plus
+              value: qwen-plus
+            - label: qwen-turbo
+              value: qwen-turbo
+          help: "为标题生成单独指定通义千问模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(titleAiType).value == "codesphere"
+          name: titleModelName
+          id: titleModelName
+          key: titleModelName
+          label: 标题模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: glm-4-flash
+              value: glm-4-flash
+            - label: gpt-4o
+              value: gpt-4o
+            - label: gpt-4o-mini
+              value: gpt-4o-mini
+            - label: claude-3-5-sonnet
+              value: claude-3-5-sonnet
+          help: "为标题生成单独指定 Codesphere 模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(titleAiType).value == "siliconFlow"
+          name: titleModelName
+          id: titleModelName
+          key: titleModelName
+          label: 标题模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: Qwen/QwQ-32B
+              value: Qwen/QwQ-32B
+            - label: deepseek-ai/DeepSeek-V2.5
+              value: deepseek-ai/DeepSeek-V2.5
+            - label: deepseek-ai/DeepSeek-V2
+              value: deepseek-ai/DeepSeek-V2
+            - label: deepseek-ai/DeepSeek-Coder-V2
+              value: deepseek-ai/DeepSeek-Coder-V2
+          help: "为标题生成单独指定硅基流动模型，留空则使用 AI 设置中的默认模型"
+        - $formkit: select
+          if: $get(titleAiType).value == "miniMax"
+          name: titleModelName
+          id: titleModelName
+          key: titleModelName
+          label: 标题模型选择
+          searchable: true
+          allowCreate: true
+          placeholder: "留空则使用全局默认模型"
+          options:
+            - label: MiniMax-M2.7
+              value: MiniMax-M2.7
+            - label: MiniMax-M2.7-highspeed
+              value: MiniMax-M2.7-highspeed
+            - label: MiniMax-M2.5
+              value: MiniMax-M2.5
+            - label: MiniMax-M2.5-highspeed
+              value: MiniMax-M2.5-highspeed
+            - label: MiniMax-M2.1
+              value: MiniMax-M2.1
+            - label: MiniMax-M2.1-highspeed
+              value: MiniMax-M2.1-highspeed
+            - label: MiniMax-M2
+              value: MiniMax-M2
+          help: "为标题生成单独指定 MiniMax 模型，留空则使用 AI 设置中的默认模型"
         - $formkit: textarea
           name: titleSystemPrompt
           label: 标题生成角色设定

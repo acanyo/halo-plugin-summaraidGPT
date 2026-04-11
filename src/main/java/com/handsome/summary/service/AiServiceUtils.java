@@ -238,6 +238,20 @@ public class AiServiceUtils {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(trimmed);
+
+            // 尝试 Anthropic/MiniMax content 数组格式
+            JsonNode anthropicContent = root.path("content");
+            if (anthropicContent.isArray() && !anthropicContent.isEmpty()) {
+                StringBuilder anthropicText = new StringBuilder();
+                for (JsonNode block : anthropicContent) {
+                    if ("text".equals(block.path("type").asText())) {
+                        anthropicText.append(block.path("text").asText());
+                    }
+                }
+                if (!anthropicText.isEmpty()) {
+                    return anthropicText.toString();
+                }
+            }
             
             // 尝试OpenAI格式：choices[0].message.content
             JsonNode choices = root.path("choices");
@@ -276,7 +290,7 @@ public class AiServiceUtils {
             
             // 尝试直接的content字段
             JsonNode directContent = root.path("content");
-            if (!directContent.isMissingNode()) {
+            if (!directContent.isMissingNode() && directContent.isTextual()) {
                 return directContent.asText();
             }
             
@@ -368,6 +382,30 @@ public class AiServiceUtils {
                         onData.accept(content);
                     }
                 }
+                return;
+            }
+
+            // Anthropic/MiniMax SSE 格式
+            String type = jsonNode.path("type").asText();
+            if ("content_block_delta".equals(type)) {
+                JsonNode delta = jsonNode.path("delta");
+                if ("text_delta".equals(delta.path("type").asText())) {
+                    String content = delta.path("text").asText();
+                    if (!content.isEmpty()) {
+                        onData.accept(content);
+                    }
+                }
+                return;
+            }
+
+            if ("content_block_start".equals(type)) {
+                JsonNode contentBlock = jsonNode.path("content_block");
+                if ("text".equals(contentBlock.path("type").asText())) {
+                    String content = contentBlock.path("text").asText();
+                    if (!content.isEmpty()) {
+                        onData.accept(content);
+                    }
+                }
             }
         } catch (Exception e) {
             log.debug("解析流式响应失败: {}", e.getMessage());
@@ -414,6 +452,137 @@ public class AiServiceUtils {
                 }
             }
         }
+    }
+
+    /**
+     * 解析对话历史并构建 Anthropic/MiniMax 格式的消息数组。
+     * system prompt 由调用方放到顶层字段，不放在 messages 中。
+     */
+    public static ArrayNode parseConversationHistoryForAnthropic(String conversationHistory,
+        ObjectMapper mapper) {
+        ArrayNode messagesArray = mapper.createArrayNode();
+
+        try {
+            JsonNode rootNode = mapper.readTree(conversationHistory);
+            if (rootNode.isArray()) {
+                for (JsonNode message : rootNode) {
+                    if (!message.has("role") || !message.has("content")) {
+                        continue;
+                    }
+
+                    String role = message.get("role").asText();
+                    if (!"user".equals(role) && !"assistant".equals(role)) {
+                        continue;
+                    }
+
+                    addAnthropicMessageSafely(messagesArray, role,
+                        extractMessageContentText(message.get("content")));
+                }
+            } else {
+                addAnthropicMessageSafely(messagesArray, "user", conversationHistory);
+            }
+        } catch (Exception e) {
+            log.debug("Anthropic 对话历史解析失败，当作纯文本处理: {}", e.getMessage());
+            addAnthropicMessageSafely(messagesArray, "user", conversationHistory);
+        }
+
+        return messagesArray;
+    }
+
+    public static void addAnthropicMessageSafely(ArrayNode messagesArray, String role,
+        String content) {
+        if ((!"user".equals(role) && !"assistant".equals(role)) || content == null
+            || content.trim().isEmpty()) {
+            return;
+        }
+
+        ObjectNode message = messagesArray.addObject();
+        message.put("role", role);
+        ArrayNode contentArray = message.putArray("content");
+        ObjectNode textBlock = contentArray.addObject();
+        textBlock.put("type", "text");
+        textBlock.put("text", content.trim());
+    }
+
+    /**
+     * 将功能级 AI 配置转换为 BasicConfig，避免各业务类重复维护 provider 分支。
+     */
+    public static SettingConfigGetter.BasicConfig toBasicConfig(
+        SettingConfigGetter.AiConfigResult aiConfig) {
+        SettingConfigGetter.BasicConfig basicConfig = new SettingConfigGetter.BasicConfig();
+        basicConfig.setGlobalAiType(aiConfig.getAiType());
+
+        SettingConfigGetter.AiModelConfig aiModelConfig = new SettingConfigGetter.AiModelConfig();
+
+        switch (aiConfig.getAiType()) {
+            case "openAi" -> {
+                SettingConfigGetter.OpenAiConfig openAiConfig = new SettingConfigGetter.OpenAiConfig();
+                openAiConfig.setApiKey(aiConfig.getApiKey());
+                openAiConfig.setModelName(aiConfig.getModelName());
+                openAiConfig.setBaseUrl(aiConfig.getBaseUrl());
+                aiModelConfig.setOpenAiConfig(openAiConfig);
+            }
+            case "zhipuAi" -> {
+                SettingConfigGetter.ZhipuAiConfig zhipuAiConfig = new SettingConfigGetter.ZhipuAiConfig();
+                zhipuAiConfig.setApiKey(aiConfig.getApiKey());
+                zhipuAiConfig.setModelName(aiConfig.getModelName());
+                aiModelConfig.setZhipuAiConfig(zhipuAiConfig);
+            }
+            case "dashScope" -> {
+                SettingConfigGetter.DashScopeConfig dashScopeConfig = new SettingConfigGetter.DashScopeConfig();
+                dashScopeConfig.setApiKey(aiConfig.getApiKey());
+                dashScopeConfig.setModelName(aiConfig.getModelName());
+                aiModelConfig.setDashScopeConfig(dashScopeConfig);
+            }
+            case "codesphere" -> {
+                SettingConfigGetter.CodesphereConfig codesphereConfig = new SettingConfigGetter.CodesphereConfig();
+                codesphereConfig.setApiKey(aiConfig.getApiKey());
+                codesphereConfig.setModelName(aiConfig.getModelName());
+                aiModelConfig.setCodesphereConfig(codesphereConfig);
+            }
+            case "siliconFlow" -> {
+                SettingConfigGetter.SiliconFlowConfig siliconFlowConfig = new SettingConfigGetter.SiliconFlowConfig();
+                siliconFlowConfig.setApiKey(aiConfig.getApiKey());
+                siliconFlowConfig.setModelName(aiConfig.getModelName());
+                siliconFlowConfig.setBaseUrl(aiConfig.getBaseUrl());
+                aiModelConfig.setSiliconFlowConfig(siliconFlowConfig);
+            }
+            case "miniMax" -> {
+                SettingConfigGetter.MiniMaxConfig miniMaxConfig = new SettingConfigGetter.MiniMaxConfig();
+                miniMaxConfig.setApiKey(aiConfig.getApiKey());
+                miniMaxConfig.setModelName(aiConfig.getModelName());
+                miniMaxConfig.setBaseUrl(aiConfig.getBaseUrl());
+                aiModelConfig.setMiniMaxConfig(miniMaxConfig);
+            }
+            default -> {
+                // 保持空配置，交由具体 provider 校验。
+            }
+        }
+
+        basicConfig.setAiModelConfig(aiModelConfig);
+        return basicConfig;
+    }
+
+    private static String extractMessageContentText(JsonNode contentNode) {
+        if (contentNode == null || contentNode.isNull()) {
+            return "";
+        }
+
+        if (contentNode.isTextual()) {
+            return contentNode.asText();
+        }
+
+        if (contentNode.isArray()) {
+            StringBuilder builder = new StringBuilder();
+            for (JsonNode block : contentNode) {
+                if ("text".equals(block.path("type").asText())) {
+                    builder.append(block.path("text").asText());
+                }
+            }
+            return builder.toString();
+        }
+
+        return contentNode.asText();
     }
     
     /**

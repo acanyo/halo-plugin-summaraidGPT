@@ -111,49 +111,7 @@ public class ArticlePolishService {
      * 构建BasicConfig对象
      */
     private SettingConfigGetter.BasicConfig buildBasicConfig(SettingConfigGetter.AiConfigResult aiConfig) {
-        SettingConfigGetter.BasicConfig basicConfig = new SettingConfigGetter.BasicConfig();
-        basicConfig.setGlobalAiType(aiConfig.getAiType());
-        
-        // 构建AiModelConfig
-        SettingConfigGetter.AiModelConfig aiModelConfig = new SettingConfigGetter.AiModelConfig();
-        
-        switch (aiConfig.getAiType()) {
-            case "openAi" -> {
-                SettingConfigGetter.OpenAiConfig openAiConfig = new SettingConfigGetter.OpenAiConfig();
-                openAiConfig.setApiKey(aiConfig.getApiKey());
-                openAiConfig.setModelName(aiConfig.getModelName());
-                openAiConfig.setBaseUrl(aiConfig.getBaseUrl());
-                aiModelConfig.setOpenAiConfig(openAiConfig);
-            }
-            case "zhipuAi" -> {
-                SettingConfigGetter.ZhipuAiConfig zhipuAiConfig = new SettingConfigGetter.ZhipuAiConfig();
-                zhipuAiConfig.setApiKey(aiConfig.getApiKey());
-                zhipuAiConfig.setModelName(aiConfig.getModelName());
-                aiModelConfig.setZhipuAiConfig(zhipuAiConfig);
-            }
-            case "dashScope" -> {
-                SettingConfigGetter.DashScopeConfig dashScopeConfig = new SettingConfigGetter.DashScopeConfig();
-                dashScopeConfig.setApiKey(aiConfig.getApiKey());
-                dashScopeConfig.setModelName(aiConfig.getModelName());
-                aiModelConfig.setDashScopeConfig(dashScopeConfig);
-            }
-            case "codesphere" -> {
-                SettingConfigGetter.CodesphereConfig codesphereConfig = new SettingConfigGetter.CodesphereConfig();
-                codesphereConfig.setApiKey(aiConfig.getApiKey());
-                codesphereConfig.setModelName(aiConfig.getModelName());
-                aiModelConfig.setCodesphereConfig(codesphereConfig);
-            }
-            case "siliconFlow" -> {
-                SettingConfigGetter.SiliconFlowConfig siliconFlowConfig = new SettingConfigGetter.SiliconFlowConfig();
-                siliconFlowConfig.setApiKey(aiConfig.getApiKey());
-                siliconFlowConfig.setModelName(aiConfig.getModelName());
-                siliconFlowConfig.setBaseUrl(aiConfig.getBaseUrl());
-                aiModelConfig.setSiliconFlowConfig(siliconFlowConfig);
-            }
-        }
-        
-        basicConfig.setAiModelConfig(aiModelConfig);
-        return basicConfig;
+        return AiServiceUtils.toBasicConfig(aiConfig);
     }
     
     /**

@@ -1,77 +1,64 @@
 import { Extension } from '@tiptap/core'
 import type { Editor } from '@tiptap/core'
 import { markRaw } from 'vue'
-import ArticlePolishToolbarItem from '../components/ArticlePolishToolbarItem.vue'
+import { TEXT_BUBBLE_MENU_KEY } from '@halo-dev/richtext-editor'
+import EditorAiBubblePanel from '../components/EditorAiBubblePanel.vue'
+import IconSparkles from '~icons/lucide/sparkles'
+import { setEditorAiBubbleSelection } from './editor-ai-bubble-state'
 
-export interface ArticlePolishOptions {
-  getToolbarItems?: ({
-    editor,
-  }: {
-    editor: Editor;
-  }) => ToolbarItem[];
-  maxLength?: number;
-}
-
-export interface ToolbarItem {
+export interface BubbleItem {
   priority: number;
-  component: any;
-  props: Record<string, any>;
+  key?: string;
+  props: {
+    isActive: ({ editor }: { editor: Editor }) => boolean;
+    visible?: ({ editor }: { editor: Editor }) => boolean;
+    icon?: any;
+    title?: string;
+    action?: ({ editor }: { editor: Editor }) => any;
+  };
 }
 
-declare module '@tiptap/core' {
-  interface Commands<ReturnType> {
-    articlePolish: {
-      openPolishDialog: () => ReturnType;
-      polishSelection: () => ReturnType;
-    }
-  }
+export interface NodeBubbleMenu {
+  pluginKey?: string;
+  extendsKey?: string | object;
+  shouldShow?: (props: {
+    editor: Editor;
+    from?: number;
+    to?: number;
+    state?: any;
+  }) => boolean;
+  component?: any;
+  tippyOptions?: Record<string, unknown>;
+  getRenderContainer?: () => HTMLElement | null;
+  defaultAnimation?: boolean;
+  items?: BubbleItem[];
 }
 
-/**
- * 文章润色TipTap扩展
- * 为编辑器添加AI润色功能的工具栏按钮
- */
-export default Extension.create<ArticlePolishOptions>({
+export default Extension.create({
   name: 'articlePolish',
 
   addOptions() {
     return {
-      maxLength: 2000,
-      getToolbarItems: ({ editor }) => {
-        const hasSelection = !editor.state.selection.empty;
-        const selectionLength = hasSelection 
-          ? editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, '\n').length 
-          : 0;
-        
-        return [
-          {
-            priority: 141, // 设置优先级，在标签查看器之前
-            component: markRaw(ArticlePolishToolbarItem),
-            props: {
-              editor,
-              isActive: false,
-              disabled: !hasSelection || selectionLength === 0,
-              maxLength: 2000,
+      getBubbleMenu: () => {
+        return {
+          extendsKey: TEXT_BUBBLE_MENU_KEY,
+          items: [
+            {
+              priority: 10,
+              key: 'summaraidgpt-ai-assistant',
+              props: {
+                isActive: () => false,
+                visible: () => true,
+                icon: markRaw(IconSparkles),
+                title: '智阅助手',
+                action: ({ editor }: { editor: Editor }) => {
+                  setEditorAiBubbleSelection(editor)
+                  return markRaw(EditorAiBubblePanel)
+                },
+              },
             },
-          },
-        ];
-      },
-    }
-  },
-
-  addKeyboardShortcuts() {
-    return {
-      // Ctrl+Shift+P 快捷键打开润色功能
-      'Mod-Shift-p': () => {
-        const { selection } = this.editor.state;
-        if (!selection.empty) {
-          // 直接触发工具栏按钮点击
-          const buttonElement = document.querySelector('.polish-toolbar-item button');
-          if (buttonElement) {
-            (buttonElement as HTMLButtonElement).click();
-          }
+          ],
         }
-        return true;
       },
     }
   },

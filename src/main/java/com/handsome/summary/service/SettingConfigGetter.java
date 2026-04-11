@@ -98,6 +98,7 @@ public interface SettingConfigGetter {
     class SummaryConfig {
         public static final String GROUP = "summary";
         private String summaryAiType;
+        private String summaryModelName;
         private String summarySystemPrompt;
         private Boolean enable;
         private Boolean enableUiInjection;  // 是否注入前端UI（CSS/JS/DOM）
@@ -134,6 +135,7 @@ public interface SettingConfigGetter {
     class TagsConfig {
         public static final String GROUP = "tags";
         private String tagAiType;
+        private String tagModelName;
         private String tagGenerationPrompt;
         private Integer tagGenerationCount;
     }
@@ -143,6 +145,7 @@ public interface SettingConfigGetter {
         public static final String GROUP = "assistant";
         private Boolean enableAssistant;
         private String assistantAiType;
+        private String assistantModelName;
         private String assistantIcon;
         private String conversationIcon;
         private String conversationSystemPrompt;
@@ -157,6 +160,7 @@ public interface SettingConfigGetter {
     class PolishConfig {
         public static final String GROUP = "polish";
         private String polishAiType;
+        private String polishModelName;
         private String polishSystemPrompt;
         private Integer polishMaxLength;
     }
@@ -165,6 +169,7 @@ public interface SettingConfigGetter {
     class GenerateConfig {
         public static final String GROUP = "generate";
         private String generateAiType;
+        private String generateModelName;
         private String generateSystemPrompt;
     }
     
@@ -172,6 +177,7 @@ public interface SettingConfigGetter {
     class TitleConfig {
         public static final String GROUP = "title";
         private String titleAiType;
+        private String titleModelName;
         private String titleSystemPrompt;
         private Integer titleDefaultCount;
     }

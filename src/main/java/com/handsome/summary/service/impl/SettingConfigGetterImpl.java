@@ -79,6 +79,9 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
             result.setSystemPrompt(functionInfo.systemPrompt());
             
             populateAiConfig(result, aiType, basicConfig.getAiModelConfig());
+            if (StringUtils.hasText(functionInfo.modelName())) {
+                result.setModelName(functionInfo.modelName());
+            }
             
             return result;
         });
@@ -90,18 +93,24 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     private Mono<FunctionSpecificAiInfo> getFunctionSpecificConfig(String functionType) {
         return switch (functionType.toLowerCase()) {
             case "summary" -> getSummaryConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getSummaryAiType(), config.getSummarySystemPrompt()));
+                new FunctionSpecificAiInfo(config.getSummaryAiType(), config.getSummarySystemPrompt(),
+                    config.getSummaryModelName()));
             case "tags" -> getTagsConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getTagAiType(), config.getTagGenerationPrompt()));
+                new FunctionSpecificAiInfo(config.getTagAiType(), config.getTagGenerationPrompt(),
+                    config.getTagModelName()));
             case "conversation", "assistant" -> getAssistantConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getAssistantAiType(), config.getConversationSystemPrompt()));
+                new FunctionSpecificAiInfo(config.getAssistantAiType(),
+                    config.getConversationSystemPrompt(), config.getAssistantModelName()));
             case "polish" -> getPolishConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getPolishAiType(), config.getPolishSystemPrompt()));
+                new FunctionSpecificAiInfo(config.getPolishAiType(), config.getPolishSystemPrompt(),
+                    config.getPolishModelName()));
             case "generate" -> getGenerateConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getGenerateAiType(), config.getGenerateSystemPrompt()));
+                new FunctionSpecificAiInfo(config.getGenerateAiType(), config.getGenerateSystemPrompt(),
+                    config.getGenerateModelName()));
             case "title" -> getTitleConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getTitleAiType(), config.getTitleSystemPrompt()));
-            default -> Mono.just(new FunctionSpecificAiInfo(null, null));
+                new FunctionSpecificAiInfo(config.getTitleAiType(), config.getTitleSystemPrompt(),
+                    config.getTitleModelName()));
+            default -> Mono.just(new FunctionSpecificAiInfo(null, null, null));
         };
     }
     
@@ -164,6 +173,14 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
                     result.setBaseUrl(siliconFlowConfig.getBaseUrl());
                 }
             }
+            case "miniMax" -> {
+                if (modelConfig.getMiniMaxConfig() != null) {
+                    var miniMaxConfig = modelConfig.getMiniMaxConfig();
+                    result.setApiKey(miniMaxConfig.getApiKey());
+                    result.setModelName(miniMaxConfig.getModelName());
+                    result.setBaseUrl(miniMaxConfig.getBaseUrl());
+                }
+            }
         }
     }
     
@@ -184,5 +201,5 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     /**
      * 功能特定的AI信息
      */
-    private record FunctionSpecificAiInfo(String aiType, String systemPrompt) {}
+    private record FunctionSpecificAiInfo(String aiType, String systemPrompt, String modelName) {}
 }

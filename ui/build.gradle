@@ -6,9 +6,9 @@ plugins {
 group 'cc.lik.pluginsummaraidgpt.ui'
 
 node {
-    version = '20.20.1'
-    pnpmVersion = '10.22.0'
     download = true
+    version = '22.20.0'
+    pnpmVersion = '10.32.1'
 }
 
 tasks.register('pnpmBuild', PnpmTask) {
