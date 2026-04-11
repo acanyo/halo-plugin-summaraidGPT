@@ -18,3 +18,4 @@ jobs:
       pnpm-version: 9
       java-version: 21
       ui-path: ui
+      skip-node-setup: true
