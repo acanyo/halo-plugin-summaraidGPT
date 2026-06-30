@@ -68,10 +68,8 @@ public class SummaryHeadProcessor implements TemplateHeadProcessor {
         }
         
         if (isAssistantEnabled) {
-            // 助手功能相关资源
-            scriptBuilder.append("<link rel=\"stylesheet\" href=\"/plugins/summaraidGPT/assets/static/article-ai-dialog.css?version=")
-                        .append(version).append("\" />\n");
-            scriptBuilder.append("<script src=\"/plugins/summaraidGPT/assets/static/article-ai-dialog.umd.cjs?version=")
+            // RAG 智能助手资源，样式已内置在 Lit 组件中
+            scriptBuilder.append("<script src=\"/plugins/summaraidGPT/assets/static/RagAssistant.js?version=")
                         .append(version).append("\"></script>\n");
         }
         

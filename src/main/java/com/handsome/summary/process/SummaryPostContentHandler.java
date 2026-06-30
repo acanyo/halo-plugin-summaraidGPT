@@ -23,32 +23,22 @@ public class SummaryPostContentHandler implements ReactivePostContentHandler {
 
     @Override
     public Mono<PostContentContext> handle(@NotNull PostContentContext contentContext) {
-        return Mono.zip(
-            settingConfigGetter.getSummaryConfig(),
-            settingConfigGetter.getAssistantConfig()
-        ).map(tuple -> {
-            SettingConfigGetter.SummaryConfig summaryConfig = tuple.getT1();
-            SettingConfigGetter.AssistantConfig assistantConfig = tuple.getT2();
-            
+        return settingConfigGetter.getSummaryConfig().map(summaryConfig -> {
             // 检查摘要功能是否启用
             boolean isSummaryEnabled = summaryConfig.getEnable() != null && summaryConfig.getEnable();
             // 检查是否注入摘要框UI
             boolean isSummaryUiEnabled = summaryConfig.getEnableUiInjection() == null || summaryConfig.getEnableUiInjection();
-            
-            // 检查助手功能是否启用
-            boolean isAssistantEnabled = assistantConfig.getEnableAssistant() != null && assistantConfig.getEnableAssistant();
-            
-            if (!isSummaryEnabled && !isAssistantEnabled) {
+
+            if (!isSummaryEnabled) {
                 return contentContext;
             }
-            
-            injectSummaryDOM(contentContext, isSummaryEnabled, isSummaryUiEnabled, isAssistantEnabled);
+
+            injectSummaryDOM(contentContext, isSummaryUiEnabled);
             return contentContext;
         }).onErrorResume(e -> Mono.just(contentContext));
     }
 
-    private void injectSummaryDOM(PostContentContext contentContext, 
-                                boolean isSummaryEnabled, boolean isSummaryUiEnabled, boolean isAssistantEnabled) {
+    private void injectSummaryDOM(PostContentContext contentContext, boolean isSummaryUiEnabled) {
         Properties properties = new Properties();
         Post post = contentContext.getPost();
         properties.setProperty("kind", Post.GVK.kind());
@@ -57,26 +47,18 @@ public class SummaryPostContentHandler implements ReactivePostContentHandler {
         
         StringBuilder domBuilder = new StringBuilder();
         
-        // 摘要功能启用时
-        if (isSummaryEnabled) {
-            if (isSummaryUiEnabled) {
-                String summaryDOM = PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(
-                    "<ai-summaraidGPT kind=\"${kind}\" group=\"${group}\" name=\"${name}\"></ai-summaraidGPT>\n",
-                    properties
-                );
-                domBuilder.append(summaryDOM);
-            } else {
-                String hiddenDataTag = PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(
-                    "<ai-summaraidGPT-data kind=\"${kind}\" group=\"${group}\" name=\"${name}\" style=\"display:none;\"></ai-summaraidGPT-data>\n",
-                    properties
-                );
-                domBuilder.append(hiddenDataTag);
-            }
-        }
-        
-        if (isAssistantEnabled) {
-            // 助手功能相关 DOM
-            domBuilder.append("<ai-dialog></ai-dialog>\n");
+        if (isSummaryUiEnabled) {
+            String summaryDOM = PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(
+                "<ai-summaraidGPT kind=\"${kind}\" group=\"${group}\" name=\"${name}\"></ai-summaraidGPT>\n",
+                properties
+            );
+            domBuilder.append(summaryDOM);
+        } else {
+            String hiddenDataTag = PROPERTY_PLACEHOLDER_HELPER.replacePlaceholders(
+                "<ai-summaraidGPT-data kind=\"${kind}\" group=\"${group}\" name=\"${name}\" style=\"display:none;\"></ai-summaraidGPT-data>\n",
+                properties
+            );
+            domBuilder.append(hiddenDataTag);
         }
         
         if (!domBuilder.isEmpty()) {
@@ -84,4 +66,3 @@ public class SummaryPostContentHandler implements ReactivePostContentHandler {
         }
     }
 }
-

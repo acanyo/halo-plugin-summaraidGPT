@@ -1,9 +1,7 @@
 package com.handsome.summary.service.impl;
 
+import com.handsome.summary.service.AiFoundationAiService;
 import com.handsome.summary.service.ArticleGenerateService;
-import com.handsome.summary.service.AiConfigService;
-import com.handsome.summary.service.AiService;
-import com.handsome.summary.service.AiServiceUtils;
 import com.handsome.summary.service.SettingConfigGetter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,39 +24,35 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class ArticleGenerateServiceImpl implements ArticleGenerateService {
     
-    private final AiConfigService aiConfigService;
+    private final AiFoundationAiService aiFoundationAiService;
+    private final SettingConfigGetter settingConfigGetter;
     
     @Override
     public Mono<GenerateResponse> generateArticle(GenerateRequest request) {
         log.info("开始生成文章，主题: {}, 类型: {}, 风格: {}", 
             request.topic(), request.type(), request.style());
         
-        return aiConfigService.getAiConfigForFunction("generate")
-            .flatMap(aiConfig -> aiConfigService.getAiServiceForFunction("generate")
-                .flatMap(aiService -> generateWithAi(request, aiService, aiConfig)))
+        return settingConfigGetter.getAiConfigForFunction("generate")
+            .flatMap(aiConfig -> generateWithAi(request, aiConfig))
             .onErrorResume(this::handleGenerateError);
     }
     
     
     
-    /**
+     /**
      * 使用AI生成文章内容
      */
-    private Mono<GenerateResponse> generateWithAi(GenerateRequest request, AiService aiService, 
+    private Mono<GenerateResponse> generateWithAi(GenerateRequest request,
                                                  SettingConfigGetter.AiConfigResult aiConfig) {
         String prompt = buildGeneratePrompt(request, aiConfig.getSystemPrompt());
         
-        return Mono.fromCallable(() -> {
-            SettingConfigGetter.BasicConfig basicConfig = createBasicConfig(aiConfig);
-            return aiService.chatCompletionRaw(prompt, basicConfig);
-        })
+        return Mono.fromCallable(() -> aiFoundationAiService.generateText(prompt, aiConfig))
             .<GenerateResponse>handle((response, sink) -> {
-                String content = AiServiceUtils.extractContentFromResponse(response);
-                if (AiServiceUtils.isErrorMessage(content)) {
-                    sink.error(new RuntimeException("AI生成失败: " + content));
+                if (!StringUtils.hasText(response)) {
+                    sink.error(new RuntimeException("AI生成失败: 返回内容为空"));
                     return;
                 }
-                sink.next(GenerateResponse.success(content, request.type()));
+                sink.next(GenerateResponse.success(response.trim(), request.type()));
             })
         .doOnSuccess(response -> log.info("文章生成成功，长度: {}", response.length()))
         .doOnError(error -> log.error("文章生成失败", error));
@@ -126,13 +120,6 @@ public class ArticleGenerateServiceImpl implements ArticleGenerateService {
             case "对话访谈" -> "问答形式，互动性强";
             default -> style; // 如果是自定义风格，直接返回
         };
-    }
-    
-    /**
-     * 创建基础配置
-     */
-    private SettingConfigGetter.BasicConfig createBasicConfig(SettingConfigGetter.AiConfigResult aiConfig) {
-        return AiServiceUtils.toBasicConfig(aiConfig);
     }
     
     /**

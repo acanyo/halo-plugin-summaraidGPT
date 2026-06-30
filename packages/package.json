@@ -14,7 +14,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --mode summary && vite build --mode rag",
     "preview": "vite preview"
   },
   "dependencies": {

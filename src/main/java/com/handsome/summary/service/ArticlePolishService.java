@@ -6,12 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * 文章润色服务
- * 提供基于AI的文章内容润色功能，支持多种AI服务提供商
+ * 提供基于 Halo AI Foundation 的文章内容润色功能。
  * 
  * @author Handsome
  * @since 3.1.1
@@ -21,12 +18,8 @@ import java.util.regex.Pattern;
 @Slf4j
 public class ArticlePolishService {
     
-    private final AiServiceFactory aiServiceFactory;
+    private final AiFoundationAiService aiFoundationAiService;
     private final SettingConfigGetter settingConfigGetter;
-    
-    // 预编译正则表达式，提高性能
-    private static final Pattern CONTENT_PATTERN = Pattern.compile("\"content\"\\s*:\\s*\"([^\"]+)\"");
-    private static final Pattern TEXT_PATTERN = Pattern.compile("\"text\"\\s*:\\s*\"([^\"]+)\"");
     
     // 默认系统提示词
     private static final String DEFAULT_SYSTEM_PROMPT = 
@@ -49,10 +42,7 @@ public class ArticlePolishService {
         // 使用统一的AI配置获取方式
         return settingConfigGetter.getAiConfigForFunction("polish")
             .doOnNext(aiConfig -> 
-                log.info("开始润色处理，AI类型: {}, API Key: {}, 模型: {}", 
-                    aiConfig.getAiType(),
-                    aiConfig.getApiKey() != null ? "已设置" : "未设置",
-                    aiConfig.getModelName()))
+                log.info("开始润色处理，AI Foundation 模型: {}", aiConfig.getModelName()))
             .flatMap(aiConfig -> validateAndPolish(content, aiConfig))
             .doOnNext(polishedContent -> 
                 log.info("文章润色完成，原文长度: {}, 润色后长度: {}",
@@ -64,10 +54,10 @@ public class ArticlePolishService {
      * 验证内容长度并进行润色
      */
     private Mono<String> validateAndPolish(String content, SettingConfigGetter.AiConfigResult aiConfig) {
-        // 从PolishConfig获取最大长度限制
-        return settingConfigGetter.getPolishConfig()
-            .flatMap(polishConfig -> {
-                Integer maxLength = polishConfig.getPolishMaxLength();
+        // 从生成配置获取最大长度限制
+        return settingConfigGetter.getGenerationConfig()
+            .flatMap(generationConfig -> {
+                Integer maxLength = generationConfig.getPolishMaxLength();
                 if (maxLength == null) {
                     maxLength = 2000; // 默认值
                 }
@@ -85,33 +75,14 @@ public class ArticlePolishService {
      * 执行润色操作
      */
     private Mono<String> performPolish(String content, SettingConfigGetter.AiConfigResult aiConfig) {
-        // 确定使用的AI类型
-        String aiType = aiConfig.getAiType();
-        if (!StringUtils.hasText(aiType)) {
-            return Mono.error(new IllegalArgumentException("未配置AI服务类型"));
-        }
-        
-        // 获取AI服务并进行润色
-        AiService aiService = aiServiceFactory.getService(aiType);
-        if (aiService == null) {
-            return Mono.error(new IllegalArgumentException("不支持的AI服务类型: " + aiType));
-        }
-        
         return Mono.fromCallable(() -> {
             String prompt = buildPolishPrompt(content, aiConfig);
-            String response = aiService.chatCompletionRaw(prompt, buildBasicConfig(aiConfig));
+            String response = aiFoundationAiService.generateText(prompt, aiConfig);
             return extractPolishedContent(response);
         })
-        .doOnSubscribe(subscription -> log.info("开始润色文章片段，AI服务: {}", aiType))
+        .doOnSubscribe(subscription -> log.info("开始润色文章片段，AI服务: AI Foundation"))
         .onErrorMap(Exception.class, ex -> 
             new RuntimeException("文章润色失败: " + ex.getMessage(), ex));
-    }
-    
-    /**
-     * 构建BasicConfig对象
-     */
-    private SettingConfigGetter.BasicConfig buildBasicConfig(SettingConfigGetter.AiConfigResult aiConfig) {
-        return AiServiceUtils.toBasicConfig(aiConfig);
     }
     
     /**
@@ -133,50 +104,7 @@ public class ArticlePolishService {
         if (!StringUtils.hasText(response)) {
             return "";
         }
-        
-        // 尝试从JSON中提取内容
-        String content = extractContentFromJsonString(response);
-        
-        if (StringUtils.hasText(content)) {
-            return content.trim();
-        }
-        
-        // 如果JSON解析失败，检查是否是纯文本响应
-        String trimmedResponse = response.trim();
-        if (!trimmedResponse.startsWith("{")) {
-            log.info("AI返回纯文本响应，直接使用");
-            return trimmedResponse;
-        }
-        return response;
-    }
-    
-    /**
-     * 从JSON字符串中提取内容
-     */
-    private String extractContentFromJsonString(String jsonString) {
-        // 尝试提取 "content" 字段
-        Matcher contentMatcher = CONTENT_PATTERN.matcher(jsonString);
-        if (contentMatcher.find()) {
-            return unescapeJsonString(contentMatcher.group(1));
-        }
-
-        // 尝试提取 "text" 字段
-        Matcher textMatcher = TEXT_PATTERN.matcher(jsonString);
-        if (textMatcher.find()) {
-            return unescapeJsonString(textMatcher.group(1));
-        }
-
-        return null;
-    }
-    
-    /**
-     * 处理JSON字符串中的转义字符
-     */
-    private String unescapeJsonString(String jsonString) {
-        return jsonString.replace("\\n", "\n")
-                        .replace("\\t", "\t")
-                        .replace("\\\"", "\"")
-                        .replace("\\\\", "\\");
+        return response.trim();
     }
     
     /**
@@ -201,11 +129,11 @@ public class ArticlePolishService {
         }
         
         if (lowerMessage.contains("unauthorized") || lowerMessage.contains("401")) {
-            return new RuntimeException("API密钥无效，请检查配置");
+            return new RuntimeException("AI 基座认证失败，请检查所选模型或模型提供方配置");
         }
         
         if (lowerMessage.contains("rate limit") || lowerMessage.contains("429")) {
-            return new RuntimeException("API调用频率超限，请稍后重试");
+            return new RuntimeException("AI 服务调用频率超限，请稍后重试");
         }
         
         if (lowerMessage.contains("connection") || lowerMessage.contains("连接")) {
@@ -213,7 +141,7 @@ public class ArticlePolishService {
         }
         
         if (lowerMessage.contains("forbidden") || lowerMessage.contains("403")) {
-            return new RuntimeException("API访问被拒绝，请检查权限配置");
+            return new RuntimeException("AI 基座访问被拒绝，请检查模型权限配置");
         }
         
         // 记录原始错误信息用于调试

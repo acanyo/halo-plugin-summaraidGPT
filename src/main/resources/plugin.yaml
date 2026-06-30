@@ -5,9 +5,11 @@ kind: Plugin
 metadata:
   # The name defines how the plugin is invoked, A unique name
   name: summaraidGPT
+  annotations:
+    "store.halo.run/recommended-apps": '["app-acslk9nu"]'
 spec:
   enabled: true
-  requires: ">=2.23.1"
+  requires: ">=2.25.0"
   author:
     name: Handsome
     website: https://lik.cc
@@ -19,6 +21,8 @@ spec:
   issues: https://www.lik.cc/subject/subject-brhugeis
   displayName: "智阅AI助手"
   description: "AI摘要|AI对话|AI创作|AI润色|AI标题|标签生成，一站式焕新内容生产力。"
+  pluginDependencies:
+    ai-foundation?: "*"
   license:
     - name: "GPL-3.0"
       url: "https://github.com/halo-dev/plugin-starter/blob/main/LICENSE"

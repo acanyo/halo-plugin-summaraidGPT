@@ -7,7 +7,7 @@ import run.halo.app.core.extension.content.Post;
 /**
  * 标签生成服务接口。
  * <p>
- * 基于文章内容与配置（{@link SettingConfigGetter.TagsConfig}）调用大模型生成推荐标签。
+ * 基于文章内容与生成配置（{@link SettingConfigGetter.GenerationConfig}）调用大模型生成推荐标签。
  * </p>
  */
 public interface TagService {
@@ -56,5 +56,4 @@ public interface TagService {
      */
     Mono<List<String>> generateAndEnsureTagsForPost(Post post);
 }
-
 

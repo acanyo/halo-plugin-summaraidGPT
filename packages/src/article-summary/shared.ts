@@ -54,7 +54,7 @@ export const DEFAULT_SUMMARY_CONFIG: SummaryWidgetConfig = {
   gptName: '智阅GPT',
   typeSpeed: 20,
   darkSelector: '',
-  uiStyle: 'classic',
+  uiStyle: 'simple',
   fixedTone: 'violet',
   fixedDensity: 'compact',
   themeName: 'custom',

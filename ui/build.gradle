@@ -11,6 +11,10 @@ node {
     pnpmVersion = '10.32.1'
 }
 
+tasks.withType(PnpmTask).configureEach {
+    environment.put('CI', 'true')
+}
+
 tasks.register('pnpmBuild', PnpmTask) {
     group = 'build'
     description = 'Build the UI project using pnpm'

@@ -54,7 +54,7 @@ function applyConfig(
   element.typeSpeed = config.typeSpeed ?? 20;
   element.typewriter = config.typewriter ?? true;
   element.darkSelector = config.darkSelector || '';
-  element.uiStyle = config.uiStyle || 'classic';
+  element.uiStyle = config.uiStyle || 'simple';
   element.fixedTone = config.fixedTone || 'violet';
   element.fixedDensity = config.fixedDensity || 'compact';
   element.themeName = config.themeName || 'custom';

@@ -3,6 +3,7 @@ package com.handsome.summary.endpoint;
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 import static org.springdoc.core.fn.builders.parameter.Builder.parameterBuilder;
 
+import com.handsome.summary.service.AiRequestSecurityService;
 import com.handsome.summary.service.ArticleSummaryService;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import java.util.Map;
@@ -15,6 +16,7 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.ServerWebInputException;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
@@ -38,6 +40,7 @@ import reactor.core.scheduler.Schedulers;
 @RequiredArgsConstructor
 public class ArticleSummaryEndpoint implements CustomEndpoint {
 
+    private final AiRequestSecurityService aiRequestSecurityService;
     private final ArticleSummaryService articleSummaryService;
     private final ReactiveExtensionClient extensionClient;
 
@@ -60,13 +63,13 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
         final var tag = "api.summary.summaraidgpt.lik.cc/v1alpha1/ArticleSummary";
 
         return SpringdocRouteBuilder.route()
-            .POST("/summaries", this::generateSummary,
+            .POST("summaries", this::generateSummary,
                 builder -> builder.operationId("GenerateSummary")
                     .tag(tag)
                     .description("根据文章对象生成AI摘要")
                     .response(responseBuilder().implementation(String.class))
             )
-            .GET("/findSummaries/{postName}", this::findSummary,
+            .GET("findSummaries/{postName}", this::findSummary,
                 builder -> builder.operationId("FindSummary")
                     .tag(tag)
                     .description("根据文章名称查询已生成的摘要")
@@ -75,19 +78,19 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
                     .response(responseBuilder().implementation(String.class))
             )
 
-            .POST("/updateContent", this::updateContent,
+            .POST("updateContent", this::updateContent,
                 builder -> builder.operationId("UpdateContent")
                     .tag(tag)
                     .description("根据文章名称更新文章内容")
                     .response(responseBuilder().implementation(String.class))
             )
-            .POST("/syncAll", this::syncAllSummaries,
+            .POST("syncAll", this::syncAllSummaries,
                 builder -> builder.operationId("SyncAllSummaries")
                     .tag(tag)
                     .description("异步触发全量摘要同步")
                     .response(responseBuilder().implementation(String.class))
             )
-            .GET("/syncProgress", this::getSyncProgress,
+            .GET("syncProgress", this::getSyncProgress,
                 builder -> builder.operationId("GetSyncProgress")
                     .tag(tag)
                     .description("查询全量摘要同步进度")
@@ -100,12 +103,16 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
      * 生成文章摘要
      */
     private Mono<ServerResponse> generateSummary(ServerRequest request) {
-        return request.bodyToMono(Post.class)
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(Post.class))
             .flatMap(articleSummaryService::getSummary)
             .flatMap(summary -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(summary))
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 log.error("生成摘要失败，错误: {}", e.getMessage(), e);
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)
@@ -183,14 +190,17 @@ public class ArticleSummaryEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> syncAllSummaries(ServerRequest request) {
-        // 立即启动后台任务，不等待完成
-        articleSummaryService.syncAllSummariesAsync()
-            .subscribeOn(Schedulers.boundedElastic())
-            .subscribe();
-        
-        // 立即返回响应
-        return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("已异步触发全量摘要同步");
+        return aiRequestSecurityService.secure(request)
+            .then(Mono.defer(() -> {
+                // 立即启动后台任务，不等待完成
+                articleSummaryService.syncAllSummariesAsync()
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .subscribe();
+
+                // 立即返回响应
+                return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue("已异步触发全量摘要同步");
+            }));
     }
 
     private Mono<ServerResponse> getSyncProgress(ServerRequest request) {

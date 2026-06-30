@@ -2,20 +2,25 @@ package com.handsome.summary.endpoint;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 
-import java.util.List;
-
-import com.handsome.summary.service.AiConfigService;
-import com.handsome.summary.service.AiServiceUtils;
+import com.handsome.summary.pet.extension.PetCompanion;
+import com.handsome.summary.pet.service.PetCompanionService;
+import com.handsome.summary.pet.support.DefaultPetCompanionAssets;
+import com.handsome.summary.service.AiFoundationAiService;
+import com.handsome.summary.service.AiRequestSecurityService;
 import com.handsome.summary.service.SettingConfigGetter;
 
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -31,19 +36,52 @@ import run.halo.app.extension.GroupVersion;
 @RequiredArgsConstructor
 public class ConversationEndpoint implements CustomEndpoint {
 
-    private final AiConfigService aiConfigService;
+    private static final String AI_FOUNDATION_SERVICE = "aiFoundation";
+    private static final String DEFAULT_ASSISTANT_NAME = "智阅助手";
+    private static final String DEFAULT_BUTTON_POSITION = "right";
+    private static final String DEFAULT_STYLE_PRESET = "default";
+    private static final String DEFAULT_PRIMARY_COLOR = "#2563eb";
+    private static final String DEFAULT_SECONDARY_COLOR = "#eaf3ff";
+    private static final String DEFAULT_SURFACE_COLOR = "#fbfdff";
+    private static final String DEFAULT_TEXT_COLOR = "#172033";
+    private static final String DEFAULT_BORDER_RADIUS = "soft";
+    private static final String DEFAULT_COLOR_MODE = "light";
+    private static final int DEFAULT_FLOATING_OFFSET = 24;
+    private static final int MAX_FLOATING_OFFSET = 800;
+
+    private final AiFoundationAiService aiFoundationAiService;
+    private final AiRequestSecurityService aiRequestSecurityService;
     private final SettingConfigGetter settingConfigGetter;
+    private final PetCompanionService petCompanionService;
 
     public record ConversationRequest(String conversationHistory) {}
     
     public record DialogConfig(
-        String assistantIcon,
-        String conversationIcon,
+        String assistantAvatar,
         String assistantName,
-        String inputPlaceholder,
-        String dialogType,
+        AssistantStyleConfig styleConfig,
         String buttonPosition,
-        List<String> suggestions
+        Integer horizontalOffset,
+        Integer verticalOffset,
+        List<String> petSpeechMessages,
+        PetConfig pet
+    ) {}
+
+    public record PetConfig(
+        Boolean enabled,
+        String displayName,
+        String petJsonUrl,
+        String spritesheetUrl
+    ) {}
+
+    public record AssistantStyleConfig(
+        String stylePreset,
+        String primaryColor,
+        String secondaryColor,
+        String surfaceColor,
+        String textColor,
+        String borderRadius,
+        String colorMode
     ) {}
     
     public record SummaryConfig(
@@ -60,17 +98,17 @@ public class ConversationEndpoint implements CustomEndpoint {
         Boolean typewriter
     ) {}
 
-    public record ApiResponse(boolean success, String message, String response, String aiType, Long timestamp) {
-        public static ApiResponse success(String message, String response, String aiType) {
-            return new ApiResponse(true, message, response, aiType, System.currentTimeMillis());
+    public record ApiResponse(boolean success, String message, String response, String aiService, Long timestamp) {
+        public static ApiResponse success(String message, String response, String aiService) {
+            return new ApiResponse(true, message, response, aiService, System.currentTimeMillis());
         }
 
         public static ApiResponse error(String message) {
             return new ApiResponse(false, message, "", "", System.currentTimeMillis());
         }
 
-        public static ApiResponse error(String message, String response, String aiType) {
-            return new ApiResponse(false, message, response, aiType, System.currentTimeMillis());
+        public static ApiResponse error(String message, String response, String aiService) {
+            return new ApiResponse(false, message, response, aiService, System.currentTimeMillis());
         }
     }
 
@@ -79,25 +117,25 @@ public class ConversationEndpoint implements CustomEndpoint {
         final var tag = "api.summary.summaraidgpt.lik.cc/v1alpha1/Conversation";
 
         return SpringdocRouteBuilder.route()
-            .POST("/conversation", this::multiTurnConversation,
+            .POST("conversation", this::multiTurnConversation,
                 builder -> builder.operationId("MultiTurnConversation")
                     .tag(tag)
                     .description("进行多轮对话，支持与AI进行连续对话")
                     .response(responseBuilder().implementation(ApiResponse.class))
             )
-            .POST("/conversationStream", this::multiTurnConversationStream,
+            .POST("conversationStream", this::multiTurnConversationStream,
                 builder -> builder.operationId("MultiTurnConversationStream")
                     .tag(tag)
                     .description("进行流式多轮对话，实时返回AI响应")
                     .response(responseBuilder().implementation(String.class))
             )
-            .GET("/dialogConfig", this::getDialogConfig,
+            .GET("dialogConfig", this::getDialogConfig,
                 builder -> builder.operationId("GetDialogConfig")
                     .tag(tag)
                     .description("获取对话框配置信息")
                     .response(responseBuilder().implementation(DialogConfig.class))
             )
-            .GET("/summaryConfig", this::getSummaryConfig,
+            .GET("summaryConfig", this::getSummaryConfig,
                 builder -> builder.operationId("GetSummaryConfig")
                     .tag(tag)
                     .description("获取摘要框配置信息")
@@ -110,8 +148,12 @@ public class ConversationEndpoint implements CustomEndpoint {
      * 多轮对话接口
      */
     private Mono<ServerResponse> multiTurnConversation(ServerRequest request) {
-        return request.bodyToMono(ConversationRequest.class)
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(ConversationRequest.class))
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 // 如果解析ConversationRequest失败，尝试作为纯字符串处理
                 log.debug("尝试解析为ConversationRequest失败，转为字符串处理: {}", e.getMessage());
                 return request.bodyToMono(String.class)
@@ -122,6 +164,9 @@ public class ConversationEndpoint implements CustomEndpoint {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(response))
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 log.error("多轮对话处理失败，错误: {}", e.getMessage(), e);
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)
@@ -136,33 +181,22 @@ public class ConversationEndpoint implements CustomEndpoint {
         log.info("收到多轮对话请求，对话历史长度={}", 
                 request.conversationHistory() != null ? request.conversationHistory().length() : 0);
 
-        return Mono.zip(
-                aiConfigService.getAiConfigForFunction("conversation"),
-                aiConfigService.getAiServiceForFunction("conversation")
-        ).map(tuple -> {
-            var aiConfig = tuple.getT1();
-            var aiService = tuple.getT2();
-            
+        return settingConfigGetter.getAiConfigForFunction("conversation")
+        .map(aiConfig -> {
             try {
                 // 验证对话历史
                 if (request.conversationHistory() == null || request.conversationHistory().trim().isEmpty()) {
                     return ApiResponse.error("对话历史不能为空");
                 }
 
-                log.debug("使用AI服务类型: {}", aiConfig.getAiType());
+                log.debug("使用AI服务: {}", AI_FOUNDATION_SERVICE);
 
                 // 调用AI服务进行多轮对话
-                var compatibleConfig = aiConfigService.createCompatibleBasicConfig(aiConfig);
                 String systemPrompt = aiConfig.getSystemPrompt();
-                String aiResponse = aiService.multiTurnChat(request.conversationHistory(), systemPrompt, compatibleConfig, null, null, null);
+                String aiResponse = aiFoundationAiService.chat(request.conversationHistory(), systemPrompt, aiConfig);
 
-                // 检查AI响应是否包含错误信息
-                if (AiServiceUtils.isErrorMessage(aiResponse)) {
-                    return ApiResponse.error(aiResponse, aiResponse, aiConfig.getAiType());
-                }
-
-                log.info("多轮对话成功完成: AI类型={}", aiConfig.getAiType());
-                return ApiResponse.success("多轮对话成功", aiResponse, aiConfig.getAiType());
+                log.info("多轮对话成功完成: AI服务={}", AI_FOUNDATION_SERVICE);
+                return ApiResponse.success("多轮对话成功", aiResponse, AI_FOUNDATION_SERVICE);
 
             } catch (Exception e) {
                 log.error("多轮对话处理异常", e);
@@ -175,8 +209,12 @@ public class ConversationEndpoint implements CustomEndpoint {
      * 流式多轮对话接口
      */
     private Mono<ServerResponse> multiTurnConversationStream(ServerRequest request) {
-        return request.bodyToMono(ConversationRequest.class)
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(ConversationRequest.class))
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 // 如果解析ConversationRequest失败，尝试作为纯字符串处理
                 log.debug("尝试解析为ConversationRequest失败，转为字符串处理: {}", e.getMessage());
                 return request.bodyToMono(String.class)
@@ -184,6 +222,9 @@ public class ConversationEndpoint implements CustomEndpoint {
             })
             .flatMap(this::processStreamConversation)
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 log.error("流式多轮对话处理失败，错误: {}", e.getMessage(), e);
                 return ServerResponse.ok()
                     .contentType(MediaType.TEXT_PLAIN)
@@ -198,13 +239,8 @@ public class ConversationEndpoint implements CustomEndpoint {
         log.info("收到流式多轮对话请求，对话历史长度={}", 
                 request.conversationHistory() != null ? request.conversationHistory().length() : 0);
 
-        return Mono.zip(
-                aiConfigService.getAiConfigForFunction("conversation"),
-                aiConfigService.getAiServiceForFunction("conversation")
-        ).flatMap(tuple -> {
-            var aiConfig = tuple.getT1();
-            var aiService = tuple.getT2();
-            
+        return settingConfigGetter.getAiConfigForFunction("conversation")
+        .flatMap(aiConfig -> {
             try {
                 // 验证对话历史
                 if (request.conversationHistory() == null || request.conversationHistory().trim().isEmpty()) {
@@ -213,7 +249,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                         .bodyValue("ERROR: 对话历史不能为空");
                 }
 
-                log.debug("使用AI服务类型进行流式对话: {}", aiConfig.getAiType());
+                log.debug("使用AI服务进行流式对话: {}", AI_FOUNDATION_SERVICE);
 
                 // 创建流式数据发射器
                 Sinks.Many<String> sink = Sinks.many().unicast().onBackpressureBuffer();
@@ -226,11 +262,10 @@ public class ConversationEndpoint implements CustomEndpoint {
                 // 在新线程中执行AI调用，避免阻塞响应式流
                 Thread.ofVirtual().start(() -> {
                     try {
-                        var compatibleConfig = aiConfigService.createCompatibleBasicConfig(aiConfig);
-                        aiService.multiTurnChat(
+                        aiFoundationAiService.streamChat(
                             request.conversationHistory(), 
                             systemPrompt, 
-                            compatibleConfig,
+                            aiConfig,
                             // onData: 每收到数据块时发送到流中
                             sink::tryEmitNext,
                             // onComplete: 完成时关闭流
@@ -248,7 +283,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                             }
                         });
 
-                        log.info("流式多轮对话开始: AI类型={}", aiConfig.getAiType());
+                        log.info("流式多轮对话开始: AI服务={}", AI_FOUNDATION_SERVICE);
                         
                         // 返回流式响应
                         return ServerResponse.ok()
@@ -271,15 +306,19 @@ public class ConversationEndpoint implements CustomEndpoint {
      */
     private Mono<ServerResponse> getDialogConfig(ServerRequest request) {
         return settingConfigGetter.getAssistantConfig()
-            .map(config -> new DialogConfig(
-                config.getAssistantIcon() != null ? config.getAssistantIcon() : "/plugins/summaraidGPT/assets/static/icon.svg",
-                config.getConversationIcon() != null ? config.getConversationIcon() : "/plugins/summaraidGPT/assets/static/icon.svg",
-                config.getAssistantName() != null ? config.getAssistantName() : "智阅GPT助手",
-                config.getInputPlaceholder() != null ? config.getInputPlaceholder() : "请输入您想了解的问题...",
-                config.getDialogType() != null ? config.getDialogType() : "overlay",
-                config.getButtonPosition() != null ? config.getButtonPosition() : "right",
-                config.getSuggestions() != null ? config.getSuggestions() : List.of("你是谁?", "如何设计网站封面?", "如何学习编程?", "讲讲AI的未来发展", "什么是人工智能")
-            ))
+            .flatMap(config -> petCompanionService.getActive()
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .map(activePet -> new DialogConfig(
+                    normalizeAvatarUrl(config.getAssistantAvatar()),
+                    normalizeAssistantName(config.getAssistantName()),
+                    normalizeStyleConfig(config.getStyleConfig()),
+                    normalizeButtonPosition(config.getButtonPosition()),
+                    normalizeFloatingOffset(config.getHorizontalOffset()),
+                    normalizeFloatingOffset(config.getVerticalOffset()),
+                    normalizePetSpeechMessages(config.getPetSpeechMessages()),
+                    activePet.map(this::toPetConfig).orElseGet(this::defaultPetConfig)
+                )))
             .flatMap(dialogConfig -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(dialogConfig))
@@ -287,18 +326,176 @@ public class ConversationEndpoint implements CustomEndpoint {
                 log.error("获取对话框配置失败", e);
                 // 返回默认配置
                 DialogConfig defaultConfig = new DialogConfig(
-                    "/plugins/summaraidGPT/assets/static/icon.svg",
-                    "/plugins/summaraidGPT/assets/static/icon.svg",
-                    "智阅GPT助手",
-                    "请输入您想了解的问题...",
-                    "overlay",
-                    "right",
-                    List.of("你是谁?", "如何设计网站封面?", "如何学习编程?", "讲讲AI的未来发展", "什么是人工智能")
+                    SettingConfigGetter.AssistantConfig.DEFAULT_ASSISTANT_AVATAR,
+                    DEFAULT_ASSISTANT_NAME,
+                    defaultStyleConfig(),
+                    DEFAULT_BUTTON_POSITION,
+                    DEFAULT_FLOATING_OFFSET,
+                    DEFAULT_FLOATING_OFFSET,
+                    normalizePetSpeechMessages(new SettingConfigGetter.AssistantConfig()
+                        .getPetSpeechMessages()),
+                    defaultPetConfig()
                 );
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(defaultConfig);
             });
+    }
+
+    private PetConfig toPetConfig(PetCompanion pet) {
+        var spec = pet.getSpec();
+        if (spec == null) {
+            return null;
+        }
+        return new PetConfig(
+            spec.getEnabled(),
+            normalizeAssistantName(spec.getDisplayName()),
+            spec.getPetJsonUrl(),
+            spec.getSpritesheetUrl()
+        );
+    }
+
+    private PetConfig defaultPetConfig() {
+        return new PetConfig(
+            true,
+            DefaultPetCompanionAssets.DISPLAY_NAME,
+            DefaultPetCompanionAssets.PET_JSON_URL,
+            DefaultPetCompanionAssets.SPRITESHEET_URL
+        );
+    }
+
+    private List<String> normalizePetSpeechMessages(List<String> messages) {
+        var normalized = messages == null ? List.<String>of() : messages.stream()
+            .filter(StringUtils::hasText)
+            .map(String::strip)
+            .distinct()
+            .limit(12)
+            .toList();
+        if (!normalized.isEmpty()) {
+            return normalized;
+        }
+        return new SettingConfigGetter.AssistantConfig().getPetSpeechMessages();
+    }
+
+    private String normalizeAssistantName(String assistantName) {
+        return StringUtils.hasText(assistantName) ? assistantName.strip() : DEFAULT_ASSISTANT_NAME;
+    }
+
+    private String normalizeAvatarUrl(String avatarUrl) {
+        if (!StringUtils.hasText(avatarUrl)) {
+            return SettingConfigGetter.AssistantConfig.DEFAULT_ASSISTANT_AVATAR;
+        }
+        var value = avatarUrl.strip();
+        return value.regionMatches(true, 0, "javascript:", 0, "javascript:".length())
+            ? null
+            : value;
+    }
+
+    private AssistantStyleConfig normalizeStyleConfig(
+        SettingConfigGetter.AssistantStyleConfig styleConfig) {
+        if (styleConfig == null) {
+            return defaultStyleConfig();
+        }
+        var stylePreset = normalizeStylePreset(styleConfig.getStylePreset());
+        var palette = paletteFor(stylePreset);
+        var custom = "custom".equals(stylePreset);
+        return new AssistantStyleConfig(
+            stylePreset,
+            normalizeColor(custom ? styleConfig.getPrimaryColor() : palette.primaryColor(),
+                DEFAULT_PRIMARY_COLOR),
+            normalizeColor(custom ? styleConfig.getSecondaryColor() : palette.secondaryColor(),
+                DEFAULT_SECONDARY_COLOR),
+            normalizeColor(custom ? styleConfig.getSurfaceColor() : palette.surfaceColor(),
+                DEFAULT_SURFACE_COLOR),
+            normalizeColor(custom ? styleConfig.getTextColor() : palette.textColor(),
+                DEFAULT_TEXT_COLOR),
+            normalizeBorderRadius(styleConfig.getBorderRadius()),
+            normalizeColorMode(styleConfig.getColorMode())
+        );
+    }
+
+    private AssistantStyleConfig defaultStyleConfig() {
+        return new AssistantStyleConfig(
+            DEFAULT_STYLE_PRESET,
+            DEFAULT_PRIMARY_COLOR,
+            DEFAULT_SECONDARY_COLOR,
+            DEFAULT_SURFACE_COLOR,
+            DEFAULT_TEXT_COLOR,
+            DEFAULT_BORDER_RADIUS,
+            DEFAULT_COLOR_MODE
+        );
+    }
+
+    private String normalizeStylePreset(String stylePreset) {
+        if (!StringUtils.hasText(stylePreset)) {
+            return DEFAULT_STYLE_PRESET;
+        }
+        return switch (stylePreset.strip()) {
+            case "graphite", "ocean", "forest", "rose", "custom" -> stylePreset.strip();
+            default -> DEFAULT_STYLE_PRESET;
+        };
+    }
+
+    private AssistantStylePalette paletteFor(String stylePreset) {
+        return switch (stylePreset) {
+            case "graphite" -> new AssistantStylePalette("#d6b46c", "#2a2a28", "#171717",
+                "#f7f2e8");
+            case "ocean" -> new AssistantStylePalette("#1f7a8c", "#d9f0f3", "#fbfeff",
+                "#142326");
+            case "forest" -> new AssistantStylePalette("#2f7d50", "#dceedd", "#fbfdf8",
+                "#18251b");
+            case "rose" -> new AssistantStylePalette("#b85c7a", "#f8dfe8", "#fffafc",
+                "#2b1720");
+            default -> new AssistantStylePalette(DEFAULT_PRIMARY_COLOR, DEFAULT_SECONDARY_COLOR,
+                DEFAULT_SURFACE_COLOR, DEFAULT_TEXT_COLOR);
+        };
+    }
+
+    private record AssistantStylePalette(
+        String primaryColor,
+        String secondaryColor,
+        String surfaceColor,
+        String textColor
+    ) {}
+
+    private String normalizeColor(String color, String fallback) {
+        if (!StringUtils.hasText(color)) {
+            return fallback;
+        }
+        var value = color.strip();
+        return value.matches("^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$") ? value : fallback;
+    }
+
+    private String normalizeBorderRadius(String borderRadius) {
+        if (!StringUtils.hasText(borderRadius)) {
+            return DEFAULT_BORDER_RADIUS;
+        }
+        return switch (borderRadius.strip()) {
+            case "standard", "round" -> borderRadius.strip();
+            default -> DEFAULT_BORDER_RADIUS;
+        };
+    }
+
+    private String normalizeColorMode(String colorMode) {
+        if (!StringUtils.hasText(colorMode)) {
+            return DEFAULT_COLOR_MODE;
+        }
+        return switch (colorMode.strip()) {
+            case "auto", "light", "dark" -> colorMode.strip();
+            default -> DEFAULT_COLOR_MODE;
+        };
+    }
+
+    private String normalizeButtonPosition(String buttonPosition) {
+        return StringUtils.hasText(buttonPosition) && "left".equals(buttonPosition.strip())
+            ? "left" : DEFAULT_BUTTON_POSITION;
+    }
+
+    private Integer normalizeFloatingOffset(Integer offset) {
+        if (offset == null) {
+            return DEFAULT_FLOATING_OFFSET;
+        }
+        return Math.min(Math.max(offset, 0), MAX_FLOATING_OFFSET);
     }
 
     /**
@@ -338,11 +535,11 @@ public class ConversationEndpoint implements CustomEndpoint {
                 "智阅GPT",
                 20,
                 "",
-                "classic",
+                "simple",
                 "violet",
                 "compact",
                 "custom",
-                "{\"bg\":\"#f7f9fe\",\"main\":\"#4F8DFD\",\"contentFontSize\":\"16px\",\"title\":\"#3A5A8C\",\"content\":\"#222\",\"gptName\":\"#7B88A8\",\"contentBg\":\"#fff\",\"border\":\"#e3e8f7\",\"shadow\":\"0 2px 12px 0 rgba(60,80,180,0.08)\",\"tagBg\":\"#f0f4ff\",\"cursor\":\"#4F8DFD\"}",
+                "{\"bg\":\"#f7f9fe\",\"main\":\"#4F8DFD\",\"contentFontSize\":\"16px\",\"title\":\"#3A5A8C\",\"content\":\"#222\",\"gptName\":\"#7B88A8\",\"contentBg\":\"#fff\",\"border\":\"#e3e8f7\",\"shadow\":\"0 2px 12px 0 rgba(60,80,180,0.08)\",\"tagBg\":\"#f0f4ff\",\"tagColor\":\"#4F8DFD\",\"cursor\":\"#4F8DFD\"}",
                 true
             );
             return ServerResponse.ok()
@@ -355,7 +552,7 @@ public class ConversationEndpoint implements CustomEndpoint {
      * 构建主题字符串
      */
     private String buildThemeString(SettingConfigGetter.StyleConfig styleConfig) {
-        return String.format("{\"bg\":\"%s\",\"main\":\"%s\",\"contentFontSize\":\"%s\",\"title\":\"%s\",\"content\":\"%s\",\"gptName\":\"%s\",\"contentBg\":\"%s\",\"border\":\"%s\",\"shadow\":\"%s\",\"tagBg\":\"%s\",\"cursor\":\"%s\"}",
+        return String.format("{\"bg\":\"%s\",\"main\":\"%s\",\"contentFontSize\":\"%s\",\"title\":\"%s\",\"content\":\"%s\",\"gptName\":\"%s\",\"contentBg\":\"%s\",\"border\":\"%s\",\"shadow\":\"%s\",\"tagBg\":\"%s\",\"tagColor\":\"%s\",\"cursor\":\"%s\"}",
             styleConfig.getThemeBg() != null ? styleConfig.getThemeBg() : "#f7f9fe",
             styleConfig.getThemeMain() != null ? styleConfig.getThemeMain() : "#4F8DFD",
             styleConfig.getThemeContentFontSize() != null ? styleConfig.getThemeContentFontSize() : "16px",
@@ -366,6 +563,7 @@ public class ConversationEndpoint implements CustomEndpoint {
             styleConfig.getThemeBorder() != null ? styleConfig.getThemeBorder() : "#e3e8f7",
             styleConfig.getThemeShadow() != null ? styleConfig.getThemeShadow() : "0 2px 12px 0 rgba(60,80,180,0.08)",
             styleConfig.getThemeTagBg() != null ? styleConfig.getThemeTagBg() : "#f0f4ff",
+            styleConfig.getThemeTagColor() != null ? styleConfig.getThemeTagColor() : "#4F8DFD",
             styleConfig.getThemeCursor() != null ? styleConfig.getThemeCursor() : "#4F8DFD"
         );
     }
@@ -389,7 +587,7 @@ public class ConversationEndpoint implements CustomEndpoint {
         if ("spotlight".equals(styleConfig.getThemeName())) {
             return "simple";
         }
-        return "classic";
+        return "simple";
     }
 
     private String resolveFixedTone(SettingConfigGetter.StyleConfig styleConfig) {

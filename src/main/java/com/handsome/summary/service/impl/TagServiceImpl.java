@@ -1,8 +1,7 @@
 package com.handsome.summary.service.impl;
 
 
-import com.handsome.summary.service.AiConfigService;
-import com.handsome.summary.service.AiServiceUtils;
+import com.handsome.summary.service.AiFoundationAiService;
 import com.handsome.summary.service.SettingConfigGetter;
 import com.handsome.summary.service.TagService;
 import java.util.ArrayList;
@@ -34,7 +33,7 @@ import static run.halo.app.extension.index.query.Queries.in;
 @Slf4j
 public class TagServiceImpl implements TagService {
 
-    private final AiConfigService aiConfigService;
+    private final AiFoundationAiService aiFoundationAiService;
     private final PostContentService postContentService;
     private final ReactiveExtensionClient extensionClient;
     private final SettingConfigGetter settingConfigGetter;
@@ -60,18 +59,18 @@ public class TagServiceImpl implements TagService {
     @Override
     public Mono<TagGenerationResult> generateTagsWithSourceInfo(Post post) {
         return Mono.zip(
-                aiConfigService.getAiConfigForFunction("tags"),
-                aiConfigService.getAiServiceForFunction("tags"),
-                settingConfigGetter.getTagsConfig(),
+                settingConfigGetter.getAiConfigForFunction("tags"),
+                settingConfigGetter.getGenerationConfig(),
                 getAllExistingTagNames()
         ).flatMap(tuple -> {
             var aiConfig = tuple.getT1();
-            var aiService = tuple.getT2();
-            var tagsConfig = tuple.getT3();
-            var existingTagNames = tuple.getT4();
+            var generationConfig = tuple.getT2();
+            var existingTagNames = tuple.getT3();
 
-            // 从配置获取标签数量，默认为6
-            int limit = tagsConfig.getTagGenerationCount() != null ? tagsConfig.getTagGenerationCount() : 6;
+            // 从配置获取标签数量，默认为 5
+            int limit = generationConfig.getTagGenerationCount() != null
+                ? generationConfig.getTagGenerationCount()
+                : 5;
             log.info("标签生成数量配置: {}", limit);
             
             var ref = new Object() {
@@ -106,16 +105,13 @@ public class TagServiceImpl implements TagService {
                     promptBuilder.append("文章正文如下：\n").append(content);
                     
                     String prompt = promptBuilder.toString();
-                    log.info("开始调用AI生成标签，AI类型: {}, 提示词长度: {}, 已有标签数: {}", 
-                        aiConfig.getAiType(), prompt.length(), existingTagNames.size());
+                    log.info("开始调用 AI Foundation 生成标签，提示词长度: {}, 已有标签数: {}",
+                        prompt.length(), existingTagNames.size());
                     
-                    // 创建兼容的BasicConfig
-                    var compatibleConfig = aiConfigService.createCompatibleBasicConfig(aiConfig);
-                    String raw = aiService.chatCompletionRaw(prompt, compatibleConfig);
+                    String raw = aiFoundationAiService.generateText(prompt, aiConfig);
                     log.info("AI返回原始响应: {}", raw);
                     
-                    // 检查是否是错误信息
-                    if (AiServiceUtils.isErrorMessage(raw)) {
+                    if (raw == null || raw.isBlank()) {
                         return Mono.just(TagGenerationResult.empty());
                     }
                     
@@ -224,7 +220,7 @@ public class TagServiceImpl implements TagService {
         if (raw == null || raw.isBlank()) {
             return List.of();
         }
-        String content = AiServiceUtils.extractContentFromResponse(raw);
+        String content = raw;
         String[] parts = content.replace("\r", "\n").split("[\n,，]");
         Set<String> cleaned = new LinkedHashSet<>();
         for (String p : parts) {
@@ -243,7 +239,3 @@ public class TagServiceImpl implements TagService {
     }
 
 }
-
-
-
-

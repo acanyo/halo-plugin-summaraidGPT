@@ -8,5 +8,72 @@ metadata:
     rbac.authorization.halo.run/aggregate-to-anonymous: "true"
 rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
-    resources: ["updateContent","conversationStream","dialogConfig","summaryConfig"]
+    resources: ["updateContent","dialogConfig","summaryConfig"]
     verbs: ["update", "create", "get", "list"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragSearch","ragAsk","ragAskStream"]
+    verbs: ["create"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragConversations"]
+    verbs: ["get"]
+---
+apiVersion: v1alpha1
+kind: "Role"
+metadata:
+  name: role-template-view-summaraidGPT-rag
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "智阅AI助手"
+    rbac.authorization.halo.run/display-name: "查看 RAG 知识库"
+    rbac.authorization.halo.run/ui-permissions: |
+      ["plugin:summaraidGPT:rag:view","plugin:summaraidGPT:ai-call-logs:view","plugin:summaraidGPT:pets:view"]
+rules:
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragKnowledgeBases","ragDocuments"]
+    verbs: ["get", "list"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragStats","ragImportablePosts","ragIndexTasks"]
+    verbs: ["get", "list"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragConversations"]
+    verbs: ["get", "list"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["aiCallLogs"]
+    verbs: ["get", "list"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["petCompanions"]
+    verbs: ["get", "list"]
+---
+apiVersion: v1alpha1
+kind: "Role"
+metadata:
+  name: role-template-manage-summaraidGPT-rag
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/dependencies: |
+      ["role-template-view-summaraidGPT-rag"]
+    rbac.authorization.halo.run/module: "智阅AI助手"
+    rbac.authorization.halo.run/display-name: "管理 RAG 知识库"
+    rbac.authorization.halo.run/ui-permissions: |
+      ["plugin:summaraidGPT:rag:manage","plugin:summaraidGPT:ai-call-logs:manage","plugin:summaraidGPT:pets:manage"]
+rules:
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragKnowledgeBases","ragDocuments"]
+    verbs: ["get", "list", "create", "update", "delete"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragStats","ragImportablePosts","ragIndexTasks"]
+    verbs: ["get", "list"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragImportPosts","ragRebuild","ragRebuildNow","ragSearch","ragAsk","ragAskStream","ragDocumentsBatchDelete"]
+    verbs: ["create"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["ragConversations"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["aiCallLogs"]
+    verbs: ["delete"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["petCompanions"]
+    verbs: ["get", "list", "create", "update", "delete"]

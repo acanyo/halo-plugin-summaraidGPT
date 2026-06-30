@@ -2,6 +2,7 @@ package com.handsome.summary.endpoint;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 
+import com.handsome.summary.service.AiRequestSecurityService;
 import com.handsome.summary.service.ArticlePolishService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
@@ -26,6 +28,7 @@ import run.halo.app.extension.GroupVersion;
 @RequiredArgsConstructor
 public class ArticlePolishEndpoint implements CustomEndpoint {
     
+    private final AiRequestSecurityService aiRequestSecurityService;
     private final ArticlePolishService articlePolishService;
 
     public record PolishRequest(String content) {}
@@ -54,7 +57,7 @@ public class ArticlePolishEndpoint implements CustomEndpoint {
         final var tag = "api.summary.summaraidgpt.lik.cc/v1alpha1/ArticlePolish";
 
         return SpringdocRouteBuilder.route()
-            .POST("/polish", this::polishArticleSegment,
+            .POST("polish", this::polishArticleSegment,
                 builder -> builder.operationId("PolishArticleSegment")
                     .tag(tag)
                     .description("润色文章片段，使用AI服务对选中的文章片段进行润色，改善语言表达和流畅性")
@@ -67,7 +70,8 @@ public class ArticlePolishEndpoint implements CustomEndpoint {
      * 润色文章片段接口
      */
     private Mono<ServerResponse> polishArticleSegment(ServerRequest request) {
-        return request.bodyToMono(PolishRequest.class)
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(PolishRequest.class))
             .doOnNext(req -> log.info("收到润色请求体: {}", req))
             .flatMap(this::processPolishRequest)
             .flatMap(response -> {
@@ -77,6 +81,9 @@ public class ArticlePolishEndpoint implements CustomEndpoint {
                     .bodyValue(response);
             })
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 log.error("文章润色处理失败，错误: {}", e.getMessage(), e);
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)

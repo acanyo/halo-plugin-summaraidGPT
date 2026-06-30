@@ -11,6 +11,10 @@ node {
     download = true
 }
 
+tasks.withType(PnpmTask).configureEach {
+    environment.put('CI', 'true')
+}
+
 tasks.register('pnpmBuild', PnpmTask) {
     group = 'build'
     description = 'Build the packages project using pnpm'

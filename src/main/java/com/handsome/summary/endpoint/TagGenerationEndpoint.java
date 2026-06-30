@@ -2,6 +2,7 @@ package com.handsome.summary.endpoint;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 
+import com.handsome.summary.service.AiRequestSecurityService;
 import com.handsome.summary.service.TagService;
 import com.handsome.summary.service.TagService.TagInfo;
 import java.util.List;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
@@ -24,6 +26,7 @@ import run.halo.app.extension.ReactiveExtensionClient;
 @RequiredArgsConstructor
 public class TagGenerationEndpoint implements CustomEndpoint {
 
+    private final AiRequestSecurityService aiRequestSecurityService;
     private final TagService tagService;
     private final ReactiveExtensionClient extensionClient;
 
@@ -55,7 +58,7 @@ public class TagGenerationEndpoint implements CustomEndpoint {
     public RouterFunction<ServerResponse> endpoint() {
         final var tag = "api.summary.summaraidgpt.lik.cc/v1alpha1/TagGeneration";
         return SpringdocRouteBuilder.route()
-            .POST("/generateTags", this::generateTagsByBody,
+            .POST("generateTags", this::generateTagsByBody,
                 builder -> builder.operationId("GenerateTagsByBody")
                     .tag(tag)
                     .description("根据postName生成推荐标签")
@@ -67,7 +70,8 @@ public class TagGenerationEndpoint implements CustomEndpoint {
     private record TagRequest(String postName, boolean ensure) {}
 
     private Mono<ServerResponse> generateTagsByBody(ServerRequest request) {
-        return request.bodyToMono(TagRequest.class)
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(TagRequest.class))
             .flatMap(body -> {
                 String postName = body != null ? body.postName() : null;
                 if (postName == null || postName.trim().isEmpty()) {
@@ -96,6 +100,9 @@ public class TagGenerationEndpoint implements CustomEndpoint {
                     });
             })
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 log.info("请求处理失败: {}", e.getMessage(), e);
                 return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(TagResponse.error("请求处理失败: " + e.getMessage()));
@@ -107,5 +114,3 @@ public class TagGenerationEndpoint implements CustomEndpoint {
         return GroupVersion.parseAPIVersion("api.summary.summaraidgpt.lik.cc/v1alpha1");
     }
 }
-
-

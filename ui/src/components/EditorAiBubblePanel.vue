@@ -170,36 +170,7 @@ const extractAiResponse = (raw: string) => {
     return ''
   }
 
-  const trimmed = raw.trim()
-  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
-    return trimmed
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed)
-
-    if (Array.isArray(parsed?.content)) {
-      return parsed.content
-        .filter((item: any) => item?.type === 'text')
-        .map((item: any) => item?.text || '')
-        .join('')
-        .trim()
-    }
-
-    const openAiContent = parsed?.choices?.[0]?.message?.content
-    if (typeof openAiContent === 'string') {
-      return openAiContent.trim()
-    }
-
-    const zhipuContent = parsed?.data?.choices?.[0]?.content
-    if (typeof zhipuContent === 'string') {
-      return zhipuContent.trim()
-    }
-
-    return trimmed
-  } catch {
-    return trimmed
-  }
+  return raw.trim()
 }
 
 const streamConversation = async (prompt: string) => {

@@ -1,3 +1,7 @@
 packages:
   - 'ui'
   - 'packages/**'
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+  esbuild: true

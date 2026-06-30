@@ -614,9 +614,9 @@ const handleGenerate = async () => {
 }
 
 const generateContent = async (): Promise<GenerateResponse> => {
-  const baseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
+  const apiBaseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
 
-  return axios.post(`${baseUrl}/generate/article`, {
+  return axios.post(`${apiBaseUrl}/generate/article`, {
     topic: formData.value.topic,
     format: formData.value.format,
     style: formData.value.style,
@@ -661,9 +661,9 @@ const generateTitles = async () => {
 }
 
 const generateTitleContent = async (content: string): Promise<GenerateResponse> => {
-  const baseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
+  const apiBaseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
 
-  return axios.post(`${baseUrl}/generate/title`, {
+  return axios.post(`${apiBaseUrl}/generate/title`, {
     content,
     style: titleStyle.value,
     count: parseInt(titleCount.value, 10)

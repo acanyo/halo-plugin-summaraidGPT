@@ -45,7 +45,7 @@ export class ArticleSummaryWidget extends LitElement {
   themeName = 'custom';
 
   @property({ type: String, attribute: 'ui-style' })
-  uiStyle = 'classic';
+  uiStyle = 'simple';
 
   @property({ type: String, attribute: 'fixed-tone' })
   fixedTone = 'violet';

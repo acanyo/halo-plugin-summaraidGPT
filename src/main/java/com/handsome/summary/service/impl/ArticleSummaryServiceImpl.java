@@ -7,8 +7,7 @@ import static run.halo.app.extension.index.query.Queries.isNull;
 
 
 import com.handsome.summary.extension.Summary;
-import com.handsome.summary.service.AiConfigService;
-import com.handsome.summary.service.AiServiceUtils;
+import com.handsome.summary.service.AiFoundationAiService;
 
 import com.handsome.summary.service.ArticleSummaryService;
 import com.handsome.summary.service.SettingConfigGetter;
@@ -31,7 +30,7 @@ import reactor.core.scheduler.Schedulers;
 
 /**
  * 文章摘要服务实现类
- * 负责文章摘要的生成、存储和更新，支持多种AI服务提供商。
+ * 负责文章摘要的生成、存储和更新。
  * @author handsome
  */
 @Service
@@ -40,7 +39,8 @@ import reactor.core.scheduler.Schedulers;
 public class ArticleSummaryServiceImpl implements ArticleSummaryService {
 
     // 依赖注入
-    private final AiConfigService aiConfigService;
+    private final AiFoundationAiService aiFoundationAiService;
+    private final SettingConfigGetter settingConfigGetter;
     private final PostContentService postContentService;
     private final ReactiveExtensionClient client;
 
@@ -63,18 +63,14 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
      */
     @Override
     public Mono<String> getSummary(Post post) {
-        return Mono.zip(
-                aiConfigService.getAiConfigForFunction("summary"),
-                aiConfigService.getAiServiceForFunction("summary")
-        )
-        .flatMap(tuple -> generateSummaryWithAiConfig(post, tuple.getT1(), tuple.getT2()))
-        .map(AiServiceUtils::extractContentFromResponse)
+        return settingConfigGetter.getAiConfigForFunction("summary")
+        .flatMap(aiConfig -> generateSummaryWithAiConfig(post, aiConfig))
         .flatMap(summary -> {
-            // 检查是否是错误信息，如果是则不保存到数据库
-            if (AiServiceUtils.isErrorMessage(summary)) {
-                return Mono.error(new RuntimeException(summary));
+            if (summary == null || summary.isBlank()) {
+                return Mono.error(new RuntimeException("AI摘要为空"));
             }
-            return saveSummaryToDatabase(summary, post).thenReturn(summary);
+            var normalizedSummary = summary.trim();
+            return saveSummaryToDatabase(normalizedSummary, post).thenReturn(normalizedSummary);
         })
         .onErrorResume(this::handleSummaryGenerationError);
     }
@@ -149,18 +145,15 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
     /**
      * 使用新的AI配置生成摘要
      */
-    private Mono<String> generateSummaryWithAiConfig(Post post, SettingConfigGetter.AiConfigResult aiConfig, 
-                                                    com.handsome.summary.service.AiService aiService) {
+    private Mono<String> generateSummaryWithAiConfig(Post post, SettingConfigGetter.AiConfigResult aiConfig) {
         return postContentService.getReleaseContent(post.getMetadata().getName())
             .flatMap(contentWrapper -> {
                 String aiSystem = aiConfig.getSystemPrompt() != null ? aiConfig.getSystemPrompt() : DEFAULT_AI_SYSTEM_PROMPT;
                 String prompt = aiSystem + "\n" + contentWrapper.getRaw();
                 
-                log.info("开始生成摘要，AI类型: {}, 文章: {}", aiConfig.getAiType(), post.getMetadata().getName());
+                log.info("开始生成摘要，AI服务: AI Foundation, 文章: {}", post.getMetadata().getName());
                 
-                // 创建兼容的BasicConfig
-                var compatibleConfig = aiConfigService.createCompatibleBasicConfig(aiConfig);
-                return Mono.fromCallable(() -> aiService.chatCompletionRaw(prompt, compatibleConfig));
+                return Mono.fromCallable(() -> aiFoundationAiService.generateText(prompt, aiConfig));
             });
     }
 
@@ -330,4 +323,4 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
         
         return response;
     }
-} 
+}

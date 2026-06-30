@@ -1,9 +1,7 @@
 package com.handsome.summary.service.impl;
 
+import com.handsome.summary.service.AiFoundationAiService;
 import com.handsome.summary.service.ArticleTitleService;
-import com.handsome.summary.service.AiConfigService;
-import com.handsome.summary.service.AiService;
-import com.handsome.summary.service.AiServiceUtils;
 import com.handsome.summary.service.SettingConfigGetter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +20,8 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class ArticleTitleServiceImpl implements ArticleTitleService {
     
-    private final AiConfigService aiConfigService;
+    private final AiFoundationAiService aiFoundationAiService;
+    private final SettingConfigGetter settingConfigGetter;
     
     @Override
     public Mono<TitleResponse> generateTitle(TitleRequest request) {
@@ -31,27 +30,22 @@ public class ArticleTitleServiceImpl implements ArticleTitleService {
             request.style(), 
             request.count());
         
-        return aiConfigService.getAiConfigForFunction("title")
-            .flatMap(aiConfig -> aiConfigService.getAiServiceForFunction("title")
-                .flatMap(aiService -> generateWithAi(request, aiService, aiConfig)))
+        return settingConfigGetter.getAiConfigForFunction("title")
+            .flatMap(aiConfig -> generateWithAi(request, aiConfig))
             .onErrorResume(this::handleGenerateError);
     }
     
-    private Mono<TitleResponse> generateWithAi(TitleRequest request, AiService aiService, 
+    private Mono<TitleResponse> generateWithAi(TitleRequest request,
                                                SettingConfigGetter.AiConfigResult aiConfig) {
         String prompt = buildTitlePrompt(request, aiConfig.getSystemPrompt());
         
-        return Mono.fromCallable(() -> {
-            SettingConfigGetter.BasicConfig basicConfig = createBasicConfig(aiConfig);
-            return aiService.chatCompletionRaw(prompt, basicConfig);
-        })
+        return Mono.fromCallable(() -> aiFoundationAiService.generateText(prompt, aiConfig))
             .<TitleResponse>handle((response, sink) -> {
-                String content = AiServiceUtils.extractContentFromResponse(response);
-                if (AiServiceUtils.isErrorMessage(content)) {
-                    sink.error(new RuntimeException("AI标题生成失败: " + content));
+                if (!StringUtils.hasText(response)) {
+                    sink.error(new RuntimeException("AI标题生成失败: 返回内容为空"));
                     return;
                 }
-                sink.next(TitleResponse.success(content));
+                sink.next(TitleResponse.success(response.trim()));
             })
         .doOnSuccess(response -> log.info("标题生成成功，内容长度: {}", response.content().length()))
         .doOnError(error -> log.error("标题生成失败", error));
@@ -98,10 +92,6 @@ public class ArticleTitleServiceImpl implements ArticleTitleService {
             case "热点式" -> "结合当前热点话题";
             default -> style;
         };
-    }
-    
-    private SettingConfigGetter.BasicConfig createBasicConfig(SettingConfigGetter.AiConfigResult aiConfig) {
-        return AiServiceUtils.toBasicConfig(aiConfig);
     }
     
     private Mono<TitleResponse> handleGenerateError(Throwable error) {

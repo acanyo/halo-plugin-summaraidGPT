@@ -33,9 +33,17 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     }
 
     @Override
-    public Mono<TagsConfig> getTagsConfig() {
-        return settingFetcher.fetch(TagsConfig.GROUP, TagsConfig.class)
-            .defaultIfEmpty(new TagsConfig());
+    public Mono<RoleConfig> getRoleConfig() {
+        return settingFetcher.fetch(RoleConfig.GROUP, RoleConfig.class)
+            .defaultIfEmpty(new RoleConfig());
+    }
+
+    @Override
+    public Mono<GenerationConfig> getGenerationConfig() {
+        return getBasicConfig()
+            .map(config -> config.getGenerationSetting() != null
+                ? config.getGenerationSetting()
+                : new GenerationConfig());
     }
 
     @Override
@@ -45,161 +53,82 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     }
 
     @Override
-    public Mono<PolishConfig> getPolishConfig() {
-        return settingFetcher.fetch(PolishConfig.GROUP, PolishConfig.class)
-            .defaultIfEmpty(new PolishConfig());
+    public Mono<AiSecurityConfig> getAiSecurityConfig() {
+        return getBasicConfig()
+            .map(config -> config.getAiSecuritySetting() != null
+                ? config.getAiSecuritySetting()
+                : new AiSecurityConfig());
     }
 
     @Override
-    public Mono<GenerateConfig> getGenerateConfig() {
-        return settingFetcher.fetch(GenerateConfig.GROUP, GenerateConfig.class)
-            .defaultIfEmpty(new GenerateConfig());
-    }
-
-    @Override
-    public Mono<TitleConfig> getTitleConfig() {
-        return settingFetcher.fetch(TitleConfig.GROUP, TitleConfig.class)
-            .defaultIfEmpty(new TitleConfig());
+    public Mono<RagConfig> getRagConfig() {
+        return settingFetcher.fetch(RagConfig.GROUP, RagConfig.class)
+            .defaultIfEmpty(new RagConfig());
     }
 
     @Override
     public Mono<AiConfigResult> getAiConfigForFunction(String functionType) {
         return Mono.zip(
             getBasicConfig(),
-            getFunctionSpecificConfig(functionType)
+            getSystemPromptForFunction(functionType)
         ).map(tuple -> {
             BasicConfig basicConfig = tuple.getT1();
-            FunctionSpecificAiInfo functionInfo = tuple.getT2();
-            
-            String aiType = determineAiType(functionInfo.aiType(), basicConfig.getGlobalAiType());
-            
-            // 根据AI类型获取对应的配置信息
+            String systemPrompt = tuple.getT2();
+
             AiConfigResult result = new AiConfigResult();
-            result.setAiType(aiType);
-            result.setSystemPrompt(functionInfo.systemPrompt());
-            
-            populateAiConfig(result, aiType, basicConfig.getAiModelConfig());
-            if (StringUtils.hasText(functionInfo.modelName())) {
-                result.setModelName(functionInfo.modelName());
+            result.setSystemPrompt(systemPrompt);
+
+            var configuredModelName = getModelNameForFunction(basicConfig, functionType);
+            if (StringUtils.hasText(configuredModelName)) {
+                result.setModelName(configuredModelName);
+            } else if (StringUtils.hasText(basicConfig.getLanguageModelName())) {
+                result.setModelName(basicConfig.getLanguageModelName());
             }
-            
+
             return result;
         });
     }
     
-    /**
-     * 获取功能特定的AI配置信息
-     */
-    private Mono<FunctionSpecificAiInfo> getFunctionSpecificConfig(String functionType) {
-        return switch (functionType.toLowerCase()) {
-            case "summary" -> getSummaryConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getSummaryAiType(), config.getSummarySystemPrompt(),
-                    config.getSummaryModelName()));
-            case "tags" -> getTagsConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getTagAiType(), config.getTagGenerationPrompt(),
-                    config.getTagModelName()));
-            case "conversation", "assistant" -> getAssistantConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getAssistantAiType(),
-                    config.getConversationSystemPrompt(), config.getAssistantModelName()));
-            case "polish" -> getPolishConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getPolishAiType(), config.getPolishSystemPrompt(),
-                    config.getPolishModelName()));
-            case "generate" -> getGenerateConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getGenerateAiType(), config.getGenerateSystemPrompt(),
-                    config.getGenerateModelName()));
-            case "title" -> getTitleConfig().map(config -> 
-                new FunctionSpecificAiInfo(config.getTitleAiType(), config.getTitleSystemPrompt(),
-                    config.getTitleModelName()));
-            default -> Mono.just(new FunctionSpecificAiInfo(null, null, null));
-        };
-    }
-    
-    /**
-     * 确定最终使用的AI类型
-     */
-    private String determineAiType(String functionAiType, String globalAiType) {
-        if (StringUtils.hasText(functionAiType)) {
-            return functionAiType;
-        }
-        if (StringUtils.hasText(globalAiType)) {
-            return globalAiType;
-        }
-        return "openAi"; // 默认值
-    }
-    
-    /**
-     * 根据AI类型填充具体的AI配置信息
-     */
-    private void populateAiConfig(AiConfigResult result, String aiType, AiModelConfig modelConfig) {
-        if (modelConfig == null) {
-            return;
-        }
-        
-        switch (aiType) {
-            case "openAi" -> {
-                if (modelConfig.getOpenAiConfig() != null) {
-                    var openAiConfig = modelConfig.getOpenAiConfig();
-                    result.setApiKey(openAiConfig.getApiKey());
-                    result.setModelName(openAiConfig.getModelName());
-                    result.setBaseUrl(openAiConfig.getBaseUrl());
-                }
-            }
-            case "zhipuAi" -> {
-                if (modelConfig.getZhipuAiConfig() != null) {
-                    var zhipuAiConfig = modelConfig.getZhipuAiConfig();
-                    result.setApiKey(zhipuAiConfig.getApiKey());
-                    result.setModelName(zhipuAiConfig.getModelName());
-                }
-            }
-            case "dashScope" -> {
-                if (modelConfig.getDashScopeConfig() != null) {
-                    var dashScopeConfig = modelConfig.getDashScopeConfig();
-                    result.setApiKey(dashScopeConfig.getApiKey());
-                    result.setModelName(dashScopeConfig.getModelName());
-                }
-            }
-            case "codesphere" -> {
-                if (modelConfig.getCodesphereConfig() != null) {
-                    var codesphereConfig = modelConfig.getCodesphereConfig();
-                    result.setApiKey(codesphereConfig.getApiKey());
-                    result.setModelName(codesphereConfig.getModelName());
-                }
-            }
-            case "siliconFlow" -> {
-                if (modelConfig.getSiliconFlowConfig() != null) {
-                    var siliconFlowConfig = modelConfig.getSiliconFlowConfig();
-                    result.setApiKey(siliconFlowConfig.getApiKey());
-                    result.setModelName(siliconFlowConfig.getModelName());
-                    result.setBaseUrl(siliconFlowConfig.getBaseUrl());
-                }
-            }
-            case "miniMax" -> {
-                if (modelConfig.getMiniMaxConfig() != null) {
-                    var miniMaxConfig = modelConfig.getMiniMaxConfig();
-                    result.setApiKey(miniMaxConfig.getApiKey());
-                    result.setModelName(miniMaxConfig.getModelName());
-                    result.setBaseUrl(miniMaxConfig.getBaseUrl());
-                }
-            }
-        }
-    }
-    
-    @Override
-    public String getTitleAiType() {
-        return getTitleConfig()
-            .map(TitleConfig::getTitleAiType)
-            .block();
+    private Mono<String> getSystemPromptForFunction(String functionType) {
+        return getRoleConfig()
+            .map(roleConfig -> promptOrDefault(rolePrompt(roleConfig, functionType), functionType));
     }
 
-    @Override
-    public String getTitleSystemPrompt() {
-        return getTitleConfig()
-            .map(TitleConfig::getTitleSystemPrompt)
-            .block();
+    private String getModelNameForFunction(BasicConfig basicConfig, String functionType) {
+        return switch (normalizeFunctionType(functionType)) {
+            case "summary" -> basicConfig.getSummaryModelName();
+            case "tags" -> basicConfig.getTagModelName();
+            case "conversation", "assistant" -> basicConfig.getAssistantModelName();
+            case "polish" -> basicConfig.getPolishModelName();
+            case "generate" -> basicConfig.getGenerateModelName();
+            case "title" -> basicConfig.getTitleModelName();
+            case "rag" -> basicConfig.getRagLanguageModelName();
+            default -> null;
+        };
     }
-    
-    /**
-     * 功能特定的AI信息
-     */
-    private record FunctionSpecificAiInfo(String aiType, String systemPrompt, String modelName) {}
+
+    private String rolePrompt(RoleConfig roleConfig, String functionType) {
+        return switch (normalizeFunctionType(functionType)) {
+            case "summary" -> roleConfig.getSummarySystemPrompt();
+            case "tags" -> roleConfig.getTagGenerationPrompt();
+            case "conversation", "assistant" -> roleConfig.getConversationSystemPrompt();
+            case "polish" -> roleConfig.getPolishSystemPrompt();
+            case "generate" -> roleConfig.getGenerateSystemPrompt();
+            case "title" -> roleConfig.getTitleSystemPrompt();
+            case "rag" -> roleConfig.getRagSystemPrompt();
+            default -> null;
+        };
+    }
+
+    private String promptOrDefault(String prompt, String functionType) {
+        if (StringUtils.hasText(prompt)) {
+            return prompt;
+        }
+        String defaultPrompt = rolePrompt(new RoleConfig(), functionType);
+        return defaultPrompt != null ? defaultPrompt : "";
+    }
+
+    private String normalizeFunctionType(String functionType) {
+        return StringUtils.hasText(functionType) ? functionType.toLowerCase() : "";
+    }
 }

@@ -1,19 +1,32 @@
 plugins {
     id 'java'
     id "io.freefair.lombok" version "8.13"
-    id "run.halo.plugin.devtools" version "0.6.2"
+    id "run.halo.plugin.devtools" version "0.8.0"
 }
 
 group 'com.handsome.summary'
 
 repositories {
+    maven {
+        url = uri('https://central.sonatype.com/repository/maven-snapshots/')
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
     mavenCentral()
 }
 
 dependencies {
-    implementation platform('run.halo.tools.platform:plugin:2.23.0')
+    implementation platform('run.halo.tools.platform:plugin:2.25.0')
     compileOnly 'run.halo.app:api'
+    compileOnly 'run.halo.aifoundation:api:1.0.0-SNAPSHOT'
+    // Halo already provides Lucene; bundling it in the plugin breaks Lucene SPI under PF4J.
+    compileOnly 'org.apache.lucene:lucene-core:10.3.2'
+    compileOnly 'org.apache.lucene:lucene-analysis-common:10.3.2'
+    compileOnly 'org.apache.lucene:lucene-queryparser:10.3.2'
+    implementation 'org.jsoup:jsoup:1.22.1'
     testImplementation 'run.halo.app:api'
+    testImplementation 'run.halo.aifoundation:api:1.0.0-SNAPSHOT'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -35,7 +48,7 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.register('processUiResources', Copy) {
     from project(':ui').layout.buildDirectory.dir('dist')
-    into layout.buildDirectory.dir('resources/main/console')
+    into layout.buildDirectory.dir('resources/main/ui')
     dependsOn project(':ui').tasks.named('assemble')
     shouldRunAfter tasks.named('processResources')
 }
@@ -48,8 +61,12 @@ tasks.named('classes') {
     dependsOn tasks.named('processUiResources')
 }
 
+tasks.named('generatePluginComponentsIdx') {
+    notCompatibleWithConfigurationCache('This task invokes "Task.project" at execution time, which is not supported with configuration cache.')
+}
+
 halo {
     debug = true
-    suspend = true
-    version = '2.23.1'
+//    suspend = true
+    version = '2.25.0'
 }

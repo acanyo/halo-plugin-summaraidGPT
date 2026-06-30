@@ -28,9 +28,8 @@ export interface NodeBubbleMenu {
     state?: any;
   }) => boolean;
   component?: any;
-  tippyOptions?: Record<string, unknown>;
-  getRenderContainer?: () => HTMLElement | null;
-  defaultAnimation?: boolean;
+  options?: Record<string, unknown>;
+  getReferencedVirtualElement?: () => HTMLElement | null;
   items?: BubbleItem[];
 }
 

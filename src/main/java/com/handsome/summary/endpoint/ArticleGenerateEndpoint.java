@@ -2,6 +2,7 @@ package com.handsome.summary.endpoint;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 
+import com.handsome.summary.service.AiRequestSecurityService;
 import com.handsome.summary.service.ArticleGenerateService;
 import com.handsome.summary.service.ArticleTitleService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
@@ -27,6 +29,7 @@ import run.halo.app.extension.GroupVersion;
 @RequiredArgsConstructor
 public class ArticleGenerateEndpoint implements CustomEndpoint {
     
+    private final AiRequestSecurityService aiRequestSecurityService;
     private final ArticleGenerateService articleGenerateService;
     private final ArticleTitleService articleTitleService;
 
@@ -63,13 +66,13 @@ public class ArticleGenerateEndpoint implements CustomEndpoint {
         final var tag = "api.summary.summaraidgpt.lik.cc/v1alpha1/ArticleGenerate";
         
         return SpringdocRouteBuilder.route()
-            .POST("/generate/article", this::generateArticle,
+            .POST("generate/article", this::generateArticle,
                 builder -> builder.operationId("GenerateArticle")
                     .tag(tag)
                     .description("生成完整文章，使用AI服务根据主题和要求生成文章内容")
                     .response(responseBuilder().implementation(GenerateResponse.class))
             )
-            .POST("/generate/title", this::generateTitle,
+            .POST("generate/title", this::generateTitle,
                 builder -> builder.operationId("GenerateTitle")
                     .tag(tag)
                     .description("根据文章内容生成标题，使用AI服务分析文章内容并生成合适的标题")
@@ -82,7 +85,8 @@ public class ArticleGenerateEndpoint implements CustomEndpoint {
      * 生成完整文章接口
      */
     private Mono<ServerResponse> generateArticle(ServerRequest request) {
-        return request.bodyToMono(GenerateRequest.class)
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(GenerateRequest.class))
             .doOnNext(req -> log.info("收到文章生成请求: topic={}, format={}, style={}", 
                 req.topic(), req.format(), req.style()))
             .flatMap(this::processGenerateRequest)
@@ -94,6 +98,9 @@ public class ArticleGenerateEndpoint implements CustomEndpoint {
                     .bodyValue(response);
             })
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 log.error("文章生成处理失败，错误: {}", e.getMessage(), e);
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)
@@ -143,7 +150,8 @@ public class ArticleGenerateEndpoint implements CustomEndpoint {
      * 生成文章标题接口
      */
     private Mono<ServerResponse> generateTitle(ServerRequest request) {
-        return request.bodyToMono(TitleRequest.class)
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(TitleRequest.class))
             .doOnNext(req -> log.info("收到标题生成请求: contentLength={}, style={}, count={}", 
                 req.content() != null ? req.content().length() : 0, req.style(), req.count()))
             .flatMap(this::processTitleRequest)
@@ -155,6 +163,9 @@ public class ArticleGenerateEndpoint implements CustomEndpoint {
                     .bodyValue(response);
             })
             .onErrorResume(e -> {
+                if (e instanceof ResponseStatusException) {
+                    return Mono.error(e);
+                }
                 log.error("标题生成处理失败，错误: {}", e.getMessage(), e);
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)

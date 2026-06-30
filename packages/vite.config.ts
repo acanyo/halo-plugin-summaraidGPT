@@ -4,8 +4,29 @@ import { join } from 'path';
 import { defineConfig } from 'vite';
 import type { Plugin } from 'vite';
 
+type BundleTarget = {
+  entry: string;
+  name: string;
+  fileName: string;
+  emptyOutDir: boolean;
+};
 
-function copyToStatic(): Plugin {
+const BUNDLE_TARGETS: Record<string, BundleTarget> = {
+  summary: {
+    entry: './src/article-summary-entry.ts',
+    name: 'ArticleSummary',
+    fileName: 'ArticleSummary.js',
+    emptyOutDir: true,
+  },
+  rag: {
+    entry: './src/rag-assistant-entry.ts',
+    name: 'RagAssistant',
+    fileName: 'RagAssistant.js',
+    emptyOutDir: false,
+  },
+};
+
+function copyToStatic(file: string): Plugin {
   return {
     name: 'copy-to-static',
     closeBundle() {
@@ -17,7 +38,6 @@ function copyToStatic(): Plugin {
         mkdirSync(staticDir, { recursive: true });
       }
 
-      const file = 'ArticleSummary.js';
       const src = join(distDir, file);
       const dest = join(staticDir, file);
       if (existsSync(src)) {
@@ -28,25 +48,29 @@ function copyToStatic(): Plugin {
   };
 }
 
-export default defineConfig({
-  build: {
-    lib: {
-      entry: './src/article-summary-entry.ts',
-      name: 'ArticleSummary',
-      fileName: (format) => {
-        if (format === 'umd') {
-          return 'ArticleSummary.js';
-        }
-        return 'ArticleSummary.es.js';
+export default defineConfig(({ mode }) => {
+  const target = BUNDLE_TARGETS[mode] || BUNDLE_TARGETS.summary;
+
+  return {
+    build: {
+      emptyOutDir: target.emptyOutDir,
+      lib: {
+        entry: target.entry,
+        name: target.name,
+        fileName: (format) => {
+          if (format === 'umd') {
+            return target.fileName;
+          }
+          return target.fileName.replace(/\.js$/, '.es.js');
+        },
+        formats: ['umd'],
       },
-      formats: ['umd']
-    }
-  },
-  plugins: [
-    copyToStatic(),
-  ],
-  // 开发服务器配置
-  server: {
-    port: 3001
-  }
+    },
+    plugins: [
+      copyToStatic(target.fileName),
+    ],
+    server: {
+      port: 3001,
+    },
+  };
 });
