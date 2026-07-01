@@ -5,7 +5,12 @@ import {
   IconRefreshLine,
   Toast,
   VButton,
+  VCard,
+  VDropdownItem,
   VEmpty,
+  VEntity,
+  VEntityContainer,
+  VEntityField,
   VLoading,
   VModal,
   VPageHeader,
@@ -15,6 +20,7 @@ import {
   VSwitch,
   VTag,
 } from '@halo-dev/components'
+import { utils } from '@halo-dev/ui-shared'
 import RiAddLine from '~icons/ri/add-line'
 import RiAlertLine from '~icons/ri/alert-line'
 import RiArrowLeftLine from '~icons/ri/arrow-left-line'
@@ -22,8 +28,6 @@ import RiArrowRightSLine from '~icons/ri/arrow-right-s-line'
 import RiArticleLine from '~icons/ri/article-line'
 import RiBookOpenLine from '~icons/ri/book-open-line'
 import RiCloseLine from '~icons/ri/close-line'
-import RiDeleteBinLine from '~icons/ri/delete-bin-line'
-import RiEdit2Line from '~icons/ri/edit-2-line'
 import RiQuestionAnswerLine from '~icons/ri/question-answer-line'
 import RiSearchLine from '~icons/ri/search-line'
 import RiUploadLine from '~icons/ri/upload-line'
@@ -37,6 +41,7 @@ import {
   type RagSourceReference,
   type RagStats,
 } from '@/api/rag'
+import { hasUiPermission } from '@/utils/permissions'
 
 const loadingKnowledgeBases = ref(false)
 const loadingDocuments = ref(false)
@@ -79,6 +84,13 @@ const documentForm = reactive({
   categories: '',
 })
 
+const documentSourceTypeOptions = [
+  { label: '手动', value: 'MANUAL' },
+  { label: '文章', value: 'POST' },
+  { label: '页面', value: 'PAGE' },
+  { label: '附件', value: 'ATTACHMENT' },
+]
+
 const showImportPostsModal = ref(false)
 const importKeyword = ref('')
 const selectedPostNames = ref<string[]>([])
@@ -97,14 +109,20 @@ const askStreamError = ref('')
 const documentPage = ref(1)
 const documentPageSize = ref(10)
 const localNeedsRebuild = ref(false)
+const RAG_MANAGE_PERMISSION = 'plugin:summaraidGPT:rag:manage'
+const RAG_DELETING_REFETCH_INTERVAL = 1000
 
 let taskEventSource: EventSource | undefined
 let subscribedTaskName = ''
 let askAbortController: AbortController | undefined
+let deletingKnowledgeBaseRefetchTimer: number | undefined
+let deletingDocumentRefetchTimer: number | undefined
 
 const activeKnowledgeBase = computed(() =>
   knowledgeBases.value.find((item) => item.metadata.name === activeKnowledgeBaseName.value),
 )
+
+const canManageRag = computed(() => hasUiPermission(RAG_MANAGE_PERMISSION))
 
 const categories = computed(() => {
   const names = new Set<string>()
@@ -205,10 +223,64 @@ const rebuildProgress = computed(() => {
   }
 })
 
-const fetchKnowledgeBases = async () => {
-  loadingKnowledgeBases.value = true
+const deletingResourceRefetchInterval = <T extends { metadata: { deletionTimestamp?: string } }>(
+  data?: T[],
+) => {
+  const hasDeletingResource = data?.some((item) => item.metadata.deletionTimestamp)
+  return hasDeletingResource ? RAG_DELETING_REFETCH_INTERVAL : false
+}
+
+const clearDeletingKnowledgeBaseRefetch = () => {
+  if (!deletingKnowledgeBaseRefetchTimer) {
+    return
+  }
+  window.clearInterval(deletingKnowledgeBaseRefetchTimer)
+  deletingKnowledgeBaseRefetchTimer = undefined
+}
+
+const clearDeletingDocumentRefetch = () => {
+  if (!deletingDocumentRefetchTimer) {
+    return
+  }
+  window.clearInterval(deletingDocumentRefetchTimer)
+  deletingDocumentRefetchTimer = undefined
+}
+
+const syncDeletingKnowledgeBaseRefetch = (data = knowledgeBases.value) => {
+  const interval = deletingResourceRefetchInterval(data)
+  if (!interval) {
+    clearDeletingKnowledgeBaseRefetch()
+    return
+  }
+  if (deletingKnowledgeBaseRefetchTimer) {
+    return
+  }
+  deletingKnowledgeBaseRefetchTimer = window.setInterval(() => {
+    fetchKnowledgeBases({ silent: true })
+  }, interval)
+}
+
+const syncDeletingDocumentRefetch = (data = documents.value) => {
+  const interval = deletingResourceRefetchInterval(data)
+  if (!interval) {
+    clearDeletingDocumentRefetch()
+    return
+  }
+  if (deletingDocumentRefetchTimer) {
+    return
+  }
+  deletingDocumentRefetchTimer = window.setInterval(() => {
+    fetchDocuments(false, { silent: true })
+  }, interval)
+}
+
+const fetchKnowledgeBases = async (options: { silent?: boolean } = {}) => {
+  if (!options.silent) {
+    loadingKnowledgeBases.value = true
+  }
   try {
     knowledgeBases.value = await ragApi.listKnowledgeBases()
+    syncDeletingKnowledgeBaseRefetch()
     if (
       !activeKnowledgeBaseName.value ||
       !knowledgeBases.value.some((item) => item.metadata.name === activeKnowledgeBaseName.value)
@@ -216,25 +288,38 @@ const fetchKnowledgeBases = async () => {
       activeKnowledgeBaseName.value = knowledgeBases.value[0]?.metadata.name || ''
     }
   } catch (error) {
-    Toast.error('加载失败')
+    if (!options.silent) {
+      Toast.error('加载失败')
+    }
   } finally {
-    loadingKnowledgeBases.value = false
+    if (!options.silent) {
+      loadingKnowledgeBases.value = false
+    }
   }
 }
 
-const fetchDocuments = async () => {
+const fetchDocuments = async (resetPage = true, options: { silent?: boolean } = {}) => {
   if (!activeKnowledgeBaseName.value) {
     documents.value = []
+    clearDeletingDocumentRefetch()
     return
   }
-  loadingDocuments.value = true
+  if (!options.silent) {
+    loadingDocuments.value = true
+  }
   try {
     documents.value = await ragApi.listDocuments({ knowledgeBase: activeKnowledgeBaseName.value })
-    documentPage.value = 1
+    syncDeletingDocumentRefetch()
+    const maxPage = Math.max(1, Math.ceil(documents.value.length / documentPageSize.value))
+    documentPage.value = resetPage ? 1 : Math.min(documentPage.value, maxPage)
   } catch (error) {
-    Toast.error('文档加载失败')
+    if (!options.silent) {
+      Toast.error('文档加载失败')
+    }
   } finally {
-    loadingDocuments.value = false
+    if (!options.silent) {
+      loadingDocuments.value = false
+    }
   }
 }
 
@@ -301,6 +386,11 @@ const openKnowledgeBaseModal = (knowledgeBase?: RagKnowledgeBase) => {
   knowledgeBaseForm.description = knowledgeBase?.spec?.description || ''
   knowledgeBaseForm.enabled = knowledgeBase?.spec?.enabled !== false
   showKnowledgeBaseModal.value = true
+}
+
+const editKnowledgeBaseFromRow = (event: Event, knowledgeBase: RagKnowledgeBase) => {
+  event.stopPropagation()
+  openKnowledgeBaseModal(knowledgeBase)
 }
 
 const saveKnowledgeBase = async () => {
@@ -389,7 +479,7 @@ const saveDocument = async () => {
     Toast.success('保存成功，请重建索引后生效')
     showDocumentModal.value = false
     markNeedsRebuild()
-    await Promise.all([fetchDocuments(), fetchStats()])
+    await Promise.all([fetchDocuments(!editingDocument.value), fetchStats()])
   } catch (error) {
     Toast.error('保存失败')
   }
@@ -405,7 +495,7 @@ const deleteDocument = (document: RagDocument) => {
         await ragApi.deleteDocument(document.metadata.name)
         Toast.success('删除成功')
         markNeedsRebuild()
-        await Promise.all([fetchDocuments(), fetchStats()])
+        await Promise.all([fetchDocuments(false), fetchStats()])
       } catch (error) {
         Toast.error('删除失败')
       }
@@ -419,7 +509,7 @@ const updateDocumentEnabled = async (document: RagDocument, enabled: boolean) =>
     await ragApi.updateDocumentStatus(document.metadata.name, { enabled })
     Toast.success(enabled ? '已启用' : '已禁用')
     markNeedsRebuild()
-    await Promise.all([fetchDocuments(), fetchStats()])
+    await Promise.all([fetchDocuments(false), fetchStats()])
   } catch (error) {
     Toast.error('状态更新失败')
   } finally {
@@ -732,23 +822,12 @@ function formatIndexError(message?: string) {
 
 const formatRelativeDate = (value?: string) => {
   if (!value) return '-'
-  const time = new Date(value).getTime()
-  if (Number.isNaN(time)) return '-'
-  const diff = Date.now() - time
-  const minute = 60 * 1000
-  const hour = 60 * minute
-  const day = 24 * hour
-  const month = 30 * day
-  if (diff < minute) return '刚刚'
-  if (diff < hour) return `${Math.floor(diff / minute)} 分钟前`
-  if (diff < day) return `${Math.floor(diff / hour)} 小时前`
-  if (diff < month) return `${Math.floor(diff / day)} 天前`
-  return `${Math.floor(diff / month)} 个月前`
+  return utils.date.timeAgo(value)
 }
 
 const formatDate = (value?: string) => {
   if (!value) return '-'
-  return new Date(value).toLocaleString()
+  return utils.date.format(value)
 }
 
 watch(activeKnowledgeBaseName, () => {
@@ -772,6 +851,8 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   closeTaskSubscription()
   stopAsk()
+  clearDeletingKnowledgeBaseRefetch()
+  clearDeletingDocumentRefetch()
 })
 </script>
 
@@ -789,7 +870,12 @@ onBeforeUnmount(() => {
             </template>
             刷新
           </VButton>
-          <VButton type="secondary" @click="openKnowledgeBaseModal()">
+          <VButton
+            v-if="canManageRag"
+            v-permission="[RAG_MANAGE_PERMISSION]"
+            type="secondary"
+            @click="openKnowledgeBaseModal()"
+          >
             <template #icon>
               <RiAddLine class="h-full w-full" />
             </template>
@@ -799,170 +885,273 @@ onBeforeUnmount(() => {
       </template>
     </VPageHeader>
 
-    <div class="knowledge-list-container">
-      <VLoading v-if="loadingKnowledgeBases" />
-      <VEmpty
-        v-else-if="knowledgeBases.length === 0"
-        title="暂无知识库"
-        message="创建知识库来存储和管理 RAG 检索内容"
-      >
-        <template #actions>
-          <VButton type="secondary" @click="openKnowledgeBaseModal()">
-            <template #icon>
-              <RiAddLine class="h-full w-full" />
-            </template>
-            新建知识库
-          </VButton>
-        </template>
-      </VEmpty>
-
-      <div v-else class="knowledge-list">
-        <article
-          v-for="knowledgeBase in knowledgeBases"
-          :key="knowledgeBase.metadata.name"
-          class="kb-row"
-          @click="openKnowledgeBaseDetail(knowledgeBase)"
-        >
-          <div class="kb-avatar">{{ firstCharacter(knowledgeBase) }}</div>
-
-          <div class="kb-main">
-            <div class="kb-title-row">
-              <h3 class="kb-title">{{ displayName(knowledgeBase) }}</h3>
-              <VStatusDot v-bind="statusInfo(knowledgeBase.status?.indexState)" class="kb-status" />
+    <div class=":uno: m-0 md:m-4">
+      <VCard :body-class="[':uno: !p-0']">
+        <template #header>
+          <div class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3">
+            <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-gray-500">
+              <strong class=":uno: text-lg leading-none text-gray-900">{{
+                knowledgeBases.length
+              }}</strong>
+              <span>个知识库</span>
+              <span>全库问答会默认混合检索已就绪内容</span>
             </div>
-            <p v-if="knowledgeBase.spec?.description" class="kb-desc">
-              {{ knowledgeBase.spec.description }}
-            </p>
-            <p v-else class="kb-desc muted">暂无描述</p>
           </div>
+        </template>
 
-          <div class="kb-row-meta">
-            <span>文档 {{ knowledgeBase.status?.documentCount || 0 }}</span>
-            <span>最后索引 {{ formatRelativeDate(knowledgeBase.status?.lastIndexedAt) }}</span>
-          </div>
-
-          <div class="kb-actions">
-            <button
-              class="kb-action-btn"
-              title="编辑"
-              @click.stop="openKnowledgeBaseModal(knowledgeBase)"
+        <VLoading v-if="loadingKnowledgeBases" />
+        <VEmpty
+          v-else-if="knowledgeBases.length === 0"
+          :title="canManageRag ? '暂无知识库' : '暂无可查看知识库'"
+          :message="
+            canManageRag
+              ? '创建知识库来存储和管理 RAG 检索内容'
+              : '当前账号没有可查看的知识库，或还没有创建任何知识库'
+          "
+        >
+          <template #actions>
+            <VButton
+              v-if="canManageRag"
+              v-permission="[RAG_MANAGE_PERMISSION]"
+              type="secondary"
+              @click="openKnowledgeBaseModal()"
             >
-              <RiEdit2Line />
-            </button>
-            <button
-              class="kb-action-btn kb-action-btn-danger"
-              title="删除"
-              @click="deleteKnowledgeBase($event, knowledgeBase)"
-            >
-              <RiDeleteBinLine />
-            </button>
-            <RiArrowRightSLine class="kb-arrow" />
-          </div>
-        </article>
+              <template #icon>
+                <RiAddLine class="h-full w-full" />
+              </template>
+              新建知识库
+            </VButton>
+          </template>
+        </VEmpty>
 
-        <button class="create-kb-row" type="button" @click="openKnowledgeBaseModal()">
-          <RiAddLine />
-          <span>新建知识库</span>
-        </button>
-      </div>
+        <VEntityContainer v-else class="kb-list :uno: overflow-hidden">
+          <VEntity
+            v-for="knowledgeBase in knowledgeBases"
+            :key="knowledgeBase.metadata.name"
+            class=":uno: cursor-pointer"
+            :class="{
+              ':uno: pointer-events-none opacity-[0.56]':
+                !!knowledgeBase.metadata.deletionTimestamp,
+            }"
+            @click="
+              !knowledgeBase.metadata.deletionTimestamp && openKnowledgeBaseDetail(knowledgeBase)
+            "
+          >
+            <template #start>
+              <div
+                class=":uno: grid h-[38px] w-[38px] place-items-center rounded-lg border border-gray-200 bg-slate-50 text-sm font-bold text-gray-900"
+              >
+                {{ firstCharacter(knowledgeBase) }}
+              </div>
+              <VEntityField
+                :title="displayName(knowledgeBase)"
+                :description="knowledgeBase.spec?.description || knowledgeBase.metadata.name"
+                width="24rem"
+              >
+                <template #extra>
+                  <VStatusDot
+                    v-if="knowledgeBase.metadata.deletionTimestamp"
+                    v-tooltip="'删除中'"
+                    state="warning"
+                    text="删除中"
+                  />
+                  <VStatusDot v-else v-bind="statusInfo(knowledgeBase.status?.indexState)" />
+                </template>
+              </VEntityField>
+            </template>
+
+            <template #end>
+              <VEntityField width="7rem">
+                <template #description>
+                  <span
+                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                  >
+                    文档 {{ knowledgeBase.status?.documentCount || 0 }}
+                  </span>
+                </template>
+              </VEntityField>
+              <VEntityField width="11rem">
+                <template #description>
+                  <span
+                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-400 tabular-nums"
+                  >
+                    {{ formatRelativeDate(knowledgeBase.status?.lastIndexedAt) }}
+                  </span>
+                </template>
+              </VEntityField>
+              <VEntityField>
+                <template #description>
+                  <RiArrowRightSLine
+                    class=":uno: h-5 w-5 text-slate-400 transition-all duration-200"
+                  />
+                </template>
+              </VEntityField>
+            </template>
+
+            <template
+              v-if="canManageRag && !knowledgeBase.metadata.deletionTimestamp"
+              #dropdownItems
+            >
+              <VDropdownItem
+                v-permission="[RAG_MANAGE_PERMISSION]"
+                @click="editKnowledgeBaseFromRow($event, knowledgeBase)"
+              >
+                编辑
+              </VDropdownItem>
+              <VDropdownItem
+                v-permission="[RAG_MANAGE_PERMISSION]"
+                type="danger"
+                @click="deleteKnowledgeBase($event, knowledgeBase)"
+              >
+                删除
+              </VDropdownItem>
+            </template>
+          </VEntity>
+        </VEntityContainer>
+      </VCard>
     </div>
   </template>
 
   <template v-else>
-    <VPageHeader :title="displayName(activeKnowledgeBase)">
-      <template #icon>
-        <button class="back-btn" @click="backToKnowledgeBases">
-          <RiArrowLeftLine />
-        </button>
-      </template>
-      <template #actions>
-        <VSpace>
-          <VButton size="sm" @click="showSearchPanel = !showSearchPanel">
-            <template #icon>
-              <RiSearchLine class="h-full w-full" />
-            </template>
-            检索测试
-          </VButton>
-          <VButton size="sm" @click="showAskPanel = !showAskPanel">
-            <template #icon>
-              <RiQuestionAnswerLine class="h-full w-full" />
-            </template>
-            RAG 问答
-          </VButton>
-          <VButton
-            size="sm"
-            :loading="rebuildingIndex || latestTaskRunning"
-            :disabled="!canRebuildIndex"
-            @click="rebuildIndex"
+    <div
+      class=":uno: flex items-center justify-between gap-4 border-b border-[#edf0f5] bg-white px-5 py-3 max-[720px]:flex-col max-[720px]:items-start max-[720px]:px-3"
+    >
+      <div class=":uno: flex min-w-0 items-center gap-3">
+        <VButton size="sm" type="secondary" @click="backToKnowledgeBases">
+          <template #icon>
+            <RiArrowLeftLine class="h-full w-full" />
+          </template>
+          返回
+        </VButton>
+        <div class=":uno: grid min-w-0 gap-0.5">
+          <h1
+            class=":uno: m-0 overflow-hidden text-ellipsis whitespace-nowrap text-xl font-bold leading-snug text-gray-900"
           >
-            <template #icon>
-              <IconRefreshLine class="h-full w-full" />
-            </template>
-            <template v-if="rebuildProgress">
-              {{ rebuildProgress.current }}/{{ rebuildProgress.total }}
-            </template>
-            <template v-else>重建索引</template>
-          </VButton>
-          <VButton size="sm" @click="openImportPostsModal">
-            <template #icon>
-              <RiUploadLine class="h-full w-full" />
-            </template>
-            导入
-          </VButton>
-          <VButton type="secondary" @click="openDocumentModal()">
-            <template #icon>
-              <RiAddLine class="h-full w-full" />
-            </template>
-            新建条目
-          </VButton>
-        </VSpace>
-      </template>
-    </VPageHeader>
+            {{ displayName(activeKnowledgeBase) }}
+          </h1>
+          <span class=":uno: text-xs leading-snug text-slate-500">知识库详情</span>
+        </div>
+      </div>
 
-    <div class="kb-detail-container">
+      <VSpace class=":uno: flex-wrap justify-end max-[720px]:justify-start">
+        <VButton size="sm" @click="showSearchPanel = !showSearchPanel">
+          <template #icon>
+            <RiSearchLine class="h-full w-full" />
+          </template>
+          检索测试
+        </VButton>
+        <VButton size="sm" @click="showAskPanel = !showAskPanel">
+          <template #icon>
+            <RiQuestionAnswerLine class="h-full w-full" />
+          </template>
+          RAG 问答
+        </VButton>
+        <VButton
+          v-if="canManageRag"
+          v-permission="[RAG_MANAGE_PERMISSION]"
+          size="sm"
+          :loading="rebuildingIndex || latestTaskRunning"
+          :disabled="!canRebuildIndex"
+          @click="rebuildIndex"
+        >
+          <template #icon>
+            <IconRefreshLine class="h-full w-full" />
+          </template>
+          <template v-if="rebuildProgress">
+            {{ rebuildProgress.current }}/{{ rebuildProgress.total }}
+          </template>
+          <template v-else>重建索引</template>
+        </VButton>
+        <VButton
+          v-if="canManageRag"
+          v-permission="[RAG_MANAGE_PERMISSION]"
+          size="sm"
+          @click="openImportPostsModal"
+        >
+          <template #icon>
+            <RiUploadLine class="h-full w-full" />
+          </template>
+          导入
+        </VButton>
+        <VButton
+          v-if="canManageRag"
+          v-permission="[RAG_MANAGE_PERMISSION]"
+          type="secondary"
+          @click="openDocumentModal()"
+        >
+          <template #icon>
+            <RiAddLine class="h-full w-full" />
+          </template>
+          新建条目
+        </VButton>
+      </VSpace>
+    </div>
+
+    <div class=":uno: flex flex-col gap-4 p-4 max-[720px]:p-3">
       <VLoading v-if="loadingDocuments || loadingStats" />
 
       <template v-else-if="activeKnowledgeBase">
-        <div class="kb-overview">
-          <div class="kb-overview-main">
+        <div
+          class=":uno: grid grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] overflow-hidden rounded-lg border border-[#edf0f5] bg-white max-[1080px]:grid-cols-1"
+        >
+          <div class=":uno: flex min-w-0 items-start gap-3 p-4">
             <VStatusDot v-bind="statusInfo(activeKnowledgeBase.status?.indexState)" />
-            <p>
+            <p class=":uno: m-0 line-clamp-3 min-w-0 text-[13px] leading-relaxed text-slate-600">
               {{ activeKnowledgeBase.spec?.description || '这个知识库还没有描述。' }}
             </p>
           </div>
-          <dl class="kb-metrics">
-            <div>
-              <dt>已索引文档</dt>
-              <dd>{{ activeKnowledgeBase.status?.documentCount || enabledDocumentCount }}</dd>
+          <dl
+            class=":uno: m-0 grid grid-cols-[repeat(5,minmax(0,1fr))] border-l border-[#edf0f5] max-[1080px]:border-l-0 max-[1080px]:border-t max-[720px]:grid-cols-2 max-[520px]:grid-cols-1"
+          >
+            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
+              <dt class=":uno: text-xs text-slate-400">已索引文档</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">
+                {{ activeKnowledgeBase.status?.documentCount || enabledDocumentCount }}
+              </dd>
             </div>
-            <div>
-              <dt>启用条目</dt>
-              <dd>{{ enabledDocumentCount }}</dd>
+            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
+              <dt class=":uno: text-xs text-slate-400">启用条目</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">
+                {{ enabledDocumentCount }}
+              </dd>
             </div>
-            <div>
-              <dt>分块</dt>
-              <dd>{{ chunkCount }}</dd>
+            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
+              <dt class=":uno: text-xs text-slate-400">分块</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">{{ chunkCount }}</dd>
             </div>
-            <div>
-              <dt>分类</dt>
-              <dd>{{ categories.length }}</dd>
+            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
+              <dt class=":uno: text-xs text-slate-400">分类</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">
+                {{ categories.length }}
+              </dd>
             </div>
-            <div>
-              <dt>最后索引</dt>
-              <dd>{{ formatRelativeDate(activeKnowledgeBase.status?.lastIndexedAt) }}</dd>
+            <div class=":uno: min-w-0 px-3.5 py-3">
+              <dt class=":uno: text-xs text-slate-400">最后索引</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">
+                {{ formatRelativeDate(activeKnowledgeBase.status?.lastIndexedAt) }}
+              </dd>
             </div>
           </dl>
         </div>
 
-        <div v-if="showIndexErrorNotice" class="index-notice index-notice-error">
-          <span class="index-notice-icon">
+        <div
+          v-if="showIndexErrorNotice"
+          class=":uno: flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 max-[640px]:flex-col max-[640px]:items-start"
+        >
+          <span
+            class=":uno: grid h-9 w-9 flex-none place-items-center rounded-full bg-red-100 text-red-600"
+          >
             <RiAlertLine />
           </span>
-          <div class="index-notice-body">
-            <strong>{{ latestTaskFailed ? '上次索引重建失败' : '知识库索引异常' }}</strong>
-            <p>{{ indexErrorMessage }}</p>
+          <div class=":uno: grid min-w-0 flex-1 gap-1">
+            <strong class=":uno: text-[13px] font-bold text-red-900">
+              {{ latestTaskFailed ? '上次索引重建失败' : '知识库索引异常' }}
+            </strong>
+            <p class=":uno: m-0 text-xs leading-relaxed text-red-800">{{ indexErrorMessage }}</p>
           </div>
           <VButton
+            v-if="canManageRag"
+            v-permission="[RAG_MANAGE_PERMISSION]"
             size="sm"
             :disabled="!canRebuildIndex"
             :loading="rebuildingIndex"
@@ -972,15 +1161,26 @@ onBeforeUnmount(() => {
           </VButton>
         </div>
 
-        <div v-if="showNeedsRebuildNotice" class="index-notice index-notice-warning">
-          <span class="index-notice-icon">
+        <div
+          v-if="showNeedsRebuildNotice"
+          class=":uno: flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 max-[640px]:flex-col max-[640px]:items-start"
+        >
+          <span
+            class=":uno: grid h-9 w-9 flex-none place-items-center rounded-full bg-amber-100 text-amber-600"
+          >
             <RiAlertLine />
           </span>
-          <div class="index-notice-body">
-            <strong>{{ rebuildNoticeTitle }}</strong>
-            <p>{{ rebuildNoticeDescription }}</p>
+          <div class=":uno: grid min-w-0 flex-1 gap-1">
+            <strong class=":uno: text-[13px] font-bold text-amber-900">
+              {{ rebuildNoticeTitle }}
+            </strong>
+            <p class=":uno: m-0 text-xs leading-relaxed text-amber-800">
+              {{ rebuildNoticeDescription }}
+            </p>
           </div>
           <VButton
+            v-if="canManageRag"
+            v-permission="[RAG_MANAGE_PERMISSION]"
             size="sm"
             :disabled="!canRebuildIndex"
             :loading="rebuildingIndex"
@@ -990,59 +1190,89 @@ onBeforeUnmount(() => {
           </VButton>
         </div>
 
-        <div v-if="latestTaskRunning && latestTask" class="task-panel">
-          <div class="task-head">
+        <div
+          v-if="latestTaskRunning && latestTask"
+          class=":uno: grid gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3"
+        >
+          <div class=":uno: flex items-center justify-between gap-3 text-xs text-blue-700">
             <span>{{ latestTask.status?.message || '索引任务执行中' }}</span>
             <strong>{{ latestTask.status?.progress ?? 0 }}%</strong>
           </div>
-          <div class="progress-track">
-            <span :style="{ width: `${latestTask.status?.progress ?? 0}%` }"></span>
+          <div class=":uno: h-1.5 overflow-hidden rounded-full bg-blue-100">
+            <span
+              class=":uno: block h-full rounded-full bg-blue-500 transition-all duration-300"
+              :style="{ width: `${latestTask.status?.progress ?? 0}%` }"
+            ></span>
           </div>
         </div>
 
-        <div v-if="showSearchPanel" class="search-panel">
-          <div class="search-panel-header">
-            <div class="search-panel-title">
-              <RiSearchLine class="search-panel-icon" />
+        <div
+          v-if="showSearchPanel"
+          class=":uno: overflow-hidden rounded-lg border border-[#edf0f5] bg-white"
+        >
+          <div
+            class=":uno: flex items-center justify-between gap-3 border-b border-[#edf0f5] bg-slate-50 px-4 py-3"
+          >
+            <div class=":uno: flex items-center gap-2 text-[13px] font-bold text-gray-900">
+              <RiSearchLine class=":uno: h-4 w-4 text-slate-500" />
               <span>检索测试</span>
             </div>
-            <button class="search-panel-close" @click="showSearchPanel = false">
-              <RiCloseLine />
-            </button>
+            <VButton size="sm" circle v-tooltip="'关闭'" @click="showSearchPanel = false">
+              <template #icon>
+                <RiCloseLine class="h-full w-full" />
+              </template>
+            </VButton>
           </div>
-          <div class="search-panel-body">
-            <div class="search-input-wrapper">
-              <RiSearchLine class="search-input-icon" />
-              <input
+          <div class=":uno: grid gap-3 p-4">
+            <div
+              class="panel-form-row :uno: grid grid-cols-[minmax(0,1fr)_max-content] items-end gap-2.5 max-[720px]:grid-cols-1"
+            >
+              <FormKit
                 v-model="searchQuery"
                 type="text"
-                class="search-input"
-                placeholder="输入关键词或问题进行测试..."
+                name="searchQuery"
+                label="检索内容"
+                placeholder="输入关键词或问题进行测试"
                 @keyup.enter="runSearch"
               />
               <VButton size="sm" :loading="searching" @click="runSearch">搜索</VButton>
             </div>
-            <div class="search-results">
-              <div v-if="searchResults.length === 0" class="search-empty">
-                <RiSearchLine class="search-empty-icon" />
+            <div
+              class=":uno: min-h-[160px] overflow-hidden rounded-lg border border-[#edf0f5] bg-slate-50"
+            >
+              <div
+                v-if="searchResults.length === 0"
+                class=":uno: flex min-h-[160px] flex-col items-center justify-center gap-2 text-xs text-slate-400"
+              >
+                <RiSearchLine class=":uno: h-8 w-8 text-slate-300" />
                 <span>{{ searchQuery ? '没有匹配的结果' : '输入关键词开始测试' }}</span>
               </div>
-              <div v-else class="search-results-list">
+              <div v-else class=":uno: divide-y divide-slate-100 bg-white">
                 <div
                   v-for="(item, index) in searchResults"
                   :key="item.id"
-                  class="search-result-item"
+                  class=":uno: grid grid-cols-[28px_minmax(0,1fr)] gap-3 px-3.5 py-3 hover:bg-slate-50"
                 >
-                  <span class="search-result-index">{{ index + 1 }}</span>
-                  <div class="search-result-content">
-                    <div class="search-result-header">
-                      <div class="search-result-title">{{ item.title || item.id }}</div>
-                      <div class="search-result-score">
+                  <span
+                    class=":uno: grid h-7 w-7 place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-600"
+                  >
+                    {{ index + 1 }}
+                  </span>
+                  <div class=":uno: grid min-w-0 gap-1.5">
+                    <div class=":uno: flex items-center justify-between gap-3">
+                      <div
+                        class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-gray-900"
+                      >
+                        {{ item.title || item.id }}
+                      </div>
+                      <div class=":uno: text-xs font-bold text-blue-600">
                         {{ ((item.rerankScore ?? item.score ?? 0) * 100).toFixed(1) }}%
                       </div>
                     </div>
-                    <div class="search-result-desc">{{ stripHtmlAndMarkdown(item.content) }}</div>
-                    <div v-if="item.sourceType" class="search-result-category">
+                    <div class=":uno: line-clamp-2 text-xs leading-relaxed text-slate-500">
+                      {{ stripHtmlAndMarkdown(item.content) }}
+                    </div>
+                    <div v-if="item.sourceType">
                       <VTag size="sm">{{ sourceTypeText(item.sourceType) }}</VTag>
                     </div>
                   </div>
@@ -1052,122 +1282,196 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div v-if="showAskPanel" class="search-panel">
-          <div class="search-panel-header">
-            <div class="search-panel-title">
-              <RiQuestionAnswerLine class="search-panel-icon" />
+        <div
+          v-if="showAskPanel"
+          class=":uno: overflow-hidden rounded-lg border border-[#edf0f5] bg-white"
+        >
+          <div
+            class=":uno: flex items-center justify-between gap-3 border-b border-[#edf0f5] bg-slate-50 px-4 py-3"
+          >
+            <div class=":uno: flex items-center gap-2 text-[13px] font-bold text-gray-900">
+              <RiQuestionAnswerLine class=":uno: h-4 w-4 text-slate-500" />
               <span>RAG 问答</span>
             </div>
-            <button class="search-panel-close" @click="showAskPanel = false">
-              <RiCloseLine />
-            </button>
+            <VButton size="sm" circle v-tooltip="'关闭'" @click="showAskPanel = false">
+              <template #icon>
+                <RiCloseLine class="h-full w-full" />
+              </template>
+            </VButton>
           </div>
-          <div class="ask-panel-body">
-            <textarea
+          <div class=":uno: grid gap-3 p-4">
+            <FormKit
               v-model="askQuestion"
-              class="ask-input"
-              placeholder="输入问题，基于当前知识库资料生成回答..."
-            ></textarea>
+              type="textarea"
+              name="askQuestion"
+              label="问题"
+              placeholder="输入问题，基于当前知识库资料生成回答"
+              rows="4"
+            />
             <VSpace>
               <VButton type="primary" :loading="asking" @click="runAsk">提问</VButton>
               <VButton v-if="asking" type="secondary" @click="stopAsk">停止</VButton>
             </VSpace>
-            <div v-if="askStreamError" class="ask-error">{{ askStreamError }}</div>
-            <div v-if="answer" class="answer-box">{{ answer }}</div>
-            <div v-if="answerSources.length" class="source-list">
-              <div v-for="source in answerSources" :key="source.id" class="source-item">
-                <RiArticleLine />
-                <a v-if="source.url" :href="source.url" target="_blank">{{
-                  source.title || source.id
-                }}</a>
+            <div
+              v-if="askStreamError"
+              class=":uno: rounded-lg bg-red-50 px-3 py-2.5 text-xs leading-relaxed text-red-700"
+            >
+              {{ askStreamError }}
+            </div>
+            <div
+              v-if="answer"
+              class=":uno: whitespace-pre-wrap rounded-lg border border-[#edf0f5] bg-slate-50 p-3 text-[13px] leading-relaxed text-slate-800"
+            >
+              {{ answer }}
+            </div>
+            <div v-if="answerSources.length" class=":uno: flex flex-wrap gap-2">
+              <div
+                v-for="source in answerSources"
+                :key="source.id"
+                class=":uno: inline-flex max-w-full items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs text-blue-600"
+              >
+                <RiArticleLine class=":uno: h-3.5 w-3.5 flex-none" />
+                <a
+                  v-if="source.url"
+                  :href="source.url"
+                  target="_blank"
+                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-blue-600 no-underline"
+                >
+                  {{ source.title || source.id }}
+                </a>
                 <span v-else>{{ source.title || source.id }}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="entries-section">
-          <div class="entries-header">
-            <h3 class="entries-title">知识库条目</h3>
-            <span class="entries-count">{{ documents.length }} 条</span>
-          </div>
+        <VCard class=":uno: overflow-hidden" :body-class="[':uno: !p-0']">
+          <template #header>
+            <div class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3">
+              <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-gray-500">
+                <strong class=":uno: text-lg leading-none text-gray-900">{{
+                  documents.length
+                }}</strong>
+                <span>条内容</span>
+                <span>编辑后需要重建索引才会进入检索结果</span>
+              </div>
+            </div>
+          </template>
 
-          <div class="entries-content">
-            <VEmpty
-              v-if="documents.length === 0"
-              title="暂无条目"
-              message="点击右上角「新建条目」或「导入」添加数据"
-              class="entries-empty"
-            />
+          <VEmpty
+            v-if="documents.length === 0"
+            title="暂无条目"
+            :message="
+              canManageRag
+                ? '点击右上角「新建条目」或「导入」添加数据'
+                : '这个知识库还没有可查看的条目'
+            "
+            class=":uno: py-8"
+          />
 
-            <div v-else class="entries-list">
-              <div
-                v-for="document in pagedDocuments"
-                :key="document.metadata.name"
-                class="entry-item"
-                :class="{ 'entry-deleting': !!document.metadata.deletionTimestamp }"
-              >
-                <div class="entry-main">
-                  <div class="entry-title">
-                    {{ document.spec?.title || document.metadata.name }}
-                    <span v-if="document.metadata.deletionTimestamp" class="deleting-badge"
-                      >删除中...</span
-                    >
-                  </div>
-                  <div class="entry-desc">{{ stripHtmlAndMarkdown(document.spec?.content) }}</div>
-                  <div class="entry-meta">
-                    <VTag size="sm">{{ sourceTypeText(document.spec?.sourceType) }}</VTag>
-                    <VTag
-                      v-for="category in (document.spec?.categories || []).slice(0, 2)"
-                      :key="category"
-                      size="sm"
-                    >
-                      {{ category }}
-                    </VTag>
+          <VEntityContainer v-else class="document-list :uno: overflow-hidden">
+            <VEntity
+              v-for="document in pagedDocuments"
+              :key="document.metadata.name"
+              :class="{
+                ':uno: pointer-events-none opacity-[0.56]': !!document.metadata.deletionTimestamp,
+              }"
+            >
+              <template #start>
+                <VEntityField
+                  :title="document.spec?.title || document.metadata.name"
+                  :description="stripHtmlAndMarkdown(document.spec?.content)"
+                  width="30rem"
+                >
+                  <template #extra>
                     <VStatusDot
+                      v-if="!document.metadata.deletionTimestamp"
                       :state="document.spec?.enabled !== false ? 'success' : 'default'"
                       :text="document.spec?.enabled !== false ? '启用' : '禁用'"
                     />
-                    <span v-if="document.status?.chunkCount" class="entry-keyword">
+                    <VStatusDot v-else v-tooltip="'删除中'" state="warning" text="删除中" />
+                  </template>
+                </VEntityField>
+              </template>
+
+              <template #end>
+                <VEntityField>
+                  <template #description>
+                    <VTag size="sm">{{ sourceTypeText(document.spec?.sourceType) }}</VTag>
+                  </template>
+                </VEntityField>
+                <VEntityField
+                  v-for="category in (document.spec?.categories || []).slice(0, 2)"
+                  :key="category"
+                  width="6rem"
+                >
+                  <template #description>
+                    <VTag size="sm">{{ category }}</VTag>
+                  </template>
+                </VEntityField>
+                <VEntityField v-if="document.status?.chunkCount">
+                  <template #description>
+                    <span
+                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                    >
                       {{ document.status.chunkCount }} 分块
                     </span>
-                    <span v-if="document.status?.lastIndexedAt" class="entry-keyword">
+                  </template>
+                </VEntityField>
+                <VEntityField v-if="document.status?.lastIndexedAt" width="10rem">
+                  <template #description>
+                    <span
+                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-400 tabular-nums"
+                    >
                       {{ formatRelativeDate(document.status.lastIndexedAt) }}
                     </span>
-                  </div>
-                </div>
-                <div v-if="!document.metadata.deletionTimestamp" class="entry-actions">
-                  <label class="entry-switch">
-                    <span>启用</span>
+                  </template>
+                </VEntityField>
+                <VEntityField
+                  v-if="canManageRag && !document.metadata.deletionTimestamp"
+                  v-permission="[RAG_MANAGE_PERMISSION]"
+                >
+                  <template #description>
                     <VSwitch
                       :model-value="document.spec?.enabled !== false"
                       :disabled="mutatingDocument"
                       @update:model-value="(checked) => updateDocumentEnabled(document, checked)"
                     />
-                  </label>
-                  <button class="entry-action-btn" @click="openDocumentModal(document)">
-                    编辑
-                  </button>
-                  <button
-                    class="entry-action-btn entry-action-btn-danger"
-                    @click="deleteDocument(document)"
-                  >
-                    删除
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+                  </template>
+                </VEntityField>
+              </template>
 
-          <div v-if="documents.length > documentPageSize" class="entries-pagination">
+              <template v-if="canManageRag && !document.metadata.deletionTimestamp" #dropdownItems>
+                <VDropdownItem
+                  v-permission="[RAG_MANAGE_PERMISSION]"
+                  @click="openDocumentModal(document)"
+                >
+                  编辑
+                </VDropdownItem>
+                <VDropdownItem
+                  v-permission="[RAG_MANAGE_PERMISSION]"
+                  type="danger"
+                  :disabled="mutatingDocument"
+                  @click="deleteDocument(document)"
+                >
+                  删除
+                </VDropdownItem>
+              </template>
+            </VEntity>
+          </VEntityContainer>
+
+          <template #footer>
             <VPagination
               v-model:page="documentPage"
               v-model:size="documentPageSize"
+              page-label="页"
+              size-label="条 / 页"
+              :total-label="`共 ${documents.length} 项数据`"
               :total="documents.length"
               :size-options="[10, 20, 50]"
             />
-          </div>
-        </div>
+          </template>
+        </VCard>
       </template>
     </div>
   </template>
@@ -1177,33 +1481,32 @@ onBeforeUnmount(() => {
     :title="editingKnowledgeBase ? '编辑知识库' : '新建知识库'"
     :width="480"
   >
-    <div class="form-stack">
-      <label class="form-field">
-        <span>标识</span>
-        <input
-          v-model="knowledgeBaseForm.name"
-          class="form-input"
-          :disabled="Boolean(editingKnowledgeBase)"
-          placeholder="default"
-        />
-      </label>
-      <label class="form-field">
-        <span>名称</span>
-        <input
-          v-model="knowledgeBaseForm.displayName"
-          class="form-input"
-          placeholder="如：产品文档、常见问题"
-        />
-      </label>
-      <label class="form-field">
-        <span>描述</span>
-        <textarea
-          v-model="knowledgeBaseForm.description"
-          class="form-textarea"
-          placeholder="可选，简要描述知识库用途"
-        />
-      </label>
-      <label class="switch-row">
+    <div class="form-stack :uno: flex w-full min-w-0 flex-col gap-4">
+      <FormKit
+        v-model="knowledgeBaseForm.name"
+        type="text"
+        name="name"
+        label="标识"
+        :disabled="Boolean(editingKnowledgeBase)"
+        placeholder="default"
+        validation="required"
+      />
+      <FormKit
+        v-model="knowledgeBaseForm.displayName"
+        type="text"
+        name="displayName"
+        label="名称"
+        placeholder="如：产品文档、常见问题"
+        validation="required"
+      />
+      <FormKit
+        v-model="knowledgeBaseForm.description"
+        type="textarea"
+        name="description"
+        label="描述"
+        placeholder="可选，简要描述知识库用途"
+      />
+      <label class=":uno: inline-flex items-center gap-2 text-[13px] text-slate-700">
         <VSwitch v-model="knowledgeBaseForm.enabled" />
         <span>启用知识库</span>
       </label>
@@ -1221,66 +1524,70 @@ onBeforeUnmount(() => {
     :title="editingDocument ? '编辑知识库条目' : '新建知识库条目'"
     :width="650"
   >
-    <div class="form-stack">
-      <label class="form-field">
-        <span>标题</span>
-        <input v-model="documentForm.title" class="form-input" placeholder="问题或知识点标题" />
-      </label>
+    <div class="form-stack :uno: flex w-full min-w-0 flex-col gap-4">
+      <FormKit
+        v-model="documentForm.title"
+        type="text"
+        name="title"
+        label="标题"
+        placeholder="问题或知识点标题"
+        validation="required"
+      />
 
-      <label class="form-field">
-        <span>内容</span>
-        <textarea
-          v-model="documentForm.content"
-          class="form-textarea form-textarea-large"
-          placeholder="答案或详细内容，支持 Markdown 格式"
+      <FormKit
+        v-model="documentForm.content"
+        type="textarea"
+        name="content"
+        label="内容"
+        placeholder="答案或详细内容，支持 Markdown 格式"
+        validation="required"
+        rows="8"
+      />
+
+      <div class=":uno: grid w-full min-w-0 grid-cols-1 gap-3.5">
+        <FormKit
+          v-model="documentForm.sourceType"
+          type="select"
+          name="sourceType"
+          label="来源类型"
+          :options="documentSourceTypeOptions"
+          :disabled="Boolean(editingDocument)"
         />
-      </label>
-
-      <div class="form-grid">
-        <label class="form-field">
-          <span>来源类型</span>
-          <select
-            v-model="documentForm.sourceType"
-            class="form-input"
-            :disabled="Boolean(editingDocument)"
-          >
-            <option value="MANUAL">手动</option>
-            <option value="POST">文章</option>
-            <option value="PAGE">页面</option>
-            <option value="ATTACHMENT">附件</option>
-          </select>
-        </label>
-        <label class="form-field">
-          <span>来源标识</span>
-          <input
-            v-model="documentForm.sourceName"
-            class="form-input"
-            placeholder="可选，默认自动生成"
-          />
-        </label>
+        <FormKit
+          v-model="documentForm.sourceName"
+          type="text"
+          name="sourceName"
+          label="来源标识"
+          placeholder="可选，默认自动生成"
+        />
       </div>
 
-      <label class="form-field">
-        <span>URL</span>
-        <input v-model="documentForm.url" class="form-input" placeholder="可选，来源链接" />
-      </label>
+      <FormKit
+        v-model="documentForm.url"
+        type="text"
+        name="url"
+        label="URL"
+        placeholder="可选，来源链接"
+      />
 
-      <div class="form-grid">
-        <label class="form-field">
-          <span>标签</span>
-          <input v-model="documentForm.tags" class="form-input" placeholder="多个标签用逗号分隔" />
-        </label>
-        <label class="form-field">
-          <span>分类</span>
-          <input
-            v-model="documentForm.categories"
-            class="form-input"
-            placeholder="多个分类用逗号分隔"
-          />
-        </label>
+      <div class=":uno: grid w-full min-w-0 grid-cols-1 gap-3.5">
+        <FormKit
+          v-model="documentForm.tags"
+          type="text"
+          name="tags"
+          label="标签"
+          placeholder="多个标签用逗号分隔"
+        />
+        <FormKit
+          v-model="documentForm.categories"
+          type="text"
+          name="categories"
+          label="分类"
+          placeholder="多个分类用逗号分隔"
+        />
       </div>
 
-      <label class="switch-row">
+      <label class=":uno: inline-flex items-center gap-2 text-[13px] text-slate-700">
         <VSwitch v-model="documentForm.enabled" />
         <span>启用此条目</span>
       </label>
@@ -1294,59 +1601,106 @@ onBeforeUnmount(() => {
   </VModal>
 
   <VModal v-model:visible="showImportPostsModal" title="导入知识库" :width="760">
-    <div class="import-container">
-      <div class="posts-section">
-        <div class="posts-header">
-          <div class="posts-icon">
-            <RiArticleLine />
+    <div class=":uno: grid gap-4">
+      <div class=":uno: grid gap-4 rounded-lg border border-[#edf0f5] bg-white p-4">
+        <div class=":uno: flex items-center gap-3">
+          <div class=":uno: grid h-10 w-10 place-items-center rounded-lg bg-blue-50 text-blue-600">
+            <RiArticleLine class=":uno: h-5 w-5" />
           </div>
-          <div class="posts-title">
-            <h4>导入 Halo 文章</h4>
-            <p>将已发布的博客文章同步到当前知识库</p>
+          <div>
+            <h4 class=":uno: m-0 text-sm font-bold text-gray-900">导入 Halo 文章</h4>
+            <p class=":uno: m-0 mt-1 text-xs text-slate-500">将已发布的博客文章同步到当前知识库</p>
           </div>
         </div>
 
-        <div class="search-input-wrapper import-search">
-          <RiSearchLine class="search-input-icon" />
-          <input v-model="importKeyword" class="search-input" placeholder="搜索公开文章" />
-          <VButton size="sm" :loading="loadingImportablePosts" @click="fetchImportablePosts"
-            >刷新</VButton
-          >
+        <div
+          class="panel-form-row :uno: grid grid-cols-[minmax(0,1fr)_max-content] items-end gap-2.5 max-[720px]:grid-cols-1"
+        >
+          <FormKit
+            v-model="importKeyword"
+            type="text"
+            name="importKeyword"
+            label="搜索文章"
+            placeholder="输入标题或文章标识"
+          />
+          <VButton size="sm" :loading="loadingImportablePosts" @click="fetchImportablePosts">
+            刷新
+          </VButton>
         </div>
 
-        <label class="switch-row">
+        <label class=":uno: inline-flex items-center gap-2 text-[13px] text-slate-700">
           <VSwitch v-model="rebuildAfterImport" />
           <span>导入后立即重建索引</span>
         </label>
 
         <VLoading v-if="loadingImportablePosts" />
         <VEmpty v-else-if="importableFilteredPosts.length === 0" title="暂无可导入文章" />
-        <div v-else class="post-list">
-          <div class="post-row post-row-head">
-            <VSwitch
-              :model-value="allVisiblePostsSelected"
-              @update:model-value="toggleAllVisiblePosts"
-            />
-            <span>文章</span>
-            <span>状态</span>
-          </div>
-          <label v-for="post in importableFilteredPosts" :key="post.postName" class="post-row">
-            <VSwitch
-              :model-value="selectedImportableSet.has(post.postName)"
-              @update:model-value="(checked) => togglePostSelection(post.postName, checked)"
-            />
-            <span class="post-main">
-              <span class="post-title">{{ post.title || post.postName }}</span>
-              <span class="post-meta">
-                {{ post.postName }} · {{ post.chunkCount || 0 }} 分块 ·
-                {{ formatDate(post.lastImportedAt) }}
-              </span>
-            </span>
-            <VTag :class="post.imported ? 'tag-success' : 'tag-muted'">
-              {{ post.imported ? '已导入' : '未导入' }}
-            </VTag>
-          </label>
-        </div>
+        <VEntityContainer
+          v-else
+          class="post-list :uno: overflow-hidden rounded-lg border border-[#edf0f5]"
+        >
+          <VEntity>
+            <template #start>
+              <div
+                class=":uno: grid w-[min(38rem,60vw)] min-w-0 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 max-[1080px]:w-[min(100%,60vw)] max-[720px]:w-full"
+              >
+                <VSwitch
+                  :model-value="allVisiblePostsSelected"
+                  @update:model-value="toggleAllVisiblePosts"
+                />
+                <VEntityField title="文章" description="选择需要导入到当前知识库的公开文章" />
+              </div>
+            </template>
+            <template #end>
+              <VEntityField>
+                <template #description>
+                  <span
+                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                  >
+                    已选 {{ selectedPostNames.length }}
+                  </span>
+                </template>
+              </VEntityField>
+            </template>
+          </VEntity>
+          <VEntity v-for="post in importableFilteredPosts" :key="post.postName">
+            <template #start>
+              <div
+                class=":uno: grid w-[min(38rem,60vw)] min-w-0 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 max-[1080px]:w-[min(100%,60vw)] max-[720px]:w-full"
+              >
+                <VSwitch
+                  :model-value="selectedImportableSet.has(post.postName)"
+                  @update:model-value="(checked) => togglePostSelection(post.postName, checked)"
+                />
+                <VEntityField :title="post.title || post.postName">
+                  <template #description>
+                    <span
+                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                    >
+                      {{ post.postName }} · {{ post.chunkCount || 0 }} 分块 ·
+                      {{ formatDate(post.lastImportedAt) }}
+                    </span>
+                  </template>
+                </VEntityField>
+              </div>
+            </template>
+            <template #end>
+              <VEntityField>
+                <template #description>
+                  <VTag
+                    :class="
+                      post.imported
+                        ? ':uno: bg-emerald-50 text-emerald-700'
+                        : ':uno: bg-slate-100 text-slate-500'
+                    "
+                  >
+                    {{ post.imported ? '已导入' : '未导入' }}
+                  </VTag>
+                </template>
+              </VEntityField>
+            </template>
+          </VEntity>
+        </VEntityContainer>
       </div>
     </div>
     <template #footer>
@@ -1362,1051 +1716,58 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.knowledge-list-container {
-  padding: 16px;
-}
-
-.knowledge-list {
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.kb-row,
-.create-kb-row {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) minmax(190px, auto) auto;
-  gap: 14px;
-  align-items: center;
+.kb-list :deep(.entity-start),
+.document-list :deep(.entity-start) {
+  min-width: 0;
   width: 100%;
-  padding: 14px 16px;
-  border: 0;
-  border-bottom: 1px solid #edf0f5;
-  background: #fff;
-  text-align: left;
 }
 
-.kb-row {
-  cursor: pointer;
+.kb-list :deep(.entity-end),
+.document-list :deep(.entity-end) {
+  gap: 18px;
+  row-gap: 6px;
 }
 
-.kb-row:hover,
-.create-kb-row:hover {
-  background: #fafafa;
+.kb-list :deep(.entity-field-wrapper),
+.document-list :deep(.entity-field-wrapper) {
+  max-width: none;
 }
 
-.kb-avatar {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  color: #111827;
-  background: #f8fafc;
-  font-size: 14px;
-  font-weight: 700;
+.panel-form-row :deep(.formkit-outer) {
+  margin-bottom: 0;
 }
 
-.kb-main {
-  min-width: 0;
-}
-
-.kb-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.kb-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  color: #6b7280;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.kb-action-btn:hover {
-  color: #374151;
-  background: #f8fafc;
-}
-
-.kb-action-btn-danger:hover {
-  color: #ef4444;
-  border-color: #fecaca;
-  background: #fff7f7;
-}
-
-.kb-action-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.kb-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  margin-bottom: 4px;
-}
-
-.kb-title {
-  overflow: hidden;
-  margin: 0;
-  color: #1f2937;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.kb-status {
-  flex: 0 0 auto;
-}
-
-.kb-desc {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 0;
-  color: #6b7280;
-  font-size: 13px;
-  line-height: 1.5;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.kb-desc.muted {
-  color: #9ca3af;
-}
-
-.kb-row-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  color: #64748b;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.kb-arrow {
-  width: 20px;
-  height: 20px;
-  color: #d1d5db;
-  transition: all 0.2s;
-}
-
-.kb-row:hover .kb-arrow {
-  color: #475569;
-  transform: translateX(2px);
-}
-
-.create-kb-row {
-  grid-template-columns: 20px minmax(0, 1fr);
-  color: #475569;
-  font-size: 13px;
-  font-weight: 650;
-  border-bottom: none;
-  cursor: pointer;
-}
-
-.create-kb-row svg {
-  width: 16px;
-  height: 16px;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  color: #64748b;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  color: #111827;
-  background: #f8fafc;
-  border-color: #cbd5e1;
-}
-
-.back-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.kb-detail-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px 20px;
-}
-
-.kb-overview {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-  padding: 14px 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-}
-
-.kb-overview-main {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.kb-overview-main p {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: 0;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.55;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.kb-metrics {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(74px, auto));
-  gap: 12px;
-  margin: 0;
-}
-
-.kb-metrics div {
-  min-width: 0;
-  padding-left: 12px;
-  border-left: 1px solid #edf0f5;
-}
-
-.kb-metrics dt {
-  color: #94a3b8;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.kb-metrics dd {
-  margin: 4px 0 0;
-  overflow: hidden;
-  color: #111827;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.index-notice {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid;
-  border-radius: 8px;
-}
-
-.index-notice-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-}
-
-.index-notice-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.index-notice-body {
-  min-width: 0;
-}
-
-.index-notice-body strong {
-  display: block;
-  margin-bottom: 3px;
-  color: #1e293b;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.index-notice-body p {
-  margin: 0;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.index-notice-warning {
-  background: #fffbeb;
-  border-color: #fde68a;
-}
-
-.index-notice-warning .index-notice-icon {
-  color: #b45309;
-  background: #fef3c7;
-}
-
-.index-notice-error {
-  background: #fef2f2;
-  border-color: #fecaca;
-}
-
-.index-notice-error .index-notice-icon {
-  color: #dc2626;
-  background: #fee2e2;
-}
-
-@media (max-width: 640px) {
-  .index-notice {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .index-notice :deep(.v-button) {
-    grid-column: 2;
-    justify-self: flex-start;
-  }
-}
-
-.task-panel {
-  padding: 14px 16px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.task-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  color: #475569;
-  font-size: 13px;
-}
-
-.progress-track {
-  height: 8px;
-  overflow: hidden;
-  background: #e2e8f0;
-  border-radius: 999px;
-}
-
-.progress-track span {
-  display: block;
-  height: 100%;
-  background: #0f766e;
-  border-radius: inherit;
-  transition: width 0.2s ease;
-}
-
-.search-panel {
-  overflow: hidden;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.search-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.search-panel-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #1e293b;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.search-panel-icon {
-  width: 18px;
-  height: 18px;
-  color: #64748b;
-}
-
-.search-panel-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  color: #94a3b8;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.search-panel-close:hover {
-  color: #475569;
-  background: #e2e8f0;
-}
-
-.search-panel-close svg {
-  width: 18px;
-  height: 18px;
-}
-
-.search-panel-body,
-.ask-panel-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-}
-
-.search-input-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 3px 3px 12px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  transition: all 0.15s;
-}
-
-.search-input-wrapper:focus-within {
-  background: #fff;
-  border-color: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
-}
-
-.search-input-icon {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  color: #94a3b8;
-}
-
-.search-input {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 0;
-  color: #1e293b;
-  font-size: 13px;
-  background: transparent;
-  border: none;
-  outline: none;
-}
-
-.search-input::placeholder {
-  color: #94a3b8;
-}
-
-.search-results {
-  max-height: 260px;
-  min-height: 100px;
-  padding: 0;
-  overflow-y: auto;
-  background: #fff;
-  border: 1px solid #edf0f5;
-  border-radius: 7px;
-}
-
-.search-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100px;
-  gap: 6px;
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.search-empty-icon {
-  width: 28px;
-  height: 28px;
-  opacity: 0.4;
-}
-
-.search-results-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.search-result-item {
-  display: flex;
-  gap: 10px;
-  padding: 11px 12px;
-  background: #fff;
-  border-bottom: 1px solid #edf0f5;
-  transition: all 0.15s;
-}
-
-.search-result-item:last-child {
-  border-bottom: none;
-}
-
-.search-result-item:hover {
-  background: #fafafa;
-}
-
-.search-result-index {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 600;
-  background: #f1f5f9;
-  border-radius: 999px;
-}
-
-.search-result-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.search-result-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.search-result-title {
-  flex: 1;
-  overflow: hidden;
-  color: #1e293b;
-  font-size: 13px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.search-result-score {
-  flex: 0 0 auto;
-  padding: 2px 8px;
-  color: #10b981;
-  font-size: 12px;
-  font-weight: 600;
-  background: #ecfdf5;
-  border-radius: 4px;
-}
-
-.search-result-desc {
-  display: -webkit-box;
-  overflow: hidden;
-  margin-bottom: 4px;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.5;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.search-result-category {
-  margin-top: 4px;
-}
-
-.ask-input {
-  min-height: 92px;
-  padding: 12px;
-  color: #1e293b;
-  font-size: 13px;
-  line-height: 1.6;
-  resize: vertical;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  outline: none;
-}
-
-.ask-input:focus {
-  background: #fff;
-  border-color: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
-}
-
-.answer-box {
-  padding: 12px;
-  color: #334155;
-  font-size: 13px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  background: #f8fafc;
-  border: 1px solid #edf0f5;
-  border-radius: 7px;
-}
-
-.ask-error {
-  padding: 10px 12px;
-  color: #dc2626;
-  font-size: 13px;
-  background: #fef2f2;
-  border-radius: 8px;
-}
-
-.source-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.source-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #475569;
-  font-size: 12px;
-}
-
-.source-item svg {
-  width: 16px;
-  height: 16px;
-  color: #94a3b8;
-}
-
-.source-item a {
-  color: #2563eb;
-  text-decoration: none;
-}
-
-.entries-section {
-  overflow: hidden;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.entries-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.entries-title {
-  margin: 0;
-  color: #1e293b;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.entries-count {
-  padding: 2px 10px;
-  color: #64748b;
-  font-size: 12px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-}
-
-.entries-content {
-  padding: 0;
-}
-
-.entries-empty {
-  padding: 32px 20px;
-}
-
-.entries-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.entry-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  transition: background 0.15s;
-}
-
-.entry-item:last-child {
-  border-bottom: none;
-}
-
-.entry-item:hover {
-  background: #f8fafc;
-}
-
-.entry-item.entry-deleting {
-  pointer-events: none;
-  background: #fef2f2;
-  opacity: 0.5;
-}
-
-.entry-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.entry-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow: hidden;
-  margin-bottom: 4px;
-  color: #1e293b;
-  font-size: 14px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deleting-badge {
-  flex: 0 0 auto;
-  padding: 2px 8px;
-  color: #ef4444;
-  font-size: 11px;
-  font-weight: 500;
-  background: #fee2e2;
-  border-radius: 4px;
-}
-
-.entry-desc {
-  display: -webkit-box;
-  overflow: hidden;
-  margin-bottom: 6px;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.4;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
-}
-
-.entry-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.entry-keyword {
-  padding: 1px 6px;
-  color: #64748b;
-  font-size: 11px;
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-.entry-actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 6px;
-}
-
-.entry-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding-right: 4px;
-  color: #475569;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.entry-action-btn {
-  padding: 5px 12px;
-  color: #475569;
-  font-size: 12px;
-  font-weight: 500;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.entry-action-btn:hover {
-  color: #1e293b;
-  background: #f8fafc;
-}
-
-.entry-action-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.entry-action-btn-danger:hover {
-  color: #dc2626;
-  border-color: #fecaca;
-  background: #fff7f7;
-}
-
-.entries-pagination {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.form-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-@media (max-width: 640px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: #374151;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.form-input,
-.form-textarea {
+.form-stack :deep(.formkit-outer),
+.form-stack :deep(.formkit-wrapper),
+.form-stack :deep(.formkit-inner) {
   width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.form-stack :deep(.formkit-input) {
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
-  padding: 9px 11px;
-  color: #1f2937;
-  font-size: 13px;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  outline: none;
 }
 
-.form-input:focus,
-.form-textarea:focus {
-  border-color: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
-}
-
-.form-input:disabled {
-  color: #94a3b8;
-  background: #f8fafc;
-}
-
-.form-textarea {
-  min-height: 88px;
-  resize: vertical;
-}
-
-.form-textarea-large {
-  min-height: 180px;
-}
-
-.switch-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #475569;
-  font-size: 13px;
-}
-
-.import-container,
-.posts-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.posts-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.posts-icon {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  color: #475569;
-  background: #f1f5f9;
-  border-radius: 8px;
-}
-
-.posts-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.posts-title h4 {
-  margin: 0;
-  color: #1e293b;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.posts-title p {
-  margin: 3px 0 0;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.import-search {
-  margin-top: 2px;
-}
-
-.post-list {
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.post-row {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 12px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-label.post-row {
-  cursor: pointer;
-}
-
-.post-row:last-child {
-  border-bottom: none;
-}
-
-.post-row-head {
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 600;
-  background: #f8fafc;
-}
-
-.post-main {
-  display: flex;
+.post-list :deep(.entity-start) {
   min-width: 0;
-  flex-direction: column;
-  gap: 2px;
+  width: 100%;
 }
 
-.post-title {
-  overflow: hidden;
-  color: #1e293b;
-  font-size: 13px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.post-meta {
-  overflow: hidden;
-  color: #94a3b8;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tag-success {
-  color: #059669;
-}
-
-.tag-muted {
-  color: #64748b;
-}
-
-@media (max-width: 1080px) {
-  .kb-row {
-    grid-template-columns: 42px minmax(0, 1fr);
-  }
-
-  .kb-row-meta,
-  .kb-actions {
-    grid-column: 2;
-    justify-content: flex-start;
-  }
-
-  .kb-overview {
-    grid-template-columns: 1fr;
-  }
-
-  .kb-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+.post-list :deep(.entity-end) {
+  gap: 14px;
+  row-gap: 6px;
 }
 
 @media (max-width: 720px) {
-  .knowledge-list-container,
-  .kb-detail-container {
-    padding: 12px;
-  }
-
-  .kb-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .index-notice,
-  .entry-item {
-    grid-template-columns: 1fr;
-  }
-
-  .index-notice :deep(.v-button) {
-    grid-column: auto;
-    justify-self: flex-start;
-  }
-
-  .entry-actions {
-    width: 100%;
+  .kb-list :deep(.entity-start),
+  .document-list :deep(.entity-start),
+  .kb-list :deep(.entity-end),
+  .document-list :deep(.entity-end) {
     flex-wrap: wrap;
-  }
-}
-
-@media (max-width: 520px) {
-  .kb-row,
-  .create-kb-row {
-    grid-template-columns: 1fr;
-  }
-
-  .kb-row-meta,
-  .kb-actions {
-    grid-column: auto;
-  }
-
-  .kb-metrics {
-    grid-template-columns: 1fr;
+    justify-content: flex-start;
   }
 }
 </style>

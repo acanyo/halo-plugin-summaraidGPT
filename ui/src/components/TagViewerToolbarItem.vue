@@ -2,14 +2,7 @@
 import { ref, computed } from 'vue'
 import type { Editor } from '@tiptap/core'
 import type { Component } from 'vue'
-import {
-  VButton,
-  VDropdown,
-  VLoading,
-  Toast,
-  VEmpty,
-  VAlert
-} from '@halo-dev/components'
+import { VButton, VDropdown, VLoading, Toast, VEmpty, VAlert } from '@halo-dev/components'
 import axios, { AxiosError } from 'axios'
 import IconTag from '~icons/lucide/tag'
 import MdiRefresh from '~icons/mdi/refresh'
@@ -84,7 +77,7 @@ const isAllSelected = computed(() => {
 })
 
 // 获取标签名称列表
-const tagNames = computed(() => tags.value.map(t => t.name))
+const tagNames = computed(() => tags.value.map((t) => t.name))
 
 // 从URL中获取postName
 const getPostNameFromUrl = () => {
@@ -107,11 +100,11 @@ const fetchAITags = async () => {
       `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/generateTags`,
       {
         postName: postName,
-        ensure: true
+        ensure: true,
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     )
 
     if (data.success && Array.isArray(data.tags)) {
@@ -119,7 +112,7 @@ const fetchAITags = async () => {
       tagStats.value = {
         total: data.totalCount || data.tags.length,
         existing: data.existingCount || 0,
-        new: data.newCount || 0
+        new: data.newCount || 0,
       }
       if (tags.value.length === 0) {
         errorMessage.value = '未能生成相关标签'
@@ -130,7 +123,8 @@ const fetchAITags = async () => {
   } catch (error) {
     console.error('获取AI标签失败:', error)
     if (error instanceof AxiosError) {
-      errorMessage.value = error.response?.data?.detail || error.response?.data?.message || '请求失败，请重试'
+      errorMessage.value =
+        error.response?.data?.detail || error.response?.data?.message || '请求失败，请重试'
     } else {
       errorMessage.value = error instanceof Error ? error.message : '生成标签失败'
     }
@@ -199,7 +193,7 @@ const handleSelectAll = () => {
     selectedTags.value = []
   } else {
     // 如果未全选，则全选
-    selectedTags.value = tags.value.map(t => t.name)
+    selectedTags.value = tags.value.map((t) => t.name)
   }
 }
 
@@ -223,8 +217,8 @@ const confirmSelection = async () => {
     const { data: existingTagsResponse } = await axios.get<HaloTagListResponse>(
       `/apis/content.halo.run/v1alpha1/tags`,
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     )
 
     const existingTagsMap = new Map<string, string>()
@@ -239,7 +233,7 @@ const confirmSelection = async () => {
 
     // 2. 创建不存在的标签
     const createPromises = selectedTags.value
-      .filter(tagName => !existingTagsMap.has(tagName))
+      .filter((tagName) => !existingTagsMap.has(tagName))
       .map(async (tagDisplayName) => {
         try {
           // 使用随机数生成slug，避免中文乱码问题
@@ -247,26 +241,26 @@ const confirmSelection = async () => {
           const slug = `tag-${randomId}`
 
           const tagData = {
-            apiVersion: "content.halo.run/v1alpha1",
-            kind: "Tag",
+            apiVersion: 'content.halo.run/v1alpha1',
+            kind: 'Tag',
             metadata: {
-              generateName: "tag-",
-              annotations: {}
+              generateName: 'tag-',
+              annotations: {},
             },
             spec: {
               displayName: tagDisplayName,
               slug: slug,
-              color: "#ffffff",
-              cover: ""
-            }
+              color: '#ffffff',
+              cover: '',
+            },
           }
 
           const { data: tag } = await axios.post<HaloTag>(
             `/apis/content.halo.run/v1alpha1/tags`,
             tagData,
             {
-              headers: { 'Content-Type': 'application/json' }
-            }
+              headers: { 'Content-Type': 'application/json' },
+            },
           )
 
           return tag.metadata.name
@@ -280,12 +274,12 @@ const confirmSelection = async () => {
         }
       })
 
-    const newTagNames = (await Promise.all(createPromises)).filter(name => name !== null)
+    const newTagNames = (await Promise.all(createPromises)).filter((name) => name !== null)
 
     // 3. 收集所有标签的metadata.name
     const allTagNames = [
       ...Array.from(existingTagsMap.values()), // 现有标签
-      ...newTagNames // 新创建的标签
+      ...newTagNames, // 新创建的标签
     ]
 
     if (allTagNames.length === 0) {
@@ -293,12 +287,9 @@ const confirmSelection = async () => {
     }
 
     // 4. 获取并更新文章
-    const { data: post } = await axios.get(
-      `/apis/content.halo.run/v1alpha1/posts/${postName}`,
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    const { data: post } = await axios.get(`/apis/content.halo.run/v1alpha1/posts/${postName}`, {
+      headers: { 'Content-Type': 'application/json' },
+    })
 
     // 5. 更新文章的标签
     const existingTags = post.spec?.tags || []
@@ -308,17 +299,13 @@ const confirmSelection = async () => {
       ...post,
       spec: {
         ...post.spec,
-        tags: updatedTags
-      }
+        tags: updatedTags,
+      },
     }
 
-    await axios.put(
-      `/apis/content.halo.run/v1alpha1/posts/${postName}`,
-      updatedPost,
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    await axios.put(`/apis/content.halo.run/v1alpha1/posts/${postName}`, updatedPost, {
+      headers: { 'Content-Type': 'application/json' },
+    })
 
     Toast.success(`成功应用 ${selectedTags.value.length} 个标签到文章`)
     // 手动关闭下拉框
@@ -328,7 +315,9 @@ const confirmSelection = async () => {
   } catch (error) {
     console.error('应用标签失败:', error)
     if (error instanceof AxiosError) {
-      Toast.error(error.response?.data?.message || error.response?.data?.detail || '应用标签失败，请重试')
+      Toast.error(
+        error.response?.data?.message || error.response?.data?.detail || '应用标签失败，请重试',
+      )
     } else {
       Toast.error(error instanceof Error ? error.message : '应用标签失败')
     }
@@ -344,7 +333,7 @@ const checkPostName = () => {
 </script>
 
 <template>
-  <div class="likcc-summaraidGPT-tag-viewer">
+  <div class=":uno: inline-block">
     <VDropdown
       v-model:visible="dropdownVisible"
       :disabled="disabled"
@@ -357,17 +346,17 @@ const checkPostName = () => {
         v-tooltip="title"
         :class="{
           'bg-gray-200 text-black': isActive,
-          'text-gray-600 hover:text-gray-900 hover:bg-gray-100': !isActive
+          'text-gray-600 hover:text-gray-900 hover:bg-gray-100': !isActive,
         }"
-        class="likcc-summaraidGPT-tag-viewer-btn"
+        class=":uno: inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded border-none bg-transparent p-1.5 transition-colors duration-200 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-transparent"
         :disabled="disabled"
         @click="toggleDropdown"
       >
         <component :is="icon || IconTag" class="h-4 w-4" />
       </button>
 
-             <template #popper>
-         <div class="likcc-summaraidGPT-tag-dropdown" @click.stop>
+      <template #popper>
+        <div class=":uno: w-[420px] overflow-hidden max-sm:w-[90vw]" @click.stop>
           <!-- 使用说明 -->
           <div class="p-3">
             <VAlert
@@ -417,15 +406,9 @@ const checkPostName = () => {
 
             <!-- 错误状态 -->
             <div v-else-if="errorMessage" class="p-4 text-center">
-              <VEmpty
-                title="生成失败"
-                :description="errorMessage"
-                class="text-xs"
-              >
+              <VEmpty title="生成失败" :description="errorMessage" class="text-xs">
                 <template #actions>
-                  <VButton size="xs" type="primary" @click="handleRefresh">
-                    重试
-                  </VButton>
+                  <VButton size="xs" type="primary" @click="handleRefresh"> 重试 </VButton>
                 </template>
               </VEmpty>
             </div>
@@ -443,10 +426,12 @@ const checkPostName = () => {
                 <div
                   v-for="tag in tags"
                   :key="tag.name"
-                  class="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 select-none text-center"
-                  :class="selectedTags.includes(tag.name) 
-                    ? 'bg-blue-50 border-blue-300 text-blue-700 shadow-sm' 
-                    : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'"
+                  class=":uno: inline-flex cursor-pointer select-none items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-center transition-all duration-150"
+                  :class="
+                    selectedTags.includes(tag.name)
+                      ? 'bg-blue-50 border-blue-300 text-blue-700 shadow-sm'
+                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
+                  "
                   @click="toggleTag(tag.name)"
                 >
                   <span class="text-sm font-medium truncate">{{ tag.name }}</span>
@@ -474,15 +459,9 @@ const checkPostName = () => {
 
             <!-- 空状态 -->
             <div v-else class="p-4 text-center">
-              <VEmpty
-                title="暂无标签"
-                description="未能生成标签"
-                class="text-xs"
-              >
+              <VEmpty title="暂无标签" description="未能生成标签" class="text-xs">
                 <template #actions>
-                  <VButton size="xs" type="primary" @click="handleRefresh">
-                    生成标签
-                  </VButton>
+                  <VButton size="xs" type="primary" @click="handleRefresh"> 生成标签 </VButton>
                 </template>
               </VEmpty>
             </div>
@@ -491,15 +470,13 @@ const checkPostName = () => {
           <!-- 底部操作 -->
           <div v-if="tags.length > 0 && !loading" class="p-3 border-t border-gray-100">
             <div class="flex items-center justify-between">
-              <span class="text-xs text-gray-500">
-                已选择 {{ selectedTags.length }} 个标签
-              </span>
-                             <VButton
-                 size="xs"
-                 type="primary"
-                 :disabled="selectedTags.length === 0"
-                 @click="confirmSelection"
-               >
+              <span class="text-xs text-gray-500"> 已选择 {{ selectedTags.length }} 个标签 </span>
+              <VButton
+                size="xs"
+                type="primary"
+                :disabled="selectedTags.length === 0"
+                @click="confirmSelection"
+              >
                 确认选择
               </VButton>
             </div>
@@ -509,36 +486,3 @@ const checkPostName = () => {
     </VDropdown>
   </div>
 </template>
-
-<style scoped>
-.likcc-summaraidGPT-tag-viewer-btn {
-  @apply inline-flex items-center justify-center rounded transition-colors duration-200;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  padding: 6px;
-}
-
-.likcc-summaraidGPT-tag-viewer-btn:disabled {
-  @apply text-gray-400 cursor-not-allowed;
-}
-
-.likcc-summaraidGPT-tag-viewer-btn:disabled:hover {
-  @apply bg-transparent;
-}
-
-.likcc-summaraidGPT-tag-content {
-  @apply min-h-[200px];
-}
-
-.likcc-summaraidGPT-tag-item {
-  @apply transition-colors duration-200;
-}
-
-.likcc-summaraidGPT-tag-item:hover {
-  @apply bg-blue-50 border-blue-200;
-}
-</style>
-

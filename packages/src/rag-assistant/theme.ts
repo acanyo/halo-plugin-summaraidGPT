@@ -2,10 +2,10 @@ import type { RagAssistantStyleConfig } from './types';
 
 export const DEFAULT_RAG_ASSISTANT_STYLE: RagAssistantStyleConfig = {
   stylePreset: 'default',
-  primaryColor: '#2563eb',
-  secondaryColor: '#eaf3ff',
-  surfaceColor: '#fbfdff',
-  textColor: '#172033',
+  primaryColor: '#a16207',
+  secondaryColor: '#f4f4f5',
+  surfaceColor: '#fafafa',
+  textColor: '#18181b',
   borderRadius: 'soft',
   colorMode: 'light',
 };
@@ -33,10 +33,10 @@ const STYLE_PRESETS: Record<
   Pick<RagAssistantStyleConfig, 'primaryColor' | 'secondaryColor' | 'surfaceColor' | 'textColor'>
 > = {
   default: {
-    primaryColor: '#2563eb',
-    secondaryColor: '#eaf3ff',
-    surfaceColor: '#fbfdff',
-    textColor: '#172033',
+    primaryColor: '#a16207',
+    secondaryColor: '#f4f4f5',
+    surfaceColor: '#fafafa',
+    textColor: '#18181b',
   },
   graphite: {
     primaryColor: '#d6b46c',

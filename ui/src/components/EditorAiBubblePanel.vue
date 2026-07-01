@@ -1,37 +1,56 @@
 <template>
   <div
     ref="panelRef"
-    class="editor-ai-bubble-panel"
-    :class="[`direction-${expandDirection}`]"
+    class=":uno: flex w-[396px] flex-col gap-2.5 rounded-[22px] border border-[rgba(0,0,0,0.06)] bg-[rgba(250,250,252,0.88)] p-3 font-sans shadow-2xl backdrop-blur-2xl backdrop-saturate-150"
+    :class="expandDirection === 'up' ? ':uno: -translate-y-[calc(100%+58px)]' : ''"
     :style="{ '--panel-max-height': `${panelMaxHeight}px` }"
     @click.stop
   >
-    <div class="panel-head">
-      <div class="head-title-wrap">
-        <div class="head-badge">AI 助手</div>
-        <div class="head-title">针对选中文本即时处理</div>
+    <div class=":uno: flex items-center justify-between gap-3">
+      <div class=":uno: flex flex-col gap-[3px]">
+        <div
+          class=":uno: w-fit rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-600"
+        >
+          AI 助手
+        </div>
+        <div class=":uno: text-xs leading-snug tracking-normal text-black/50">
+          针对选中文本即时处理
+        </div>
       </div>
-      <div class="head-meta" v-if="selectedText">{{ selectedText.length }} 字</div>
+      <div
+        v-if="selectedText"
+        class=":uno: text-xs font-semibold leading-snug tracking-normal text-black/80"
+      >
+        {{ selectedText.length }} 字
+      </div>
     </div>
 
-    <div v-if="selectedText" class="selection-preview">
-      <div class="preview-label">当前选中</div>
-      <div class="preview-text">{{ selectedPreview }}</div>
+    <div v-if="selectedText" class=":uno: rounded-2xl bg-[rgba(245,245,247,0.92)] px-3 py-2.5">
+      <div class=":uno: mb-1.5 text-[10px] font-semibold tracking-normal text-black/50">
+        当前选中
+      </div>
+      <div class=":uno: text-xs leading-relaxed tracking-normal text-[#1d1d1f]">
+        {{ selectedPreview }}
+      </div>
     </div>
 
-    <div class="prompt-box">
+    <div
+      class=":uno: flex items-center gap-2 rounded-[20px] border border-[rgba(0,0,0,0.06)] bg-white/72 p-2 shadow-inner"
+    >
       <textarea
         ref="instructionInputRef"
         v-model="instruction"
-        class="prompt-input"
+        class=":uno: min-h-[38px] flex-1 resize-none overflow-y-auto rounded-[14px] border-0 bg-transparent px-2.5 py-2 text-[17px] font-normal leading-relaxed tracking-normal text-[#1d1d1f] outline-none focus:bg-white/40 disabled:cursor-not-allowed"
         rows="1"
         :disabled="loading"
-        :placeholder="selectedText ? '直接告诉 AI 你要它怎么处理这段文字' : '请先在编辑器中选中一段文字'"
+        :placeholder="
+          selectedText ? '直接告诉 AI 你要它怎么处理这段文字' : '请先在编辑器中选中一段文字'
+        "
         @keydown.enter.exact.prevent="handleSend"
         @input="resizeInstructionInput"
       />
       <button
-        class="send-button"
+        class=":uno: h-[38px] min-w-[58px] cursor-pointer rounded-full border-0 bg-blue-600 px-4 text-sm font-normal leading-snug tracking-normal text-white disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="loading || !canSend"
         @click="handleSend"
       >
@@ -40,11 +59,11 @@
       </button>
     </div>
 
-    <div class="quick-actions">
+    <div class=":uno: flex flex-wrap gap-1.5">
       <button
         v-for="item in quickActions"
         :key="item.label"
-        class="quick-action"
+        class=":uno: cursor-pointer rounded-full border border-black/10 bg-white/75 px-[11px] py-1.5 text-xs leading-snug tracking-normal text-black/80 transition-all duration-200 hover:border-blue-500/25 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="loading"
         @click="runQuickAction(item.prompt)"
       >
@@ -54,31 +73,52 @@
 
     <VAlert
       v-if="errorMessage"
-      class="panel-alert"
+      class=":uno: m-0"
       type="error"
       :title="errorMessage"
       :closable="false"
     />
 
-    <div v-else-if="loading && !resultText" class="content-box state-box">
+    <div
+      v-else-if="loading && !resultText"
+      class=":uno: flex min-h-[108px] max-h-[var(--panel-max-height)] items-center justify-center gap-2 overflow-auto rounded-[18px] border border-black/5 bg-white/70 p-3.5 text-black/50"
+    >
       <VLoading />
       <span>AI 正在思考...</span>
     </div>
 
-    <div v-else-if="resultText" class="content-box result-box">
-      <div class="result-label">处理结果</div>
-      <div class="result-text">
+    <div
+      v-else-if="resultText"
+      class=":uno: min-h-[108px] max-h-[var(--panel-max-height)] overflow-auto rounded-[18px] border border-black/5 bg-white/70 p-3.5"
+    >
+      <div class=":uno: mb-2 text-[10px] font-semibold tracking-normal text-black/50">处理结果</div>
+      <div
+        class=":uno: whitespace-pre-wrap break-words text-sm leading-snug tracking-normal text-[#1d1d1f]"
+      >
         {{ resultText }}
-        <span v-if="loading" class="typing-caret"></span>
+        <span
+          v-if="loading"
+          class=":uno: ml-0.5 inline-block h-[1em] w-px animate-pulse align-text-bottom bg-current"
+        ></span>
       </div>
     </div>
 
-    <div v-else class="content-box empty-box">
-      <div class="empty-title">怎么用更顺手</div>
-      <div class="empty-text">先点一个快捷动作，或者直接输入要求，比如“润色得更口语一点”或“继续写两段”。</div>
+    <div
+      v-else
+      class=":uno: flex min-h-[108px] max-h-[var(--panel-max-height)] flex-col justify-center gap-1.5 overflow-auto rounded-[18px] border border-black/5 bg-white/70 p-3.5"
+    >
+      <div class=":uno: text-sm font-semibold leading-snug tracking-normal text-[#1d1d1f]">
+        怎么用更顺手
+      </div>
+      <div class=":uno: text-xs leading-relaxed tracking-normal text-black/50">
+        先点一个快捷动作，或者直接输入要求，比如“润色得更口语一点”或“继续写两段”。
+      </div>
     </div>
 
-    <div class="footer-row" :class="{ compact: !resultText }">
+    <div
+      class=":uno: sticky bottom-0 flex justify-end gap-2 bg-gradient-to-b from-[rgba(250,250,252,0)] to-[rgba(250,250,252,0.96)] pt-1 backdrop-blur"
+      :class="!resultText ? ':uno: opacity-72' : ''"
+    >
       <VButton size="sm" type="secondary" :disabled="!resultText" @click="copyResult">
         复制
       </VButton>
@@ -174,20 +214,23 @@ const extractAiResponse = (raw: string) => {
 }
 
 const streamConversation = async (prompt: string) => {
-  const response = await fetch('/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/conversationStream', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const response = await fetch(
+    '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/conversationStream',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        conversationHistory: JSON.stringify([
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ]),
+      }),
     },
-    body: JSON.stringify({
-      conversationHistory: JSON.stringify([
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ]),
-    }),
-  })
+  )
 
   if (!response.ok || !response.body) {
     throw new Error(`HTTP ${response.status}`)
@@ -307,273 +350,3 @@ watch(instruction, () => {
   resizeInstructionInput()
 })
 </script>
-
-<style scoped>
-.editor-ai-bubble-panel {
-  width: 396px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 22px;
-  background: rgba(250, 250, 252, 0.88);
-  box-shadow:
-    0 20px 48px rgba(0, 0, 0, 0.14),
-    0 6px 18px rgba(0, 0, 0, 0.08);
-  backdrop-filter: saturate(180%) blur(24px);
-  font-family: 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
-.editor-ai-bubble-panel.direction-up {
-  transform: translateY(calc(-100% - 58px));
-}
-
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.head-title-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.head-badge {
-  width: fit-content;
-  border-radius: 980px;
-  background: rgba(0, 113, 227, 0.1);
-  color: #0071e3;
-  padding: 4px 10px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: -0.08px;
-}
-
-.head-title {
-  font-size: 12px;
-  line-height: 1.33;
-  letter-spacing: -0.12px;
-  color: rgba(0, 0, 0, 0.48);
-}
-
-.head-meta {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.33;
-  letter-spacing: -0.12px;
-  color: rgba(0, 0, 0, 0.8);
-}
-
-.prompt-box {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 20px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-.selection-preview {
-  border-radius: 16px;
-  background: rgba(245, 245, 247, 0.92);
-  padding: 10px 12px;
-}
-
-.preview-label {
-  margin-bottom: 6px;
-  font-size: 10px;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.48);
-  letter-spacing: -0.08px;
-}
-
-.preview-text {
-  font-size: 12px;
-  line-height: 1.47;
-  letter-spacing: -0.12px;
-  color: #1d1d1f;
-}
-
-.prompt-input {
-  flex: 1;
-  min-height: 38px;
-  max-height: 84px;
-  resize: none;
-  overflow-y: auto;
-  border: 0;
-  border-radius: 14px;
-  padding: 8px 10px;
-  outline: none;
-  font: inherit;
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
-  color: #1d1d1f;
-  background: transparent;
-}
-
-.prompt-input::-webkit-scrollbar {
-  display: none;
-}
-
-.prompt-input {
-  scrollbar-width: none;
-}
-
-.prompt-input:focus {
-  background: rgba(255, 255, 255, 0.4);
-}
-
-.send-button {
-  height: 38px;
-  min-width: 58px;
-  border: 0;
-  border-radius: 980px;
-  background: #0071e3;
-  color: #fff;
-  cursor: pointer;
-  padding: 0 16px;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
-}
-
-.send-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.quick-action {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.76);
-  padding: 6px 11px;
-  font-size: 12px;
-  line-height: 1.33;
-  letter-spacing: -0.12px;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  color: rgba(0, 0, 0, 0.8);
-}
-
-.quick-action:hover {
-  border-color: rgba(0, 113, 227, 0.24);
-  background: rgba(0, 113, 227, 0.06);
-}
-
-.quick-action:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.content-box {
-  border-radius: 18px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.result-box,
-.state-box,
-.empty-box {
-  min-height: 108px;
-  max-height: var(--panel-max-height);
-  overflow: auto;
-}
-
-.result-label {
-  margin-bottom: 8px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: -0.08px;
-  color: rgba(0, 0, 0, 0.48);
-}
-
-.result-text {
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 14px;
-  line-height: 1.43;
-  letter-spacing: -0.224px;
-  color: #1d1d1f;
-}
-
-.state-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: rgba(0, 0, 0, 0.48);
-}
-
-.empty-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-}
-
-.empty-title {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.29;
-  letter-spacing: -0.224px;
-  color: #1d1d1f;
-}
-
-.empty-text {
-  font-size: 12px;
-  line-height: 1.47;
-  letter-spacing: -0.12px;
-  color: rgba(0, 0, 0, 0.48);
-}
-
-.panel-alert {
-  margin: 0;
-}
-
-.typing-caret {
-  display: inline-block;
-  width: 1px;
-  height: 1em;
-  margin-left: 2px;
-  vertical-align: text-bottom;
-  background: currentColor;
-  animation: blink 1s step-end infinite;
-}
-
-.footer-row {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding-top: 4px;
-  position: sticky;
-  bottom: 0;
-  background: linear-gradient(180deg, rgba(250, 250, 252, 0), rgba(250, 250, 252, 0.96) 28%);
-  backdrop-filter: blur(10px);
-}
-
-.footer-row.compact {
-  opacity: 0.72;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
-</style>

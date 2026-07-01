@@ -9,6 +9,8 @@ import lombok.Value;
 public class RagIndexedChunk {
     String id;
     String knowledgeBase;
+    String knowledgeBaseDisplayName;
+    String knowledgeBaseDescription;
     String documentName;
     String sourceType;
     String sourceName;

@@ -1,28 +1,17 @@
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import type { UIMessage } from '@halo-dev/ai-foundation-sdk';
 import {
   askRagStream,
   DEFAULT_RAG_ASSISTANT_CONFIG,
   fetchRagAssistantConfig,
   fetchRagConversation,
 } from './api';
-import {
-  closeIcon,
-  fullscreenIcon,
-  newChatIcon,
-  restoreIcon,
-  sendIcon,
-  shieldIcon,
-  questionAnswerIcon,
-} from './icons';
-import {
-  formatTime,
-  markdownToHtml,
-} from './format';
-import { renderSourceReferences } from './source-references';
+import { RAG_INPUT_PLACEHOLDER, RAG_SOURCE_LIMIT } from './constants';
+import { formatTime } from './format';
 import { ragAssistantStyles } from './styles';
 import {
+  DEFAULT_RAG_PET_SIZE,
   DEFAULT_RAG_PET_SPEECH_MESSAGES,
   PETDEX_THINKING_SPEECH_MESSAGE,
   getPetdexFrame,
@@ -39,6 +28,14 @@ import {
   EMPTY_SELECTION_POPUP,
   resolveSelectionPopup,
 } from './selection';
+import { AgentChatClient } from './agent/chat';
+import {
+  consumeAgentAfterNavigationIntent,
+  type AgentAfterNavigationResume,
+} from './agent/navigation-intent';
+import { renderPetPanel as renderPetPanelTemplate } from './renderers/pet-panel';
+import { renderPetStage as renderPetStageTemplate } from './renderers/pet-stage';
+import { renderSelectionPopover } from './renderers/selection-popover';
 import { applyAssistantTheme } from './theme';
 import type {
   RagAssistantConfig,
@@ -50,16 +47,10 @@ import type {
 } from './types';
 
 const MAX_SELECTION_LENGTH = 1600;
-const SOURCE_LIMIT = 8;
-const INPUT_PLACEHOLDER = '请输入您想从知识库了解的问题...';
 const FLOATING_POSITION_STORAGE_KEY = 'likcc_summaraidgpt_rag_assistant_position';
 const CONVERSATION_ID_STORAGE_KEY = 'likcc_summaraidgpt_rag_conversation_id';
 const VISITOR_ID_STORAGE_KEY = 'likcc_summaraidgpt_rag_visitor_id';
 const FLOATING_MARGIN = 16;
-const PET_BUTTON_SIZE = 76;
-const PET_METRICS = getPetdexMetrics(PET_BUTTON_SIZE);
-const BUBBLE_WIDTH = PET_METRICS.width;
-const BUBBLE_HEIGHT = PET_METRICS.height;
 const DRAG_THRESHOLD = 4;
 
 interface FloatingPosition {
@@ -95,10 +86,16 @@ export class RagAssistantWidget extends LitElement {
   private open = false;
 
   @state()
-  private fullscreen = false;
+  private petPanelOpen = false;
 
   @state()
   private input = '';
+
+  @state()
+  private selectedContext = '';
+
+  @state()
+  private petSourcesOpen = false;
 
   @state()
   private messages: RagAssistantMessage[] = [];
@@ -147,16 +144,18 @@ export class RagAssistantWidget extends LitElement {
   @state()
   private petSpeechText = '';
 
-  @state()
-  private avatarLoadFailed = false;
-
-  @query('.messages')
+  @query('.pet-stage-output')
   private messagesElement?: HTMLElement;
 
-  @query('.input')
+  @query('.conversation-input')
   private inputElement?: HTMLTextAreaElement;
 
+  @query('.pet-composer-input')
+  private petInputElement?: HTMLTextAreaElement;
+
   private abortController?: AbortController;
+  private agentChatClient?: AgentChatClient;
+  private agentHistoryMessages: UIMessage[] = [];
   private conversationId?: string;
   private visitorId = this.loadOrCreateVisitorId();
   private bubbleDragState?: BubbleDragState;
@@ -177,12 +176,23 @@ export class RagAssistantWidget extends LitElement {
       return;
     }
     this.clearSelectionPopup();
+    if (!this.streaming && !this.open) {
+      this.petPanelOpen = false;
+    }
   };
   private readonly handleWindowScroll = () => {
     this.clearSelectionPopup();
   };
   private readonly handleWindowResize = () => {
     this.clampCurrentFloatingPosition();
+  };
+  private readonly handleAgentStatus = (event: Event) => {
+    const message = (event as CustomEvent<{ message?: string }>).detail?.message?.trim();
+    if (!message) {
+      return;
+    }
+    this.petSpeechText = message;
+    this.petSpeechVisible = true;
   };
   private readonly handleBubblePointerMove = (event: PointerEvent) => {
     const state = this.bubbleDragState;
@@ -209,8 +219,8 @@ export class RagAssistantWidget extends LitElement {
           x: state.originX + deltaX,
           y: state.originY + deltaY,
         },
-        BUBBLE_WIDTH,
-        BUBBLE_HEIGHT,
+        this.bubbleWidth,
+        this.bubbleHeight,
       ),
       false,
     );
@@ -246,14 +256,15 @@ export class RagAssistantWidget extends LitElement {
     this.floatingPositionLocked = this.applySavedFloatingPosition();
     this.bindSelectionListeners();
     window.addEventListener('resize', this.handleWindowResize, { passive: true });
-    void this.loadConfig();
-    void this.loadStoredConversation();
+    window.addEventListener('summaraid:agent-status', this.handleAgentStatus);
+    void this.initializeAssistant();
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.unbindSelectionListeners();
     window.removeEventListener('resize', this.handleWindowResize);
+    window.removeEventListener('summaraid:agent-status', this.handleAgentStatus);
     this.unbindBubbleDragListeners();
     this.stopPetAnimation();
     this.stopPetSpeechCycle();
@@ -261,13 +272,17 @@ export class RagAssistantWidget extends LitElement {
   }
 
   protected updated(changedProperties: Map<PropertyKey, unknown>): void {
-    if (changedProperties.has('open') || changedProperties.has('streaming')) {
+    if (
+      changedProperties.has('open')
+      || changedProperties.has('petPanelOpen')
+      || changedProperties.has('streaming')
+    ) {
       this.syncPetThinkingSpeech();
     }
   }
 
   public openAssistant(question?: string, autoSubmit = false): void {
-    this.open = true;
+    this.petPanelOpen = true;
     this.petSpeechVisible = false;
     this.clearSelectionPopup();
 
@@ -276,18 +291,19 @@ export class RagAssistantWidget extends LitElement {
         void this.submitQuestion(question);
       } else {
         this.input = question;
-        void this.updateComplete.then(() => this.focusInput());
+        void this.updateComplete.then(() => this.focusPetInput());
       }
       return;
     }
 
-    void this.updateComplete.then(() => this.focusInput());
+    void this.updateComplete.then(() => this.focusPetInput());
   }
 
   protected render(): TemplateResult {
     return html`
       ${this.renderSelectionPopup()}
-      ${this.open ? this.renderWindow() : this.renderBubble()}
+      ${this.renderBubble()}
+      ${this.open ? this.renderStage() : nothing}
     `;
   }
 
@@ -295,14 +311,41 @@ export class RagAssistantWidget extends LitElement {
     const config = await fetchRagAssistantConfig();
     this.config = config;
     this.configLoaded = true;
-    this.avatarLoadFailed = false;
     this.applyTheme(config);
     if (!this.floatingPositionLocked) {
       this.position = config.buttonPosition;
       this.applyDefaultFloatingPosition(config);
+    } else {
+      this.clampCurrentFloatingPosition();
     }
     this.floatingPositionReady = true;
     await this.preparePetSprite(config);
+  }
+
+  private async initializeAssistant(): Promise<void> {
+    await Promise.allSettled([
+      this.loadConfig(),
+      this.loadStoredConversation(),
+    ]);
+    await this.resumeAgentAfterNavigationIfNeeded();
+  }
+
+  private async resumeAgentAfterNavigationIfNeeded(): Promise<void> {
+    const intent = consumeAgentAfterNavigationIntent();
+    if (!intent?.openChat) {
+      return;
+    }
+    this.open = intent.displayMode === 'stage';
+    this.petPanelOpen = intent.displayMode !== 'stage';
+    this.petSpeechVisible = false;
+    this.clearSelectionPopup();
+    await this.updateComplete;
+    if (intent.focusChatInput) {
+      this.focusCurrentInput();
+    }
+    if (intent.resume) {
+      await this.resumeAgentAfterNavigation(intent.resume);
+    }
   }
 
   private bindSelectionListeners(): void {
@@ -324,10 +367,11 @@ export class RagAssistantWidget extends LitElement {
       return nothing;
     }
 
-    const speech = this.getCurrentPetSpeech();
+    const speech = this.petPanelOpen ? '' : this.getCurrentPetSpeech();
 
     return html`
-      <span class="bubble-wrapper">
+      <span class=${this.petPanelOpen ? 'bubble-wrapper panel-open' : 'bubble-wrapper'}>
+        ${this.petPanelOpen && !this.open ? this.renderPetPanel() : nothing}
         <button
           class=${this.draggingBubble ? 'bubble pet-button dragging' : 'bubble pet-button'}
           style=${this.petButtonStyle}
@@ -347,169 +391,61 @@ export class RagAssistantWidget extends LitElement {
     `;
   }
 
-  private renderWindow(): TemplateResult {
-    return html`
-      <div class=${this.windowShellClass} style=${this.windowShellStyle}>
-        <section class="chat-window" role="dialog" aria-label=${this.assistantName}>
-          ${this.renderHeader()}
-          <div class="messages">
-            ${this.messages.length ? nothing : this.renderWelcomeMessage()}
-            ${this.messages.map((message) => this.renderMessage(message))}
-          </div>
-          ${this.renderComposer()}
-          <div class="disclaimer">${shieldIcon()} <span>内容由 AI 生成，仅供参考</span></div>
-        </section>
-      </div>
-    `;
+  private renderPetPanel(): TemplateResult {
+    return renderPetPanelTemplate({
+      assistantName: this.assistantName,
+      streaming: this.streaming,
+      selectedContext: this.selectedContext,
+      selectedContextPreview: this.selectedContextPreview,
+      latestAssistant: this.latestAssistantMessage,
+      latestUser: this.latestUserMessage,
+      petSourcesOpen: this.petSourcesOpen,
+      input: this.input,
+      petInputPlaceholder: this.petInputPlaceholder,
+      hasConversation: this.hasConversation,
+      truncateText: (value, maxLength) => this.truncateText(value, maxLength),
+      onOpenStage: () => this.openPetStage(),
+      onNewConversation: () => this.newConversation(),
+      onClearSelectedContext: () => this.clearSelectedContext(),
+      onTogglePetSources: () => this.togglePetSources(),
+      onSubmit: (event) => this.handleSubmit(event),
+      onInput: (event) => this.handleInput(event),
+      onKeydown: (event) => this.handleInputKeydown(event),
+      onCompositionStart: () => this.handleCompositionStart(),
+      onCompositionEnd: () => this.handleCompositionEnd(),
+    });
   }
 
-  private renderHeader(): TemplateResult {
-    return html`
-      <header class="chat-header">
-        <div class="brand">
-          ${this.renderAssistantAvatar('avatar')}
-          <div class="brand-text">
-            <div class="title-row">
-              <span class="title">${this.assistantName}</span>
-            </div>
-            <div class="subtitle"><span class="status-dot"></span>基于站点知识库回答</div>
-          </div>
-        </div>
-        <div class="header-actions">
-          <button class="icon-button" type="button" title="新会话" aria-label="新会话" @click=${this.newConversation}>
-            ${newChatIcon()}
-          </button>
-          <button
-            class="icon-button"
-            type="button"
-            title=${this.fullscreen ? '退出全屏' : '全屏'}
-            aria-label=${this.fullscreen ? '退出全屏' : '全屏'}
-            @click=${this.toggleFullscreen}
-          >
-            ${this.fullscreen ? restoreIcon() : fullscreenIcon()}
-          </button>
-          <button class="icon-button" type="button" title="关闭" aria-label="关闭" @click=${this.close}>
-            ${closeIcon()}
-          </button>
-        </div>
-      </header>
-    `;
-  }
-
-  private renderWelcomeMessage(): TemplateResult {
-    return html`
-      <div class="message-row assistant">
-        ${this.renderAssistantAvatar('message-avatar')}
-        <div class="message-stack">
-          <div class="bubble-card">
-            <span class="message-text">${this.welcomeMessage}</span>
-          </div>
-          <div class="message-time">${this.welcomeTime}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  private renderMessage(message: RagAssistantMessage): TemplateResult {
-    const sources = message.sources || [];
-
-    return html`
-      <div class=${`message-row ${message.role}`}>
-        ${message.role === 'assistant'
-          ? this.renderAssistantAvatar('message-avatar')
-          : nothing}
-        <div class="message-stack">
-          <div class=${`bubble-card${message.error ? ' error' : ''}${message.streaming ? ' streaming' : ''}`}>
-            ${this.renderMessageContent(message)}
-            ${message.streaming ? this.renderTyping() : nothing}
-          </div>
-          ${message.role === 'assistant'
-            ? renderSourceReferences(sources, {
-                open: this.isSourceReferencesOpen(message.id),
-                onToggle: (event) => this.toggleSourceReferences(message.id, event),
-              })
-            : nothing}
-          <div class="message-time">${message.time}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  private renderTyping(): TemplateResult {
-    return html`<span class="typing" aria-label="正在输出"><span></span><span></span><span></span></span>`;
-  }
-
-  private renderMessageContent(message: RagAssistantMessage): TemplateResult {
-    const content = message.content || (message.streaming ? '正在思考中...' : '');
-    if (message.role === 'assistant' && !message.error && content) {
-      return html`<div class="message-text markdown-body">${unsafeHTML(markdownToHtml(content))}</div>`;
-    }
-    return html`<span class="message-text">${content}</span>`;
-  }
-
-  private renderComposer(): TemplateResult {
-    return html`
-      <div class="composer-wrap">
-        <form class="composer" @submit=${this.handleSubmit}>
-          <textarea
-            class="input"
-            rows="1"
-            .value=${this.input}
-            placeholder=${INPUT_PLACEHOLDER}
-            ?disabled=${this.streaming}
-            @input=${this.handleInput}
-            @keydown=${this.handleInputKeydown}
-            @compositionstart=${this.handleCompositionStart}
-            @compositionend=${this.handleCompositionEnd}
-          ></textarea>
-          <button class="send" type="submit" ?disabled=${this.streaming || !this.input.trim()} aria-label="发送">
-            ${sendIcon()}
-          </button>
-        </form>
-      </div>
-    `;
+  private renderStage(): TemplateResult {
+    return renderPetStageTemplate({
+      assistantName: this.assistantName,
+      assistantAvatar: this.config.assistantAvatar,
+      avatarFallbackText: this.avatarFallbackText,
+      messages: this.messages,
+      welcomeMessage: this.welcomeMessage,
+      welcomeTime: this.welcomeTime,
+      input: this.input,
+      streaming: this.streaming,
+      hasSources: this.hasLatestSources,
+      isSourceReferencesOpen: (messageId) => this.isSourceReferencesOpen(messageId),
+      onToggleSourceReferences: (messageId, event) => this.toggleSourceReferences(messageId, event),
+      onClose: () => this.close(),
+      onNewConversation: () => this.newConversation(),
+      onExpandLatestSources: () => this.expandLatestSources(),
+      onUsePrompt: (prompt) => this.useStagePrompt(prompt),
+      onSubmit: (event) => this.handleSubmit(event),
+      onInput: (event) => this.handleInput(event),
+      onKeydown: (event) => this.handleInputKeydown(event),
+      onCompositionStart: () => this.handleCompositionStart(),
+      onCompositionEnd: () => this.handleCompositionEnd(),
+    });
   }
 
   private renderSelectionPopup(): TemplateResult | typeof nothing {
-    if (!this.selectionPopup.visible) {
-      return nothing;
-    }
-
-    return html`
-      <div
-        class="selection-popover"
-        style=${`left:${this.selectionPopup.x}px;top:${this.selectionPopup.y}px`}
-      >
-        <button type="button" @click=${this.askWithSelection}>
-          ${questionAnswerIcon()} 问知识库
-        </button>
-      </div>
-    `;
-  }
-
-  private renderAssistantAvatar(className: 'avatar' | 'message-avatar'): TemplateResult {
-    const avatarUrl = this.assistantAvatarUrl;
-
-    return html`
-      <span class=${className}>
-        ${avatarUrl
-          ? html`
-              <img
-                class="avatar-image"
-                src=${avatarUrl}
-                alt=""
-                decoding="async"
-                loading="lazy"
-                @error=${this.handleAvatarError}
-              />
-            `
-          : html`<span class="avatar-fallback">${this.avatarFallbackText}</span>`}
-      </span>
-    `;
-  }
-
-  private handleAvatarError(): void {
-    this.avatarLoadFailed = true;
+    return renderSelectionPopover(
+      this.selectionPopup,
+      () => this.askWithSelection(),
+    );
   }
 
   private handleSubmit(event: Event): void {
@@ -585,7 +521,11 @@ export class RagAssistantWidget extends LitElement {
       return;
     }
 
-    this.openAssistant();
+    this.petPanelOpen = !this.petPanelOpen;
+    this.petSpeechVisible = false;
+    if (this.petPanelOpen) {
+      void this.updateComplete.then(() => this.focusPetInput());
+    }
   }
 
   private unbindBubbleDragListeners(): void {
@@ -633,11 +573,11 @@ export class RagAssistantWidget extends LitElement {
     const verticalOffset = this.normalizeFloatingOffset(config.verticalOffset);
     const x = config.buttonPosition === 'left'
       ? horizontalOffset
-      : window.innerWidth - BUBBLE_WIDTH - horizontalOffset;
+      : window.innerWidth - this.bubbleWidth - horizontalOffset;
 
     return {
       x,
-      y: window.innerHeight - BUBBLE_HEIGHT - verticalOffset,
+      y: window.innerHeight - this.bubbleHeight - verticalOffset,
     };
   }
 
@@ -648,8 +588,8 @@ export class RagAssistantWidget extends LitElement {
 
     const nextPosition = this.clampFloatingPosition(
       this.floatingPosition,
-      BUBBLE_WIDTH,
-      BUBBLE_HEIGHT,
+      this.bubbleWidth,
+      this.bubbleHeight,
     );
 
     if (nextPosition.x !== this.floatingPosition.x || nextPosition.y !== this.floatingPosition.y) {
@@ -659,8 +599,8 @@ export class RagAssistantWidget extends LitElement {
 
   private clampFloatingPosition(
     position: FloatingPosition,
-    width = BUBBLE_WIDTH,
-    height = BUBBLE_HEIGHT,
+    width = this.bubbleWidth,
+    height = this.bubbleHeight,
   ): FloatingPosition {
     const maxX = Math.max(FLOATING_MARGIN, window.innerWidth - width - FLOATING_MARGIN);
     const maxY = Math.max(FLOATING_MARGIN, window.innerHeight - height - FLOATING_MARGIN);
@@ -673,7 +613,7 @@ export class RagAssistantWidget extends LitElement {
 
   private setFloatingPosition(position: FloatingPosition, persist: boolean): void {
     this.floatingPosition = position;
-    this.position = position.x + BUBBLE_WIDTH / 2 < window.innerWidth / 2 ? 'left' : 'right';
+    this.position = position.x + this.bubbleWidth / 2 < window.innerWidth / 2 ? 'left' : 'right';
     this.style.left = `${Math.round(position.x)}px`;
     this.style.top = `${Math.round(position.y)}px`;
     this.style.right = 'auto';
@@ -824,12 +764,13 @@ export class RagAssistantWidget extends LitElement {
   private canShowPetSpeech(): boolean {
     return this.canRenderFloatingPet
       && !this.open
+      && !this.petPanelOpen
       && !this.draggingBubble
       && (this.isPetThinkingOutsideWindow() || this.petSpeechMessages.length > 0);
   }
 
   private isPetThinkingOutsideWindow(): boolean {
-    return !this.open && this.streaming;
+    return !this.open && !this.petPanelOpen && this.streaming;
   }
 
   private handlePetMouseEnter(): void {
@@ -887,14 +828,24 @@ export class RagAssistantWidget extends LitElement {
       return;
     }
 
+    const selectedContext = this.selectedContext.trim();
+    const requestQuestion = selectedContext
+      ? `请结合我选中的内容回答：\n\n${selectedContext}\n\n我的问题：${question}`
+      : question;
+    const visibleQuestion = selectedContext
+      ? `${question}\n\n选中内容：${this.truncateText(selectedContext, 180)}`
+      : question;
     const assistantMessageId = createMessageId();
     this.input = '';
+    this.selectedContext = '';
+    this.petSourcesOpen = false;
+    this.petPanelOpen = true;
     this.streaming = true;
     this.abortController = new AbortController();
 
     this.messages = [
       ...this.messages,
-      createMessage('user', question),
+      createMessage('user', visibleQuestion),
       createMessage('assistant', '', {
         id: assistantMessageId,
         streaming: true,
@@ -903,25 +854,15 @@ export class RagAssistantWidget extends LitElement {
 
     await this.updateComplete;
     this.resizeInput(this.inputElement);
+    this.resizeInput(this.petInputElement);
     this.scrollToBottom();
 
     try {
-      await askRagStream(
-        {
-          question,
-          limit: SOURCE_LIMIT,
-          conversationId: this.conversationId,
-          visitorId: this.visitorId,
-        },
-        {
-          onConversationId: (conversationId) => this.persistConversationId(conversationId),
-          onSources: (sources) => this.receiveSources(assistantMessageId, sources),
-          onDelta: (delta) => this.appendAssistantDelta(assistantMessageId, delta),
-          onError: (error) => this.failAssistantMessage(assistantMessageId, error),
-          onDone: () => this.finishAssistantMessage(assistantMessageId),
-        },
-        this.abortController.signal,
-      );
+      if (this.useAgentChat) {
+        await this.askAgentStream(requestQuestion, assistantMessageId);
+      } else {
+        await this.askRagStream(requestQuestion, assistantMessageId);
+      }
     } catch (error) {
       if (this.abortController.signal.aborted) {
         return;
@@ -932,9 +873,113 @@ export class RagAssistantWidget extends LitElement {
       this.finishAssistantMessage(assistantMessageId);
       this.streaming = false;
       this.abortController = undefined;
+      this.agentChatClient = undefined;
       await this.updateComplete;
       this.scrollToBottom();
     }
+  }
+
+  private async askAgentStream(question: string, assistantMessageId: string): Promise<void> {
+    const client = new AgentChatClient();
+    this.agentChatClient = client;
+    const conversationId = this.ensureConversationId();
+    const messages = await client.sendMessage(
+      question,
+      {
+        agent: this.config.agent,
+        historyMessages: this.agentHistoryMessages,
+        conversationId,
+        visitorId: this.visitorId,
+        afterNavigationDisplayMode: this.open ? 'stage' : 'panel',
+        signal: this.abortController?.signal,
+      },
+      {
+        onText: (text) => this.setAssistantContent(assistantMessageId, text),
+        onSources: (sources) => this.receiveSources(assistantMessageId, sources),
+        onError: (error) => this.failAssistantMessage(assistantMessageId, error),
+        onFinish: (historyMessages) => {
+          this.agentHistoryMessages = historyMessages;
+        },
+      },
+    );
+    this.agentHistoryMessages = messages;
+  }
+
+  private async resumeAgentAfterNavigation(resume: AgentAfterNavigationResume): Promise<void> {
+    if (this.streaming || !this.useAgentChat) {
+      return;
+    }
+    const assistantMessageId = createMessageId();
+    this.petPanelOpen = true;
+    this.petSourcesOpen = false;
+    this.streaming = true;
+    this.abortController = new AbortController();
+    this.messages = [
+      ...this.messages,
+      createMessage('assistant', '', {
+        id: assistantMessageId,
+        streaming: true,
+      }),
+    ];
+    await this.updateComplete;
+    this.scrollToBottom();
+
+    const client = new AgentChatClient();
+    this.agentChatClient = client;
+    try {
+      const messages = await client.sendMessage(
+        resume.message,
+        {
+          agent: this.config.agent,
+          historyMessages: resume.historyMessages,
+          conversationId: this.ensureConversationId(),
+          visitorId: this.visitorId,
+          recordUserMessage: false,
+          afterNavigationDisplayMode: this.open ? 'stage' : 'panel',
+          signal: this.abortController.signal,
+        },
+        {
+          onText: (text) => this.setAssistantContent(assistantMessageId, text),
+          onSources: (sources) => this.receiveSources(assistantMessageId, sources),
+          onError: (error) => this.failAssistantMessage(assistantMessageId, error),
+          onFinish: (historyMessages) => {
+            this.agentHistoryMessages = historyMessages;
+          },
+        },
+      );
+      this.agentHistoryMessages = messages;
+    } catch (error) {
+      if (!this.abortController.signal.aborted) {
+        const message = error instanceof Error ? error.message : 'Agent 恢复回答失败';
+        this.failAssistantMessage(assistantMessageId, message);
+      }
+    } finally {
+      this.finishAssistantMessage(assistantMessageId);
+      this.streaming = false;
+      this.abortController = undefined;
+      this.agentChatClient = undefined;
+      await this.updateComplete;
+      this.scrollToBottom();
+    }
+  }
+
+  private async askRagStream(question: string, assistantMessageId: string): Promise<void> {
+    await askRagStream(
+      {
+        question,
+        limit: RAG_SOURCE_LIMIT,
+        conversationId: this.conversationId,
+        visitorId: this.visitorId,
+      },
+      {
+        onConversationId: (conversationId) => this.persistConversationId(conversationId),
+        onSources: (sources) => this.receiveSources(assistantMessageId, sources),
+        onDelta: (delta) => this.appendAssistantDelta(assistantMessageId, delta),
+        onError: (error) => this.failAssistantMessage(assistantMessageId, error),
+        onDone: () => this.finishAssistantMessage(assistantMessageId),
+      },
+      this.abortController?.signal,
+    );
   }
 
   private receiveSources(messageId: string, sources: RagSourceReference[]): void {
@@ -957,6 +1002,7 @@ export class RagAssistantWidget extends LitElement {
       }
       this.conversationId = conversation.metadata.name;
       this.messages = this.toAssistantMessages(conversation);
+      this.agentHistoryMessages = this.toAgentHistoryMessages(conversation);
       await this.updateComplete;
       this.scrollToBottom();
     } catch {
@@ -974,6 +1020,26 @@ export class RagAssistantWidget extends LitElement {
         sources: message.sources,
         error: message.error,
       }));
+  }
+
+  private toAgentHistoryMessages(conversation: RagConversation): UIMessage[] {
+    return (conversation.spec?.messages || [])
+      .filter((message) => message.role === 'user' || message.role === 'assistant')
+      .filter((message) => Boolean(message.content?.trim()))
+      .map((message) => {
+        const messageId = message.id || createMessageId();
+        return {
+          id: messageId,
+          role: message.role === 'assistant' ? 'assistant' : 'user',
+          parts: [
+            {
+              type: 'text',
+              id: `${messageId}-text`,
+              text: message.content || '',
+            },
+          ],
+        };
+      });
   }
 
   private messageTime(message: RagConversationMessage): string {
@@ -994,6 +1060,20 @@ export class RagAssistantWidget extends LitElement {
     } catch {
       // localStorage may be unavailable in strict privacy modes.
     }
+  }
+
+  private ensureConversationId(): string {
+    if (this.conversationId) {
+      return this.conversationId;
+    }
+    const stored = this.loadConversationId();
+    if (stored) {
+      this.conversationId = stored;
+      return stored;
+    }
+    const conversationId = `rag-conv-${this.randomId().toLowerCase()}`;
+    this.persistConversationId(conversationId);
+    return conversationId;
   }
 
   private loadConversationId(): string | undefined {
@@ -1034,6 +1114,14 @@ export class RagAssistantWidget extends LitElement {
     }
   }
 
+  private setAssistantContent(messageId: string, content: string): void {
+    this.updateMessage(messageId, (message) => ({
+      ...message,
+      content,
+    }));
+    void this.updateComplete.then(() => this.scrollToBottom());
+  }
+
   private appendAssistantDelta(messageId: string, delta: string): void {
     if (!delta) {
       return;
@@ -1072,10 +1160,6 @@ export class RagAssistantWidget extends LitElement {
     this.messages = updateMessageById(this.messages, messageId, updater);
   }
 
-  private toggleFullscreen(): void {
-    this.fullscreen = !this.fullscreen;
-  }
-
   private toggleSourceReferences(messageId: string, event: Event): void {
     const target = event.currentTarget;
     if (!(target instanceof HTMLDetailsElement)) {
@@ -1093,17 +1177,20 @@ export class RagAssistantWidget extends LitElement {
 
   private close(): void {
     this.open = false;
-    this.fullscreen = false;
     this.clearSelectionPopup();
   }
 
   private newConversation(): void {
     this.abortCurrentRequest();
     this.clearConversationId();
+    this.agentHistoryMessages = [];
     this.messages = [];
     this.input = '';
+    this.selectedContext = '';
+    this.petSourcesOpen = false;
     this.streaming = false;
-    void this.updateComplete.then(() => this.focusInput());
+    this.petPanelOpen = true;
+    void this.updateComplete.then(() => this.focusCurrentInput());
   }
 
   private askWithSelection(): void {
@@ -1112,8 +1199,11 @@ export class RagAssistantWidget extends LitElement {
       return;
     }
 
-    const question = `请基于知识库回答，并结合我选中的内容：\n\n${text}`;
-    this.openAssistant(question, true);
+    this.selectedContext = text;
+    this.petPanelOpen = true;
+    this.petSpeechVisible = false;
+    this.clearSelectionPopup();
+    void this.updateComplete.then(() => this.focusPetInput());
   }
 
   private updateSelectionPopup(): void {
@@ -1141,6 +1231,56 @@ export class RagAssistantWidget extends LitElement {
     this.inputElement?.focus();
   }
 
+  private focusPetInput(): void {
+    this.petInputElement?.focus();
+  }
+
+  private focusCurrentInput(): void {
+    if (this.open) {
+      this.focusInput();
+      return;
+    }
+    this.focusPetInput();
+  }
+
+  private openPetStage(): void {
+    this.open = true;
+    this.petPanelOpen = false;
+    this.petSourcesOpen = false;
+    void this.updateComplete.then(() => {
+      this.scrollToBottom();
+      this.focusInput();
+    });
+  }
+
+  private clearSelectedContext(): void {
+    this.selectedContext = '';
+    void this.updateComplete.then(() => this.focusPetInput());
+  }
+
+  private togglePetSources(): void {
+    this.petSourcesOpen = !this.petSourcesOpen;
+  }
+
+  private expandLatestSources(): void {
+    const messageId = this.latestAssistantMessageWithSources?.id;
+    if (!messageId) {
+      return;
+    }
+    const expandedIds = new Set(this.expandedSourceMessageIds);
+    expandedIds.add(messageId);
+    this.expandedSourceMessageIds = Array.from(expandedIds);
+    this.open = true;
+    void this.updateComplete.then(() => this.scrollToBottom());
+  }
+
+  private useStagePrompt(prompt: string): void {
+    if (prompt) {
+      this.input = prompt;
+    }
+    void this.updateComplete.then(() => this.focusInput());
+  }
+
   private scrollToBottom(): void {
     if (!this.messagesElement) {
       return;
@@ -1150,15 +1290,13 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private abortCurrentRequest(): void {
+    this.agentChatClient?.stop();
+    this.agentChatClient = undefined;
     if (!this.abortController || this.abortController.signal.aborted) {
       return;
     }
 
     this.abortController.abort();
-  }
-
-  private isMobileViewport(): boolean {
-    return window.matchMedia?.('(max-width: 960px)').matches ?? false;
   }
 
   private clamp(value: number, min: number, max: number): number {
@@ -1175,56 +1313,62 @@ export class RagAssistantWidget extends LitElement {
     return this.expandedSourceMessageIds.includes(messageId);
   }
 
-  private get windowShellClass(): string {
-    return [
-      'window-shell',
-      this.fullscreen ? 'fullscreen' : '',
-    ].filter(Boolean).join(' ');
-  }
-
-  private get windowShellStyle(): string {
-    if (this.fullscreen || this.isMobileViewport() || !this.floatingPosition) {
-      return '';
-    }
-
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const shellWidth = Math.min(560, viewportWidth - FLOATING_MARGIN * 2);
-    const shellHeight = Math.min(636, viewportHeight - FLOATING_MARGIN * 2);
-    const anchorX = this.floatingPosition.x + BUBBLE_WIDTH / 2;
-    const anchorY = this.floatingPosition.y + BUBBLE_HEIGHT / 2;
-    const alignLeft = anchorX < viewportWidth / 2;
-    const left = alignLeft
-      ? anchorX - BUBBLE_WIDTH / 2
-      : anchorX - shellWidth + BUBBLE_WIDTH / 2;
-    const top = anchorY - shellHeight + BUBBLE_HEIGHT / 2;
-
-    return [
-      `left:${Math.round(this.clamp(left, FLOATING_MARGIN, viewportWidth - shellWidth - FLOATING_MARGIN))}px`,
-      `top:${Math.round(this.clamp(top, FLOATING_MARGIN, viewportHeight - shellHeight - FLOATING_MARGIN))}px`,
-      'right:auto',
-      'bottom:auto',
-      `transform-origin:${alignLeft ? 'bottom left' : 'bottom right'}`,
-    ].join(';');
-  }
-
   private get assistantName(): string {
     return this.config.assistantName || DEFAULT_RAG_ASSISTANT_CONFIG.assistantName;
   }
 
-  private get assistantAvatarUrl(): string | undefined {
-    if (this.avatarLoadFailed) {
-      return undefined;
-    }
-    return this.config.assistantAvatar?.trim() || undefined;
+  private get petInputPlaceholder(): string {
+    return this.selectedContext ? '想问这段内容什么？' : RAG_INPUT_PLACEHOLDER;
+  }
+
+  private get selectedContextPreview(): string {
+    return this.truncateText(this.selectedContext, 120);
+  }
+
+  private get hasConversation(): boolean {
+    return this.messages.length > 0;
+  }
+
+  private get latestAssistantMessage(): RagAssistantMessage | undefined {
+    return [...this.messages].reverse().find((message) => message.role === 'assistant');
+  }
+
+  private get latestAssistantMessageWithSources(): RagAssistantMessage | undefined {
+    return [...this.messages]
+      .reverse()
+      .find((message) => message.role === 'assistant' && Boolean(message.sources?.length));
+  }
+
+  private get hasLatestSources(): boolean {
+    return Boolean(this.latestAssistantMessageWithSources);
+  }
+
+  private get useAgentChat(): boolean {
+    return this.config.agent?.enabled !== false;
+  }
+
+  private get latestUserMessage(): RagAssistantMessage | undefined {
+    return [...this.messages].reverse().find((message) => message.role === 'user');
   }
 
   private get avatarFallbackText(): string {
     return Array.from(this.assistantName.trim())[0] || '智';
   }
 
+  private get petSize(): number {
+    return this.config.petSize || DEFAULT_RAG_PET_SIZE;
+  }
+
   private get petMetrics(): ReturnType<typeof getPetdexMetrics> {
-    return getPetdexMetrics(PET_BUTTON_SIZE);
+    return getPetdexMetrics(this.petSize);
+  }
+
+  private get bubbleWidth(): number {
+    return this.petMetrics.width;
+  }
+
+  private get bubbleHeight(): number {
+    return this.petMetrics.height;
   }
 
   private get petButtonStyle(): string {
@@ -1282,6 +1426,14 @@ export class RagAssistantWidget extends LitElement {
 
   private escapeCssUrl(value: string): string {
     return value.replace(/["\\\n\r\f]/g, '');
+  }
+
+  private truncateText(value: string, maxLength: number): string {
+    const normalized = value.replace(/\s+/g, ' ').trim();
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+    return `${normalized.slice(0, Math.max(0, maxLength - 1))}…`;
   }
 
   private get welcomeMessage(): string {

@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,6 +44,8 @@ public class LuceneRagVectorStore implements RagVectorStore {
 
     private static final String FIELD_ID = "id";
     private static final String FIELD_KNOWLEDGE_BASE = "knowledgeBase";
+    private static final String FIELD_KNOWLEDGE_BASE_DISPLAY_NAME = "knowledgeBaseDisplayName";
+    private static final String FIELD_KNOWLEDGE_BASE_DESCRIPTION = "knowledgeBaseDescription";
     private static final String FIELD_DOCUMENT_NAME = "documentName";
     private static final String FIELD_SOURCE_TYPE = "sourceType";
     private static final String FIELD_SOURCE_NAME = "sourceName";
@@ -163,10 +166,27 @@ public class LuceneRagVectorStore implements RagVectorStore {
                 var analyzer = new CJKAnalyzer()) {
                 var searcher = new IndexSearcher(reader);
                 var parser = new MultiFieldQueryParser(
-                    new String[] {FIELD_TITLE, FIELD_CONTENT, FIELD_TAGS, FIELD_CATEGORIES},
+                    new String[] {
+                        FIELD_TITLE,
+                        FIELD_CONTENT,
+                        FIELD_TAGS,
+                        FIELD_CATEGORIES,
+                        FIELD_SOURCE_NAME,
+                        FIELD_SOURCE_TYPE,
+                        FIELD_KNOWLEDGE_BASE_DISPLAY_NAME,
+                        FIELD_KNOWLEDGE_BASE_DESCRIPTION
+                    },
                     analyzer,
-                    Map.of(FIELD_TITLE, 2.0f, FIELD_CONTENT, 1.0f, FIELD_TAGS, 1.4f,
-                        FIELD_CATEGORIES, 1.2f)
+                    Map.of(
+                        FIELD_TITLE, 2.4f,
+                        FIELD_CONTENT, 1.0f,
+                        FIELD_TAGS, 1.8f,
+                        FIELD_CATEGORIES, 1.6f,
+                        FIELD_SOURCE_NAME, 1.2f,
+                        FIELD_SOURCE_TYPE, 1.1f,
+                        FIELD_KNOWLEDGE_BASE_DISPLAY_NAME, 1.25f,
+                        FIELD_KNOWLEDGE_BASE_DESCRIPTION, 0.8f
+                    )
                 );
                 var query = parser.parse(QueryParser.escape(queryText));
                 var topDocs = searcher.search(query, topK);
@@ -197,17 +217,19 @@ public class LuceneRagVectorStore implements RagVectorStore {
         var document = new org.apache.lucene.document.Document();
         document.add(new StringField(FIELD_ID, chunk.getId(), Field.Store.YES));
         document.add(new StringField(FIELD_KNOWLEDGE_BASE, chunk.getKnowledgeBase(), Field.Store.YES));
+        document.add(new TextField(FIELD_KNOWLEDGE_BASE_DISPLAY_NAME,
+            defaultString(chunk.getKnowledgeBaseDisplayName()), Field.Store.YES));
+        document.add(new TextField(FIELD_KNOWLEDGE_BASE_DESCRIPTION,
+            defaultString(chunk.getKnowledgeBaseDescription()), Field.Store.YES));
         document.add(new StringField(FIELD_DOCUMENT_NAME, chunk.getDocumentName(), Field.Store.YES));
-        document.add(new StringField(FIELD_SOURCE_TYPE, defaultString(chunk.getSourceType()), Field.Store.YES));
-        document.add(new StringField(FIELD_SOURCE_NAME, defaultString(chunk.getSourceName()), Field.Store.YES));
+        document.add(new TextField(FIELD_SOURCE_TYPE, defaultString(chunk.getSourceType()), Field.Store.YES));
+        document.add(new TextField(FIELD_SOURCE_NAME, defaultString(chunk.getSourceName()), Field.Store.YES));
         document.add(new TextField(FIELD_TITLE, defaultString(chunk.getTitle()), Field.Store.YES));
         document.add(new StoredField(FIELD_URL, defaultString(chunk.getUrl())));
         document.add(new TextField(FIELD_CONTENT, defaultString(chunk.getContent()), Field.Store.YES));
         document.add(new StoredField(FIELD_CHUNK_INDEX, chunk.getChunkIndex()));
-        document.add(new TextField(FIELD_TAGS, String.join(" ", defaultList(chunk.getTags())),
-            Field.Store.NO));
-        document.add(new TextField(FIELD_CATEGORIES, String.join(" ", defaultList(chunk.getCategories())),
-            Field.Store.NO));
+        document.add(new TextField(FIELD_TAGS, joinList(chunk.getTags()), Field.Store.YES));
+        document.add(new TextField(FIELD_CATEGORIES, joinList(chunk.getCategories()), Field.Store.YES));
         document.add(new KnnFloatVectorField(FIELD_VECTOR, chunk.getVector(),
             VectorSimilarityFunction.COSINE));
         return document;
@@ -242,11 +264,26 @@ public class LuceneRagVectorStore implements RagVectorStore {
             .score(score)
             .vectorScore(vectorScore)
             .keywordScore(keywordScore)
-            .metadata(Map.of(
-                "documentName", defaultString(document.get(FIELD_DOCUMENT_NAME)),
-                "chunkIndex", chunkIndex == null ? "" : chunkIndex
-            ))
+            .metadata(metadata(document, chunkIndex))
             .build();
+    }
+
+    private Map<String, Object> metadata(org.apache.lucene.document.Document document,
+        Integer chunkIndex) {
+        var metadata = new LinkedHashMap<String, Object>();
+        metadata.put("documentName", defaultString(document.get(FIELD_DOCUMENT_NAME)));
+        metadata.put("documentTitle", defaultString(document.get(FIELD_TITLE)));
+        metadata.put("chunkIndex", chunkIndex == null ? "" : chunkIndex);
+        metadata.put("sourceType", defaultString(document.get(FIELD_SOURCE_TYPE)));
+        metadata.put("sourceName", defaultString(document.get(FIELD_SOURCE_NAME)));
+        metadata.put("knowledgeBase", defaultString(document.get(FIELD_KNOWLEDGE_BASE)));
+        metadata.put("knowledgeBaseDisplayName",
+            defaultString(document.get(FIELD_KNOWLEDGE_BASE_DISPLAY_NAME)));
+        metadata.put("knowledgeBaseDescription",
+            defaultString(document.get(FIELD_KNOWLEDGE_BASE_DESCRIPTION)));
+        metadata.put("tags", splitStoredList(document.get(FIELD_TAGS)));
+        metadata.put("categories", splitStoredList(document.get(FIELD_CATEGORIES)));
+        return Map.copyOf(metadata);
     }
 
     private Path indexPath(String knowledgeBase, String indexVersion) {
@@ -310,6 +347,23 @@ public class LuceneRagVectorStore implements RagVectorStore {
 
     private String defaultString(String value) {
         return value == null ? "" : value;
+    }
+
+    private String joinList(List<String> values) {
+        return String.join("\n", defaultList(values).stream()
+            .filter(StringUtils::hasText)
+            .map(String::strip)
+            .toList());
+    }
+
+    private List<String> splitStoredList(String value) {
+        if (!StringUtils.hasText(value)) {
+            return List.of();
+        }
+        return value.lines()
+            .map(String::strip)
+            .filter(StringUtils::hasText)
+            .toList();
     }
 
     private Integer chunkIndex(org.apache.lucene.document.Document document) {

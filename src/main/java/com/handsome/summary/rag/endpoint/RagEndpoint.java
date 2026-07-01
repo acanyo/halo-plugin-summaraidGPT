@@ -130,7 +130,10 @@ public class RagEndpoint implements CustomEndpoint {
     public record IndexTaskResponse(List<RagIndexTask> items) {
     }
 
-    public record ConversationResponse(List<RagConversation> items) {
+    public record ConversationResponse(List<RagConversation> items, int page, int size, int total) {
+        static ConversationResponse from(RagConversationService.ConversationPage page) {
+            return new ConversationResponse(page.items(), page.page(), page.size(), page.total());
+        }
     }
 
     public record ImportablePostResponse(List<ImportablePost> items) {
@@ -587,13 +590,17 @@ public class RagEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> listConversations(ServerRequest request) {
-        var knowledgeBase = normalizeKnowledgeBase(request.queryParam("knowledgeBase").orElse(null));
-        var limit = request.queryParam("limit")
+        var knowledgeBase = request.queryParam("knowledgeBase").orElse(null);
+        var keyword = request.queryParam("keyword").orElse(null);
+        var page = request.queryParam("page")
+            .map(this::parsePage)
+            .orElse(1);
+        var size = request.queryParam("size")
+            .or(() -> request.queryParam("limit"))
             .map(this::parseLimit)
-            .orElse(50);
-        return ragConversationService.list(knowledgeBase, limit)
-            .collectList()
-            .map(ConversationResponse::new)
+            .orElse(20);
+        return ragConversationService.list(knowledgeBase, keyword, page, size)
+            .map(ConversationResponse::from)
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
     }
@@ -886,6 +893,14 @@ public class RagEndpoint implements CustomEndpoint {
             return Math.max(1, Math.min(Integer.parseInt(value), 100));
         } catch (Exception e) {
             return 20;
+        }
+    }
+
+    private int parsePage(String value) {
+        try {
+            return Math.max(1, Integer.parseInt(value));
+        } catch (Exception e) {
+            return 1;
         }
     }
 

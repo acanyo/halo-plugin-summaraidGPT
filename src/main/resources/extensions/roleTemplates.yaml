@@ -11,7 +11,7 @@ rules:
     resources: ["updateContent","dialogConfig","summaryConfig"]
     verbs: ["update", "create", "get", "list"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
-    resources: ["ragSearch","ragAsk","ragAskStream"]
+    resources: ["ragSearch","ragAsk","ragAskStream","ragAgentChat"]
     verbs: ["create"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragConversations"]
@@ -25,7 +25,7 @@ metadata:
     halo.run/role-template: "true"
   annotations:
     rbac.authorization.halo.run/module: "智阅AI助手"
-    rbac.authorization.halo.run/display-name: "查看 RAG 知识库"
+    rbac.authorization.halo.run/display-name: "查看智阅 AI 助手"
     rbac.authorization.halo.run/ui-permissions: |
       ["plugin:summaraidGPT:rag:view","plugin:summaraidGPT:ai-call-logs:view","plugin:summaraidGPT:pets:view"]
 rules:
@@ -33,7 +33,7 @@ rules:
     resources: ["ragKnowledgeBases","ragDocuments"]
     verbs: ["get", "list"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
-    resources: ["ragStats","ragImportablePosts","ragIndexTasks"]
+    resources: ["ragStats","ragImportablePosts","ragIndexTasks","ragIndexTasks/subscribe"]
     verbs: ["get", "list"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragConversations"]
@@ -55,18 +55,18 @@ metadata:
     rbac.authorization.halo.run/dependencies: |
       ["role-template-view-summaraidGPT-rag"]
     rbac.authorization.halo.run/module: "智阅AI助手"
-    rbac.authorization.halo.run/display-name: "管理 RAG 知识库"
+    rbac.authorization.halo.run/display-name: "管理智阅 AI 助手"
     rbac.authorization.halo.run/ui-permissions: |
       ["plugin:summaraidGPT:rag:manage","plugin:summaraidGPT:ai-call-logs:manage","plugin:summaraidGPT:pets:manage"]
 rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
-    resources: ["ragKnowledgeBases","ragDocuments"]
+    resources: ["ragKnowledgeBases","ragDocuments","ragDocuments/status"]
     verbs: ["get", "list", "create", "update", "delete"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
-    resources: ["ragStats","ragImportablePosts","ragIndexTasks"]
+    resources: ["ragStats","ragImportablePosts","ragIndexTasks","ragIndexTasks/subscribe"]
     verbs: ["get", "list"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
-    resources: ["ragImportPosts","ragRebuild","ragRebuildNow","ragSearch","ragAsk","ragAskStream","ragDocumentsBatchDelete"]
+    resources: ["ragImportPosts","ragRebuild","ragRebuildNow","ragSearch","ragAsk","ragAskStream","ragAgentChat","ragDocumentsBatchDelete"]
     verbs: ["create"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragConversations"]
@@ -75,5 +75,7 @@ rules:
     resources: ["aiCallLogs"]
     verbs: ["delete"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
-    resources: ["petCompanions"]
+    resources: ["petCompanions","petCompanions/active","petCompanions/status"]
     verbs: ["get", "list", "create", "update", "delete"]
+  - nonResourceURLs: ["/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/petCompanions/import"]
+    verbs: ["create"]

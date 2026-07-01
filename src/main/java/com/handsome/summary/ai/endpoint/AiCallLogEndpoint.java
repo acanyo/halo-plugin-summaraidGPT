@@ -32,10 +32,10 @@ public class AiCallLogEndpoint implements CustomEndpoint {
 
     private final ReactiveExtensionClient client;
 
-    public record AiCallLogResponse(List<AiCallLog> items) {
+    public record AiCallLogResponse(List<AiCallLog> items, int page, int size, int total) {
     }
 
-    public record MutationResponse(boolean success, String message) {
+    public record MutationResponse(boolean success, String message, long affected) {
     }
 
     public record ErrorResponse(boolean success, String message) {
@@ -59,6 +59,12 @@ public class AiCallLogEndpoint implements CustomEndpoint {
                         .implementation(String.class))
                     .response(responseBuilder().implementation(AiCallLog.class))
             )
+            .DELETE("aiCallLogs", this::clear,
+                builder -> builder.operationId("ClearAiCallLogs")
+                    .tag(tag)
+                    .description("Clear all AI Foundation call logs.")
+                    .response(responseBuilder().implementation(MutationResponse.class))
+            )
             .DELETE("aiCallLogs/{name}", this::delete,
                 builder -> builder.operationId("DeleteAiCallLog")
                     .tag(tag)
@@ -71,16 +77,28 @@ public class AiCallLogEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> list(ServerRequest request) {
-        var limit = request.queryParam("limit").map(this::parseLimit).orElse(50);
+        var page = request.queryParam("page").map(this::parsePage).orElse(1);
+        var size = request.queryParam("size")
+            .or(() -> request.queryParam("limit"))
+            .map(this::parseLimit)
+            .orElse(20);
+        var offset = (long) (page - 1) * size;
         var operation = request.queryParam("operation").orElse(null);
         var modelType = request.queryParam("modelType").orElse(null);
         var success = request.queryParam("success").map(Boolean::parseBoolean).orElse(null);
         return client.listAll(AiCallLog.class, ListOptions.builder().build(), Sort.unsorted())
             .filter(log -> matches(log, operation, modelType, success))
             .sort(Comparator.comparing(this::startedAt).reversed())
-            .take(limit)
             .collectList()
-            .map(AiCallLogResponse::new)
+            .map(logs -> new AiCallLogResponse(
+                logs.stream()
+                    .skip(offset)
+                    .limit(size)
+                    .toList(),
+                page,
+                size,
+                logs.size()
+            ))
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
     }
@@ -100,7 +118,15 @@ public class AiCallLogEndpoint implements CustomEndpoint {
             .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND,
                 "AI call log not found")))
             .flatMap(client::delete)
-            .then(ok(new MutationResponse(true, "AI 调用日志已删除")))
+            .then(ok(new MutationResponse(true, "AI 调用日志已删除", 1)))
+            .onErrorResume(this::errorResponse);
+    }
+
+    private Mono<ServerResponse> clear(ServerRequest request) {
+        return client.listAll(AiCallLog.class, ListOptions.builder().build(), Sort.unsorted())
+            .flatMap(log -> client.delete(log).thenReturn(log))
+            .count()
+            .flatMap(count -> ok(new MutationResponse(true, "AI 调用日志已清空", count)))
             .onErrorResume(this::errorResponse);
     }
 
@@ -131,9 +157,17 @@ public class AiCallLogEndpoint implements CustomEndpoint {
 
     private int parseLimit(String value) {
         try {
-            return Math.max(1, Math.min(Integer.parseInt(value), 200));
+            return Math.max(1, Math.min(Integer.parseInt(value), 100));
         } catch (Exception e) {
-            return 50;
+            return 20;
+        }
+    }
+
+    private int parsePage(String value) {
+        try {
+            return Math.max(1, Integer.parseInt(value));
+        } catch (Exception e) {
+            return 1;
         }
     }
 

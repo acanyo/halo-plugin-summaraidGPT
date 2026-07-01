@@ -1,3 +1,5 @@
+import type { AgentRuntimeConfig } from './agent/types';
+
 export interface RagAssistantConfig {
   assistantAvatar?: string;
   assistantName: string;
@@ -5,8 +7,10 @@ export interface RagAssistantConfig {
   buttonPosition: 'left' | 'right';
   horizontalOffset: number;
   verticalOffset: number;
+  petSize: number;
   petSpeechMessages?: string[];
   pet?: RagAssistantPetConfig;
+  agent?: AgentRuntimeConfig;
 }
 
 export interface RagAssistantPetConfig {

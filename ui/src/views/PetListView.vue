@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   Dialog,
   IconRefreshLine,
   Toast,
   VButton,
+  VCard,
+  VDropdownItem,
   VEmpty,
+  VEntity,
+  VEntityContainer,
+  VEntityField,
   VLoading,
   VModal,
   VPageHeader,
@@ -15,19 +20,23 @@ import {
   VSwitch,
   VTag,
 } from '@halo-dev/components'
+import { utils } from '@halo-dev/ui-shared'
 import RiAddLine from '~icons/ri/add-line'
 import RiBearSmileLine from '~icons/ri/bear-smile-line'
-import RiDeleteBinLine from '~icons/ri/delete-bin-line'
 import RiDownloadCloudLine from '~icons/ri/download-cloud-line'
-import RiEdit2Line from '~icons/ri/edit-2-line'
 import RiExternalLinkLine from '~icons/ri/external-link-line'
-import RiSearchLine from '~icons/ri/search-line'
 import RiSparkling2Line from '~icons/ri/sparkling-2-line'
 import RiStore2Line from '~icons/ri/store-2-line'
 import { petApi, type PetCompanion, type PetdexCatalogItem } from '@/api/pets'
+import { hasUiPermission } from '@/utils/permissions'
 
-const PET_PREVIEW_SIZE = 72
-const PET_FRAME_HEIGHT_RATIO = 208 / 192
+const PET_FRAME_WIDTH = 192
+const PET_FRAME_HEIGHT = 208
+const PET_SPRITESHEET_COLUMNS = 8
+const PET_SPRITESHEET_ROWS = 9
+const PET_LIST_PREVIEW_HEIGHT = 64
+const PET_CATALOG_PREVIEW_HEIGHT = 64
+const PET_DELETING_REFETCH_INTERVAL = 1000
 // Halo registers these FormKit inputs globally, but @formkit/vue typings do not list them.
 const haloAttachmentType = 'attachment' as 'text'
 const haloAttachmentInputType = 'attachmentInput' as 'text'
@@ -39,6 +48,8 @@ const mutating = ref(false)
 const loadingPetdexCatalog = ref(false)
 const importingCatalogPet = ref('')
 const pets = ref<PetCompanion[]>([])
+const petPage = ref(1)
+const petPageSize = ref(10)
 const petdexCatalog = ref<PetdexCatalogItem[]>([])
 const petdexCatalogGeneratedAt = ref('')
 const showPetdexCatalogModal = ref(false)
@@ -46,6 +57,9 @@ const petdexCatalogKeyword = ref('')
 const petdexCatalogKind = ref('')
 const petdexCatalogPage = ref(1)
 const petdexCatalogPageSize = ref(24)
+const PETS_MANAGE_PERMISSION = 'plugin:summaraidGPT:pets:manage'
+
+let deletingPetRefetchTimer: number | undefined
 
 const importForm = reactive({
   command: '',
@@ -66,9 +80,7 @@ const petForm = reactive({
 })
 
 const activePet = computed(() => pets.value.find((pet) => pet.spec?.active))
-const importedCount = computed(
-  () => pets.value.filter((pet) => pet.spec?.source === 'PETDEX').length,
-)
+const canManagePets = computed(() => hasUiPermission(PETS_MANAGE_PERMISSION))
 
 const importedPetdexKeys = computed(() => {
   const keys = new Set<string>()
@@ -97,6 +109,11 @@ const petdexCatalogKinds = computed(() => {
   return Array.from(names).sort((left, right) => kindText(left).localeCompare(kindText(right)))
 })
 
+const petdexCatalogKindItems = computed(() => [
+  { label: '全部类型', value: '' },
+  ...petdexCatalogKinds.value.map((kind) => ({ label: kindText(kind), value: kind })),
+])
+
 const filteredPetdexCatalog = computed(() => {
   const keyword = petdexCatalogKeyword.value.trim().toLowerCase()
   return petdexCatalog.value.filter((pet) => {
@@ -117,14 +134,59 @@ const pagedPetdexCatalog = computed(() => {
   return filteredPetdexCatalog.value.slice(start, start + petdexCatalogPageSize.value)
 })
 
-const loadPets = async () => {
-  loading.value = true
+const pagedPets = computed(() => {
+  const start = (petPage.value - 1) * petPageSize.value
+  return pets.value.slice(start, start + petPageSize.value)
+})
+
+const normalizePetPage = () => {
+  const maxPage = Math.max(1, Math.ceil(pets.value.length / petPageSize.value))
+  petPage.value = Math.min(petPage.value, maxPage)
+}
+
+const deletingPetRefetchInterval = (data?: PetCompanion[]) => {
+  const hasDeletingPet = data?.some((pet) => pet.metadata.deletionTimestamp)
+  return hasDeletingPet ? PET_DELETING_REFETCH_INTERVAL : false
+}
+
+const clearDeletingPetRefetch = () => {
+  if (!deletingPetRefetchTimer) {
+    return
+  }
+  window.clearInterval(deletingPetRefetchTimer)
+  deletingPetRefetchTimer = undefined
+}
+
+const syncDeletingPetRefetch = (data = pets.value) => {
+  const interval = deletingPetRefetchInterval(data)
+  if (!interval) {
+    clearDeletingPetRefetch()
+    return
+  }
+  if (deletingPetRefetchTimer) {
+    return
+  }
+  deletingPetRefetchTimer = window.setInterval(() => {
+    loadPets({ silent: true })
+  }, interval)
+}
+
+const loadPets = async (options: { silent?: boolean } = {}) => {
+  if (!options.silent) {
+    loading.value = true
+  }
   try {
     pets.value = await petApi.list()
+    normalizePetPage()
+    syncDeletingPetRefetch()
   } catch (error) {
-    Toast.error('宠物列表加载失败')
+    if (!options.silent) {
+      Toast.error('宠物列表加载失败')
+    }
   } finally {
-    loading.value = false
+    if (!options.silent) {
+      loading.value = false
+    }
   }
 }
 
@@ -277,8 +339,18 @@ const deletePet = (pet: PetCompanion) => {
   })
 }
 
+const openPetModalFromDropdown = (event: Event, pet: PetCompanion) => {
+  event.stopPropagation()
+  openPetModal(pet)
+}
+
+const deletePetFromDropdown = (event: Event, pet: PetCompanion) => {
+  event.stopPropagation()
+  deletePet(pet)
+}
+
 const previewStyle = (pet: PetCompanion) => {
-  return spritePreviewStyle(pet.spec?.spritesheetUrl)
+  return spritePreviewStyle(pet.spec?.spritesheetUrl, PET_LIST_PREVIEW_HEIGHT)
 }
 
 const displayName = (pet?: PetCompanion) =>
@@ -287,15 +359,17 @@ const displayName = (pet?: PetCompanion) =>
 const sourceUrl = (pet: PetCompanion) =>
   pet.spec?.installScriptUrl || pet.spec?.petJsonUrl || pet.spec?.spritesheetUrl
 
-const spritePreviewStyle = (spritesheetUrl?: string, size = PET_PREVIEW_SIZE) => {
-  const height = Math.round(size * PET_FRAME_HEIGHT_RATIO)
+const spritePreviewStyle = (spritesheetUrl?: string, frameHeight = PET_LIST_PREVIEW_HEIGHT) => {
+  const frameWidth = Math.round((frameHeight * PET_FRAME_WIDTH) / PET_FRAME_HEIGHT)
   return {
-    width: `${size}px`,
-    height: `${height}px`,
+    width: `${frameWidth}px`,
+    height: `${frameHeight}px`,
     backgroundImage: spritesheetUrl
       ? `url("${spritesheetUrl.replace(/["\\\n\r\f]/g, '')}")`
       : undefined,
-    backgroundSize: `${size * 8}px ${height * 9}px`,
+    backgroundSize: `${frameWidth * PET_SPRITESHEET_COLUMNS}px ${
+      frameHeight * PET_SPRITESHEET_ROWS
+    }px`,
   }
 }
 
@@ -351,11 +425,21 @@ const attachmentUrl = (value: unknown): string => {
 
 const formatDate = (value?: string) => {
   if (!value) return '-'
-  return new Date(value).toLocaleString()
+  return utils.date.format(value)
 }
 
 watch([petdexCatalogKeyword, petdexCatalogKind], () => {
   petdexCatalogPage.value = 1
+})
+
+watch(() => pets.value.length, normalizePetPage)
+
+watch(petPageSize, () => {
+  normalizePetPage()
+})
+
+onBeforeUnmount(() => {
+  clearDeletingPetRefetch()
 })
 
 onMounted(loadPets)
@@ -368,19 +452,29 @@ onMounted(loadPets)
     </template>
     <template #actions>
       <VSpace>
-        <VButton type="secondary" :loading="loading" @click="loadPets">
+        <VButton type="secondary" :loading="loading" @click="loadPets()">
           <template #icon>
             <IconRefreshLine class="h-full w-full" />
           </template>
           刷新
         </VButton>
-        <VButton type="secondary" @click="openPetdexCatalog">
+        <VButton
+          v-if="canManagePets"
+          v-permission="[PETS_MANAGE_PERMISSION]"
+          type="secondary"
+          @click="openPetdexCatalog"
+        >
           <template #icon>
             <RiStore2Line class="h-full w-full" />
           </template>
           PetDex 宠物库
         </VButton>
-        <VButton type="secondary" @click="openPetModal()">
+        <VButton
+          v-if="canManagePets"
+          v-permission="[PETS_MANAGE_PERMISSION]"
+          type="secondary"
+          @click="openPetModal()"
+        >
           <template #icon>
             <RiAddLine class="h-full w-full" />
           </template>
@@ -390,20 +484,30 @@ onMounted(loadPets)
     </template>
   </VPageHeader>
 
-  <div class="pet-page">
-    <section class="pet-import-panel">
-      <div class="pet-import-head">
-        <div>
-          <span class="section-kicker">PetDex 导入</span>
-          <h2>粘贴安装命令创建宠物</h2>
-          <p>系统只读取远程 pet.json 与 spritesheet 链接，不执行脚本。</p>
+  <div class=":uno: m-0 grid gap-3 p-3 md:m-4 md:p-0">
+    <VCard
+      v-if="canManagePets"
+      v-permission="[PETS_MANAGE_PERMISSION]"
+      class=":uno: overflow-hidden"
+      :body-class="[':uno: !p-0']"
+    >
+      <div
+        class="pet-import-compact :uno: grid grid-cols-[minmax(150px,220px)_minmax(0,1fr)_max-content] items-center gap-3 px-3.5 py-3 max-[860px]:grid-cols-1"
+      >
+        <div class=":uno: grid min-w-0 gap-0.5">
+          <strong class=":uno: text-[13px] font-bold leading-snug text-gray-900">
+            PetDex 导入
+          </strong>
+          <span
+            class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-snug text-slate-500"
+          >
+            粘贴安装命令，只读取远程资源链接。
+          </span>
         </div>
-        <VTag size="sm">安全解析</VTag>
-      </div>
-      <div class="pet-import-form">
-        <textarea
+        <FormKit
           v-model="importForm.command"
-          rows="1"
+          type="text"
+          name="petdexCommand"
           placeholder="curl -sSf https://petdex.dev/install/iikun | sh"
         />
         <VButton type="primary" :loading="importing" @click="importPet">
@@ -413,92 +517,154 @@ onMounted(loadPets)
           导入并启用
         </VButton>
       </div>
-    </section>
+    </VCard>
 
-    <section class="pet-list-section">
-      <div class="pet-list-header">
-        <div>
-          <span class="section-kicker">宠物管理</span>
-          <h2>前台悬浮宠物</h2>
-          <p>
-            {{ pets.length }} 个宠物，已启用：
-            <strong>{{ activePet ? displayName(activePet) : '未设置' }}</strong>
-          </p>
+    <VCard :body-class="[':uno: !p-0']">
+      <template #header>
+        <div class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3">
+          <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-gray-500">
+            <strong class=":uno: text-lg leading-none text-gray-900">{{ pets.length }}</strong>
+            <span>个宠物</span>
+            <span>当前启用：{{ activePet ? displayName(activePet) : '未设置' }}</span>
+          </div>
         </div>
-        <div class="pet-stat-strip">
-          <span>PetDex {{ importedCount }}</span>
-          <span>全部 {{ pets.length }}</span>
-        </div>
-      </div>
+      </template>
 
       <VLoading v-if="loading" />
       <VEmpty
         v-else-if="pets.length === 0"
         title="暂无宠物"
-        message="粘贴 PetDex 安装命令即可导入一个前台悬浮宠物"
+        :message="
+          canManagePets
+            ? '粘贴 PetDex 安装命令即可导入一个前台悬浮宠物'
+            : '当前账号可以查看宠物配置，但不能新增或修改宠物'
+        "
       />
 
-      <div v-else class="pet-list">
-        <article
-          v-for="pet in pets"
+      <VEntityContainer v-else class="pet-list :uno: overflow-hidden">
+        <VEntity
+          v-for="pet in pagedPets"
           :key="pet.metadata.name"
-          class="pet-row"
-          :class="{ active: pet.spec?.active, disabled: pet.spec?.enabled === false }"
+          :is-selected="pet.spec?.active === true"
+          :class="{
+            ':uno: opacity-[0.64]': pet.spec?.enabled === false,
+            ':uno: pointer-events-none opacity-[0.56]': !!pet.metadata.deletionTimestamp,
+          }"
         >
-          <div class="pet-preview-stage">
-            <span class="pet-shadow"></span>
-            <span class="pet-sprite-preview" :style="previewStyle(pet)"></span>
-          </div>
-
-          <div class="pet-info">
-            <div class="pet-title-row">
-              <h3>{{ displayName(pet) }}</h3>
-              <VStatusDot v-bind="statusInfo(pet)" />
-            </div>
-            <p>{{ pet.spec?.description || '暂无描述' }}</p>
-            <div class="pet-meta">
-              <span>
-                来源 <b>{{ pet.spec?.source || 'PETDEX' }}</b>
-              </span>
-              <span v-if="pet.spec?.petdexId">
-                ID <b>{{ pet.spec.petdexId }}</b>
-              </span>
-              <span>
-                更新 <b>{{ formatDate(pet.status?.updatedAt || pet.status?.importedAt) }}</b>
-              </span>
-            </div>
-            <a
-              v-if="sourceUrl(pet)"
-              class="pet-link"
-              :href="sourceUrl(pet)"
-              target="_blank"
-              rel="noopener noreferrer"
-              :title="sourceUrl(pet)"
+          <template #start>
+            <div
+              class=":uno: relative grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50"
             >
-              <RiExternalLinkLine />
-              <span>{{ sourceUrl(pet) }}</span>
-            </a>
-          </div>
+              <span
+                class=":uno: absolute bottom-2 h-1.5 w-10 rounded-full bg-slate-900/10 blur-[3px]"
+              ></span>
+              <span
+                class=":uno: relative block bg-no-repeat drop-shadow-[0_7px_8px_rgba(15,23,42,0.16)] [background-position:0_0] [image-rendering:pixelated]"
+                :style="previewStyle(pet)"
+              ></span>
+            </div>
+            <VEntityField
+              :title="displayName(pet)"
+              :description="pet.spec?.description || pet.metadata.name"
+              width="22rem"
+            >
+              <template #extra>
+                <VStatusDot
+                  v-if="pet.metadata.deletionTimestamp"
+                  v-tooltip="'删除中'"
+                  state="warning"
+                  text="删除中"
+                />
+                <VStatusDot v-else v-bind="statusInfo(pet)" />
+              </template>
+            </VEntityField>
+          </template>
 
-          <div class="pet-actions">
-            <label class="pet-toggle">
-              <span>启用</span>
-              <VSwitch
-                :model-value="pet.spec?.active === true"
-                :disabled="mutating || pet.spec?.active === true"
-                @update:model-value="(checked) => checked && enablePet(pet)"
-              />
-            </label>
-            <button class="icon-action" title="编辑" @click="openPetModal(pet)">
-              <RiEdit2Line />
-            </button>
-            <button class="icon-action danger" title="删除" @click="deletePet(pet)">
-              <RiDeleteBinLine />
-            </button>
-          </div>
-        </article>
-      </div>
-    </section>
+          <template #end>
+            <VEntityField>
+              <template #description>
+                <VTag size="sm">{{ pet.spec?.source || 'PETDEX' }}</VTag>
+              </template>
+            </VEntityField>
+            <VEntityField v-if="pet.spec?.petdexId" width="8rem">
+              <template #description>
+                <span
+                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                >
+                  {{ pet.spec.petdexId }}
+                </span>
+              </template>
+            </VEntityField>
+            <VEntityField v-if="sourceUrl(pet)" width="12rem">
+              <template #description>
+                <a
+                  :href="sourceUrl(pet)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  :title="sourceUrl(pet)"
+                  class=":uno: inline-flex max-w-full items-center gap-[5px] overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-tight text-blue-600 no-underline"
+                  @click.stop
+                >
+                  <RiExternalLinkLine class=":uno: h-[13px] w-[13px] flex-none" />
+                  <span class=":uno: overflow-hidden text-ellipsis">{{ sourceUrl(pet) }}</span>
+                </a>
+              </template>
+            </VEntityField>
+            <VEntityField>
+              <template #description>
+                <span
+                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-400 tabular-nums"
+                >
+                  {{ formatDate(pet.status?.updatedAt || pet.status?.importedAt) }}
+                </span>
+              </template>
+            </VEntityField>
+
+            <VEntityField
+              v-if="canManagePets && !pet.metadata.deletionTimestamp"
+              v-permission="[PETS_MANAGE_PERMISSION]"
+            >
+              <template #description>
+                <VSwitch
+                  :model-value="pet.spec?.active === true"
+                  :disabled="mutating || pet.spec?.active === true"
+                  @update:model-value="(checked) => checked && enablePet(pet)"
+                />
+              </template>
+            </VEntityField>
+          </template>
+
+          <template v-if="canManagePets && !pet.metadata.deletionTimestamp" #dropdownItems>
+            <VDropdownItem
+              v-permission="[PETS_MANAGE_PERMISSION]"
+              @click="openPetModalFromDropdown($event, pet)"
+            >
+              编辑
+            </VDropdownItem>
+            <VDropdownItem
+              v-permission="[PETS_MANAGE_PERMISSION]"
+              type="danger"
+              :disabled="mutating"
+              @click="deletePetFromDropdown($event, pet)"
+            >
+              删除
+            </VDropdownItem>
+          </template>
+        </VEntity>
+      </VEntityContainer>
+
+      <template v-if="pets.length > 0" #footer>
+        <VPagination
+          v-model:page="petPage"
+          v-model:size="petPageSize"
+          page-label="页"
+          size-label="条 / 页"
+          :total-label="`共 ${pets.length} 项数据`"
+          :total="pets.length"
+          :size-options="[10, 20, 50]"
+        />
+      </template>
+    </VCard>
   </div>
 
   <VModal
@@ -506,60 +672,68 @@ onMounted(loadPets)
     :title="editingPet ? '编辑宠物' : '手动添加宠物'"
     :width="680"
   >
-    <div class="form-stack">
-      <div class="form-grid">
+    <div class="pet-form-stack :uno: grid w-full min-w-0 gap-3">
+      <section class=":uno: grid gap-3 rounded-lg border border-[#edf0f5] bg-white p-3.5">
+        <div class=":uno: text-[13px] font-bold leading-tight text-gray-900">基础信息</div>
+        <div class=":uno: grid w-full min-w-0 grid-cols-1 gap-3">
+          <FormKit
+            v-model="petForm.displayName"
+            type="text"
+            name="displayName"
+            label="名称"
+            placeholder="如：iikun"
+            validation="required"
+          />
+          <FormKit
+            v-model="petForm.petdexId"
+            type="text"
+            name="petdexId"
+            label="PetDex ID"
+            placeholder="可选"
+          />
+        </div>
         <FormKit
-          v-model="petForm.displayName"
+          v-model="petForm.description"
           type="text"
-          name="displayName"
-          label="名称"
-          placeholder="如：iikun"
-          validation="required"
-        />
-        <FormKit
-          v-model="petForm.petdexId"
-          type="text"
-          name="petdexId"
-          label="PetDex ID"
+          name="description"
+          label="描述"
           placeholder="可选"
         />
-      </div>
-      <FormKit
-        v-model="petForm.description"
-        type="text"
-        name="description"
-        label="描述"
-        placeholder="可选"
-      />
-      <div class="form-grid">
-        <FormKit
-          v-model="petForm.spritesheetUrl"
-          :type="haloAttachmentType"
-          name="spritesheetUrl"
-          label="Spritesheet 图片"
-          validation="required"
-          :accepts="['image/*']"
-          width="132px"
-          aspect-ratio="1/1"
-          help="上传或选择宠物 spritesheet 图片。"
-        />
-        <FormKit
-          v-model="petForm.petJsonUrl"
-          :type="haloAttachmentInputType"
-          name="petJsonUrl"
-          label="pet.json 文件"
-          :accepts="['application/json', '.json']"
-          :min="0"
-          :max="1"
-          help="可选，选择 PetDex 的 pet.json 文件。"
-        />
-      </div>
-      <div class="switch-grid">
-        <label class="switch-row">
+      </section>
+
+      <section class=":uno: grid gap-3 rounded-lg border border-[#edf0f5] bg-white p-3.5">
+        <div class=":uno: text-[13px] font-bold leading-tight text-gray-900">宠物资源</div>
+        <div class=":uno: grid gap-3.5">
+          <FormKit
+            v-model="petForm.spritesheetUrl"
+            :type="haloAttachmentType"
+            name="spritesheetUrl"
+            label="Spritesheet 图片"
+            validation="required"
+            :accepts="['image/*']"
+            width="160px"
+            aspect-ratio="1/1"
+            help="上传或选择宠物 spritesheet 图片。"
+          />
+          <FormKit
+            v-model="petForm.petJsonUrl"
+            :type="haloAttachmentInputType"
+            name="petJsonUrl"
+            label="pet.json 文件"
+            :accepts="['application/json', '.json']"
+            :min="0"
+            :max="1"
+            help="可选，选择 PetDex 的 pet.json 文件。"
+          />
+        </div>
+      </section>
+
+      <section class=":uno: grid gap-3 rounded-lg border border-[#edf0f5] bg-white px-3.5 py-3">
+        <label class=":uno: inline-flex items-center gap-2 text-[13px] text-slate-700">
           <VSwitch v-model="petForm.activate" />
           <span>保存后启用这个宠物</span>
         </label>
-      </div>
+      </section>
     </div>
     <template #footer>
       <VSpace>
@@ -570,10 +744,12 @@ onMounted(loadPets)
   </VModal>
 
   <VModal v-model:visible="showPetdexCatalogModal" title="PetDex 宠物库" :width="920">
-    <div class="catalog-panel">
-      <div class="catalog-toolbar">
-        <div class="catalog-summary">
-          <strong>{{ petdexCatalog.length || '—' }}</strong>
+    <div class=":uno: grid gap-3">
+      <div class=":uno: flex items-center justify-between gap-3">
+        <div class=":uno: flex flex-wrap items-center gap-2 text-[13px] text-slate-500">
+          <strong class=":uno: text-lg leading-none text-gray-900">
+            {{ petdexCatalog.length || '—' }}
+          </strong>
           <span>个公开宠物</span>
           <span v-if="petdexCatalogGeneratedAt">
             更新 {{ formatDate(petdexCatalogGeneratedAt) }}
@@ -587,17 +763,11 @@ onMounted(loadPets)
         </VButton>
       </div>
 
-      <div class="catalog-filter">
-        <label class="catalog-search">
-          <RiSearchLine />
-          <input v-model="petdexCatalogKeyword" placeholder="搜索名称、ID、提交者" />
-        </label>
-        <select v-model="petdexCatalogKind" class="catalog-kind-select">
-          <option value="">全部类型</option>
-          <option v-for="kind in petdexCatalogKinds" :key="kind" :value="kind">
-            {{ kindText(kind) }}
-          </option>
-        </select>
+      <div
+        class=":uno: grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2.5 max-[860px]:grid-cols-1"
+      >
+        <SearchInput v-model="petdexCatalogKeyword" placeholder="搜索名称、ID、提交者" />
+        <FilterDropdown v-model="petdexCatalogKind" label="类型" :items="petdexCatalogKindItems" />
       </div>
 
       <VLoading v-if="loadingPetdexCatalog" />
@@ -606,41 +776,68 @@ onMounted(loadPets)
         title="没有匹配的宠物"
         message="换一个关键词或类型试试"
       />
-      <div v-else class="catalog-list">
-        <article v-for="pet in pagedPetdexCatalog" :key="pet.slug" class="catalog-item">
-          <div class="catalog-preview-stage">
-            <span class="pet-shadow"></span>
-            <span
-              class="pet-sprite-preview catalog-sprite"
-              :style="spritePreviewStyle(pet.spritesheetUrl, 60)"
-            ></span>
-          </div>
-          <div class="catalog-info">
-            <div class="catalog-title-row">
-              <h3>{{ pet.displayName }}</h3>
-              <VTag size="sm">{{ kindText(pet.kind) }}</VTag>
-              <VTag v-if="isPetdexCatalogImported(pet)" size="sm">已导入</VTag>
+      <VEntityContainer v-else class="catalog-list :uno: max-h-[560px] overflow-y-auto">
+        <VEntity v-for="pet in pagedPetdexCatalog" :key="pet.slug">
+          <template #start>
+            <div
+              class=":uno: grid w-[min(36rem,58vw)] min-w-0 grid-cols-[72px_minmax(0,1fr)] items-center gap-3 max-[860px]:w-full"
+            >
+              <div
+                class=":uno: relative grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50"
+              >
+                <span
+                  class=":uno: absolute bottom-2 h-1.5 w-10 rounded-full bg-slate-900/10 blur-[3px]"
+                ></span>
+                <span
+                  class=":uno: relative block bg-no-repeat drop-shadow-[0_7px_8px_rgba(15,23,42,0.16)] [background-position:0_0] [image-rendering:pixelated]"
+                  :style="spritePreviewStyle(pet.spritesheetUrl, PET_CATALOG_PREVIEW_HEIGHT)"
+                ></span>
+              </div>
+              <VEntityField :title="pet.displayName">
+                <template #description>
+                  <span class=":uno: text-xs text-slate-500">
+                    ID {{ pet.slug }}
+                    <template v-if="pet.submittedBy"> · 提交者 {{ pet.submittedBy }}</template>
+                  </span>
+                </template>
+              </VEntityField>
             </div>
-            <p>
-              <span>ID {{ pet.slug }}</span>
-              <span v-if="pet.submittedBy">提交者 {{ pet.submittedBy }}</span>
-            </p>
-          </div>
-          <VButton
-            size="sm"
-            type="secondary"
-            :loading="importingCatalogPet === pet.slug"
-            @click="importCatalogPet(pet)"
-          >
-            <template #icon>
-              <RiDownloadCloudLine class="h-full w-full" />
-            </template>
-            导入并启用
-          </VButton>
-        </article>
-      </div>
+          </template>
+          <template #end>
+            <VEntityField>
+              <template #description>
+                <VTag size="sm">{{ kindText(pet.kind) }}</VTag>
+              </template>
+            </VEntityField>
+            <VEntityField v-if="isPetdexCatalogImported(pet)">
+              <template #description>
+                <VTag size="sm">已导入</VTag>
+              </template>
+            </VEntityField>
+            <VEntityField v-if="canManagePets">
+              <template #description>
+                <VButton
+                  v-permission="[PETS_MANAGE_PERMISSION]"
+                  size="sm"
+                  type="secondary"
+                  :loading="importingCatalogPet === pet.slug"
+                  @click="importCatalogPet(pet)"
+                >
+                  <template #icon>
+                    <RiDownloadCloudLine class="h-full w-full" />
+                  </template>
+                  导入并启用
+                </VButton>
+              </template>
+            </VEntityField>
+          </template>
+        </VEntity>
+      </VEntityContainer>
 
-      <div v-if="filteredPetdexCatalog.length > petdexCatalogPageSize" class="catalog-pagination">
+      <div
+        v-if="filteredPetdexCatalog.length > petdexCatalogPageSize"
+        class=":uno: flex justify-end"
+      >
         <VPagination
           v-model:page="petdexCatalogPage"
           v-model:size="petdexCatalogPageSize"
@@ -652,498 +849,71 @@ onMounted(loadPets)
   </VModal>
 </template>
 
-<style scoped lang="scss">
-.pet-page {
-  display: grid;
-  gap: 14px;
-  padding: 14px;
+<style scoped>
+.pet-import-compact :deep(.formkit-outer) {
+  margin-bottom: 0;
 }
 
-.pet-import-panel,
-.pet-list-section {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
+.pet-import-compact :deep(.formkit-wrapper),
+.pet-import-compact :deep(.formkit-inner) {
+  width: 100%;
+  max-width: none;
 }
 
-.pet-import-panel {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-}
-
-.pet-import-head,
-.pet-list-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-
-  h2 {
-    margin: 2px 0 0;
-    color: #111827;
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.35;
-  }
-
-  p {
-    margin: 4px 0 0;
-    color: #64748b;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-}
-
-.section-kicker {
-  display: block;
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.pet-import-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: stretch;
-
-  textarea {
-    min-height: 44px;
-    resize: vertical;
-    border: 1px solid #d8dee8;
-    border-radius: 7px;
-    padding: 10px 11px;
-    color: #111827;
-    background: #fff;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 13px;
-    line-height: 1.45;
-    outline: none;
-  }
-
-  textarea:focus {
-    border-color: #94a3b8;
-    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
-  }
-}
-
-.switch-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.switch-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #334155;
+.pet-import-compact :deep(input) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
 }
 
-.pet-list-section {
-  overflow: hidden;
-}
-
-.pet-list-header {
-  padding: 14px 16px;
-  border-bottom: 1px solid #edf0f5;
-
-  strong {
-    color: #0f766e;
-    font-weight: 700;
-  }
-}
-
-.pet-stat-strip {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-
-  span {
-    padding: 4px 8px;
-    border: 1px solid #e5e7eb;
-    border-radius: 999px;
-    color: #64748b;
-    background: #f8fafc;
-    font-size: 12px;
-    white-space: nowrap;
-  }
-}
-
-.pet-list {
-  display: grid;
-}
-
-.pet-row {
-  display: grid;
-  grid-template-columns: 78px minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #edf0f5;
-  background: #fff;
-}
-
-.pet-row:last-child {
-  border-bottom: none;
-}
-
-.pet-row:hover {
-  background: #fafafa;
-}
-
-.pet-row.active {
-  background: #f8fffc;
-  box-shadow: inset 3px 0 0 #14b8a6;
-}
-
-.pet-row.disabled {
-  opacity: 0.64;
-}
-
-.pet-preview-stage {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  overflow: hidden;
-  border: 1px solid #eef2f7;
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.pet-shadow {
-  position: absolute;
-  bottom: 9px;
-  width: 44px;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.1);
-  filter: blur(3px);
-}
-
-.pet-sprite-preview {
-  position: relative;
-  display: block;
-  background-repeat: no-repeat;
-  background-position: 0 0;
-  filter: drop-shadow(0 7px 8px rgba(15, 23, 42, 0.16));
-  image-rendering: pixelated;
-  transform: scale(0.82);
-  transform-origin: center bottom;
-}
-
-.pet-info {
+.pet-list :deep(.entity-start) {
   min-width: 0;
-
-  h3 {
-    margin: 0;
-    overflow: hidden;
-    color: #111827;
-    font-size: 15px;
-    font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  p {
-    display: -webkit-box;
-    margin: 4px 0 0;
-    overflow: hidden;
-    color: #64748b;
-    font-size: 13px;
-    line-height: 1.45;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
+  flex: 1 1 auto;
 }
 
-.pet-title-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.pet-list :deep(.entity-end) {
+  flex: 0 0 auto;
+  gap: 16px;
+  row-gap: 6px;
+}
+
+.pet-list :deep(.entity-field-wrapper) {
+  max-width: none;
+}
+
+.pet-form-stack > * {
   min-width: 0;
 }
 
-.pet-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-top: 8px;
-  color: #94a3b8;
-  font-size: 12px;
-
-  b {
-    color: #475569;
-    font-weight: 650;
-  }
-}
-
-.pet-link {
-  display: grid;
-  grid-template-columns: 15px minmax(0, 1fr);
-  gap: 6px;
-  align-items: center;
-  max-width: 520px;
-  margin-top: 7px;
-  color: #2563eb;
-  font-size: 12px;
-  text-decoration: none;
-
-  span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.pet-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.pet-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: #475569;
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.icon-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #dbe3ef;
-  border-radius: 7px;
-  color: #475569;
-  background: #fff;
-  cursor: pointer;
-
-  svg {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-.icon-action:hover {
-  color: #111827;
-  background: #f8fafc;
-}
-
-.icon-action.danger:hover {
-  color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.22);
-  background: #fff7f7;
-}
-
-.form-stack {
-  display: grid;
-  gap: 14px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.catalog-panel {
-  display: grid;
-  gap: 12px;
-}
-
-.catalog-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.catalog-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  color: #64748b;
-  font-size: 13px;
-
-  strong {
-    color: #111827;
-    font-size: 18px;
-    line-height: 1;
-  }
-}
-
-.catalog-filter {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 148px;
-  gap: 10px;
-}
-
-.catalog-search {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-  border: 1px solid #d8dee8;
-  border-radius: 7px;
-  padding: 0 10px;
-  background: #fff;
-
-  svg {
-    color: #94a3b8;
-  }
-
-  input {
-    min-width: 0;
-    border: 0;
-    padding: 9px 0;
-    color: #111827;
-    font-size: 13px;
-    outline: none;
-  }
-}
-
-.catalog-search:focus-within,
-.catalog-kind-select:focus {
-  border-color: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
-}
-
-.catalog-kind-select {
-  border: 1px solid #d8dee8;
-  border-radius: 7px;
-  padding: 0 10px;
-  color: #334155;
-  background: #fff;
-  font-size: 13px;
-  outline: none;
-}
-
-.catalog-list {
-  display: grid;
-  max-height: 560px;
-  overflow-y: auto;
-  border: 1px solid #edf0f5;
-  border-radius: 8px;
-}
-
-.catalog-item {
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 12px;
-  border-bottom: 1px solid #edf0f5;
-  background: #fff;
-}
-
-.catalog-item:last-child {
-  border-bottom: none;
-}
-
-.catalog-item:hover {
-  background: #fafafa;
-}
-
-.catalog-preview-stage {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
-  overflow: hidden;
-  border: 1px solid #eef2f7;
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.catalog-sprite {
-  transform: scale(0.78);
-}
-
-.catalog-info {
+.pet-form-stack :deep(.formkit-outer),
+.pet-form-stack :deep(.formkit-wrapper),
+.pet-form-stack :deep(.formkit-inner) {
+  width: 100%;
+  max-width: none;
   min-width: 0;
 }
 
-.catalog-title-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+.pet-form-stack :deep(.formkit-input) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.catalog-list :deep(.entity-end) {
+  gap: 12px;
+  row-gap: 6px;
+}
+
+.catalog-list :deep(.entity-start) {
   min-width: 0;
-
-  h3 {
-    margin: 0;
-    overflow: hidden;
-    color: #111827;
-    font-size: 14px;
-    font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.catalog-info p {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 5px 0 0;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.catalog-pagination {
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 860px) {
-  .pet-import-head,
-  .pet-list-header {
-    flex-direction: column;
-  }
-
-  .pet-import-form,
-  .pet-row,
-  .catalog-filter,
-  .catalog-item {
-    grid-template-columns: 1fr;
-  }
-
-  .pet-preview-stage {
-    width: 100%;
-    height: 96px;
-  }
-
-  .pet-actions {
-    justify-content: flex-start;
-  }
-
-  .catalog-preview-stage {
-    width: 100%;
-    height: 80px;
-  }
+  width: 100%;
 }
 
 @media (max-width: 640px) {
-  .pet-page {
-    padding: 12px;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
+  .pet-list :deep(.entity-start),
+  .pet-list :deep(.entity-end) {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 }
 </style>

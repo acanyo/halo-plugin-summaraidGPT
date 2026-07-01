@@ -2,6 +2,7 @@ package com.handsome.summary.endpoint;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 
+import com.handsome.summary.agent.model.AgentSettings;
 import com.handsome.summary.pet.extension.PetCompanion;
 import com.handsome.summary.pet.service.PetCompanionService;
 import com.handsome.summary.pet.support.DefaultPetCompanionAssets;
@@ -40,14 +41,16 @@ public class ConversationEndpoint implements CustomEndpoint {
     private static final String DEFAULT_ASSISTANT_NAME = "智阅助手";
     private static final String DEFAULT_BUTTON_POSITION = "right";
     private static final String DEFAULT_STYLE_PRESET = "default";
-    private static final String DEFAULT_PRIMARY_COLOR = "#2563eb";
-    private static final String DEFAULT_SECONDARY_COLOR = "#eaf3ff";
-    private static final String DEFAULT_SURFACE_COLOR = "#fbfdff";
-    private static final String DEFAULT_TEXT_COLOR = "#172033";
+    private static final String DEFAULT_PRIMARY_COLOR = "#a16207";
+    private static final String DEFAULT_SECONDARY_COLOR = "#f4f4f5";
+    private static final String DEFAULT_SURFACE_COLOR = "#fafafa";
+    private static final String DEFAULT_TEXT_COLOR = "#18181b";
     private static final String DEFAULT_BORDER_RADIUS = "soft";
     private static final String DEFAULT_COLOR_MODE = "light";
     private static final int DEFAULT_FLOATING_OFFSET = 24;
     private static final int MAX_FLOATING_OFFSET = 800;
+    private static final int MIN_PET_SIZE = 48;
+    private static final int MAX_PET_SIZE = 160;
 
     private final AiFoundationAiService aiFoundationAiService;
     private final AiRequestSecurityService aiRequestSecurityService;
@@ -63,8 +66,10 @@ public class ConversationEndpoint implements CustomEndpoint {
         String buttonPosition,
         Integer horizontalOffset,
         Integer verticalOffset,
+        Integer petSize,
         List<String> petSpeechMessages,
-        PetConfig pet
+        PetConfig pet,
+        AgentSettings agent
     ) {}
 
     public record PetConfig(
@@ -305,19 +310,21 @@ public class ConversationEndpoint implements CustomEndpoint {
      * 获取对话框配置信息
      */
     private Mono<ServerResponse> getDialogConfig(ServerRequest request) {
-        return settingConfigGetter.getAssistantConfig()
-            .flatMap(config -> petCompanionService.getActive()
+        return Mono.zip(settingConfigGetter.getAssistantConfig(), settingConfigGetter.getAgentSettings())
+            .flatMap(tuple -> petCompanionService.getActive()
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
                 .map(activePet -> new DialogConfig(
-                    normalizeAvatarUrl(config.getAssistantAvatar()),
-                    normalizeAssistantName(config.getAssistantName()),
-                    normalizeStyleConfig(config.getStyleConfig()),
-                    normalizeButtonPosition(config.getButtonPosition()),
-                    normalizeFloatingOffset(config.getHorizontalOffset()),
-                    normalizeFloatingOffset(config.getVerticalOffset()),
-                    normalizePetSpeechMessages(config.getPetSpeechMessages()),
-                    activePet.map(this::toPetConfig).orElseGet(this::defaultPetConfig)
+                    normalizeAvatarUrl(tuple.getT1().getAssistantAvatar()),
+                    normalizeAssistantName(tuple.getT1().getAssistantName()),
+                    normalizeStyleConfig(tuple.getT1().getStyleConfig()),
+                    normalizeButtonPosition(tuple.getT1().getButtonPosition()),
+                    normalizeFloatingOffset(tuple.getT1().getHorizontalOffset()),
+                    normalizeFloatingOffset(tuple.getT1().getVerticalOffset()),
+                    normalizePetSize(tuple.getT1().getPetSize()),
+                    normalizePetSpeechMessages(tuple.getT1().getPetSpeechMessages()),
+                    activePet.map(this::toPetConfig).orElseGet(this::defaultPetConfig),
+                    tuple.getT2()
                 )))
             .flatMap(dialogConfig -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -332,9 +339,11 @@ public class ConversationEndpoint implements CustomEndpoint {
                     DEFAULT_BUTTON_POSITION,
                     DEFAULT_FLOATING_OFFSET,
                     DEFAULT_FLOATING_OFFSET,
+                    SettingConfigGetter.AssistantConfig.DEFAULT_PET_SIZE,
                     normalizePetSpeechMessages(new SettingConfigGetter.AssistantConfig()
                         .getPetSpeechMessages()),
-                    defaultPetConfig()
+                    defaultPetConfig(),
+                    AgentSettings.defaults()
                 );
                 return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)
@@ -375,6 +384,13 @@ public class ConversationEndpoint implements CustomEndpoint {
             return normalized;
         }
         return new SettingConfigGetter.AssistantConfig().getPetSpeechMessages();
+    }
+
+    private Integer normalizePetSize(Integer petSize) {
+        if (petSize == null) {
+            return SettingConfigGetter.AssistantConfig.DEFAULT_PET_SIZE;
+        }
+        return Math.min(Math.max(petSize, MIN_PET_SIZE), MAX_PET_SIZE);
     }
 
     private String normalizeAssistantName(String assistantName) {

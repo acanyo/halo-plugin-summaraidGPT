@@ -1,5 +1,5 @@
 <template>
-  <div class="generate-toolbar-item">
+  <div class=":uno: inline-block">
     <VDropdown
       v-model:visible="dropdownVisible"
       :disabled="disabled"
@@ -10,7 +10,7 @@
     >
       <button
         v-tooltip="tooltipText"
-        class="generate-toolbar-btn"
+        class=":uno: inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded border-none bg-transparent p-1.5 text-gray-500 transition-all duration-200 hover:text-gray-700 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-transparent"
         :disabled="disabled"
         @click="toggleDropdown"
       >
@@ -18,7 +18,7 @@
       </button>
 
       <template #popper>
-        <div class="generate-dropdown" @click.stop>
+        <div class=":uno: max-h-[650px] w-[900px] overflow-hidden max-md:w-[90vw]" @click.stop>
           <!-- 使用说明 -->
           <div class="p-3">
             <VAlert
@@ -32,32 +32,27 @@
 
           <!-- 标签页导航 -->
           <div class="p-3">
-            <VTabbar
-              v-model:activeId="activeTab"
-              :items="tabItems"
-              type="default"
-            />
+            <VTabbar v-model:activeId="activeTab" :items="tabItems" type="default" />
           </div>
 
           <!-- 文章生成标签页 -->
           <div v-if="activeTab === 'article'" class="px-4 pb-4">
             <!-- 主要内容区域 -->
-            <div class="generate-content">
+            <div
+              class=":uno: grid h-[400px] grid-cols-2 gap-3 p-3 max-md:h-auto max-md:grid-cols-1"
+            >
               <!-- 左侧：文章主题区域 -->
-              <div class="topic-section">
-                <div class="section-header">
-                  <h4 class="section-title">
+              <div class=":uno: flex flex-col overflow-hidden rounded-md border border-gray-200">
+                <div
+                  class=":uno: flex items-center justify-between border-b border-gray-200 bg-gray-50 px-3 py-2"
+                >
+                  <h4 class=":uno: m-0 flex items-center gap-1.5 text-xs font-medium text-gray-700">
                     <IconEdit />
                     文章主题
                   </h4>
                 </div>
-                <div class="section-content">
-                  <FormKit
-                    type="form"
-                    v-model="formData"
-                    :actions="false"
-                    @submit="handleGenerate"
-                  >
+                <div class=":uno: flex flex-1 flex-col gap-3 overflow-auto p-3">
+                  <FormKit type="form" v-model="formData" :actions="false" @submit="handleGenerate">
                     <FormKit
                       name="topic"
                       label="文章主题"
@@ -73,29 +68,26 @@
               </div>
 
               <!-- 右侧：生成设置区域 -->
-              <div class="format-section">
-                <div class="section-header">
-                  <h4 class="section-title">
+              <div class=":uno: flex flex-col overflow-hidden rounded-md border border-gray-200">
+                <div
+                  class=":uno: flex items-center justify-between border-b border-gray-200 bg-gray-50 px-3 py-2"
+                >
+                  <h4 class=":uno: m-0 flex items-center gap-1.5 text-xs font-medium text-gray-700">
                     <IconSparkles />
                     生成设置
                   </h4>
                 </div>
-                <div class="section-content">
-                  <FormKit
-                    type="form"
-                    v-model="formData"
-                    :actions="false"
-                    @submit="handleGenerate"
-                  >
+                <div class=":uno: flex flex-1 flex-col gap-3 overflow-auto p-3">
+                  <FormKit type="form" v-model="formData" :actions="false" @submit="handleGenerate">
                     <FormKit
                       name="format"
                       label="内容格式"
                       type="select"
                       :options="[
                         { label: '🌐 富文本', value: 'html' },
-                        { label: '📝 Markdown', value: 'markdown' }
+                        { label: '📝 Markdown', value: 'markdown' },
                       ]"
-                      :allow-create=true
+                      :allow-create="true"
                       placeholder="选择格式类型"
                     />
 
@@ -104,7 +96,7 @@
                       label="写作风格"
                       type="select"
                       :options="styleOptions"
-                      :allow-create=true
+                      :allow-create="true"
                       placeholder="选择写作风格"
                       :help="styleHelpText"
                     />
@@ -128,12 +120,7 @@
 
             <!-- 错误提示 -->
             <div v-if="errorMessage" class="mt-4">
-              <VAlert
-                type="error"
-                :title="errorMessage"
-                closable
-                @close="errorMessage = ''"
-              />
+              <VAlert type="error" :title="errorMessage" closable @close="errorMessage = ''" />
             </div>
 
             <!-- 底部操作 -->
@@ -156,29 +143,29 @@
           <!-- 标题生成标签页 -->
           <div v-if="activeTab === 'title'" class="px-4 pb-4">
             <!-- 标题生成设置区域 -->
-            <div class="likcc-summaraidgpt-title-settings mb-4">
-              <div class="likcc-summaraidgpt-title-config">
-                <div class="likcc-summaraidgpt-config-row">
-                  <div class="likcc-summaraidgpt-config-item">
-                    <label class="likcc-summaraidgpt-label">标题风格</label>
+            <div class=":uno: mb-4 rounded-md border border-gray-200 bg-gray-50 p-3">
+              <div class=":uno: w-full">
+                <div class=":uno: grid grid-cols-2 gap-3 max-md:grid-cols-1">
+                  <div class=":uno: flex flex-col gap-1.5">
+                    <label class=":uno: m-0 text-xs font-medium text-gray-700">标题风格</label>
                     <FormKit
                       v-model="titleStyle"
                       type="select"
                       :options="titleStyleOptions"
                       :allow-create="true"
                       placeholder="选择标题风格"
-                      class="likcc-summaraidgpt-select"
+                      class=":uno: w-full"
                     />
                   </div>
-                  <div class="likcc-summaraidgpt-config-item">
-                    <label class="likcc-summaraidgpt-label">生成数量</label>
+                  <div class=":uno: flex flex-col gap-1.5">
+                    <label class=":uno: m-0 text-xs font-medium text-gray-700">生成数量</label>
                     <FormKit
                       v-model="titleCount"
                       type="number"
                       :min="3"
                       :max="10"
                       :step="1"
-                      class="likcc-summaraidgpt-number"
+                      class=":uno: w-full"
                     />
                   </div>
                 </div>
@@ -186,7 +173,9 @@
             </div>
 
             <!-- 生成按钮 -->
-            <div class="likcc-summaraidgpt-generate-section mb-4">
+            <div
+              class=":uno: mb-4 flex flex-wrap items-center gap-3 max-md:flex-col max-md:items-start"
+            >
               <VButton
                 size="sm"
                 type="primary"
@@ -199,7 +188,7 @@
                 </template>
                 生成标题
               </VButton>
-              <span class="likcc-summaraidgpt-hint">
+              <span class=":uno: flex-1 text-xs text-gray-500">
                 将根据编辑器内容生成 {{ titleCount }} 个{{ titleStyle }}风格的标题
               </span>
             </div>
@@ -220,7 +209,7 @@
                 <div
                   v-for="(title, index) in generatedTitles"
                   :key="index"
-                  class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  class=":uno: flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 p-3 transition-colors duration-150 hover:bg-gray-50"
                   @click="copyTitle(title)"
                 >
                   <span class="text-sm text-gray-900 flex-1">{{ title }}</span>
@@ -277,14 +266,9 @@
               </div>
 
               <div v-else-if="tagErrorMessage" class="p-6">
-                <VEmpty
-                  title="标签生成失败"
-                  :description="tagErrorMessage"
-                >
+                <VEmpty title="标签生成失败" :description="tagErrorMessage">
                   <template #actions>
-                    <VButton size="sm" type="primary" @click="handleRefreshTags">
-                      重试
-                    </VButton>
+                    <VButton size="sm" type="primary" @click="handleRefreshTags"> 重试 </VButton>
                   </template>
                 </VEmpty>
               </div>
@@ -303,9 +287,11 @@
                     :key="tag.name"
                     type="button"
                     class="inline-flex items-center justify-center gap-1 rounded-lg border px-3 py-2 text-center text-sm font-medium transition-all duration-150"
-                    :class="selectedTags.includes(tag.name)
-                      ? 'border-blue-300 bg-blue-50 text-blue-700 shadow-sm'
-                      : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100'"
+                    :class="
+                      selectedTags.includes(tag.name)
+                        ? 'border-blue-300 bg-blue-50 text-blue-700 shadow-sm'
+                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300 hover:bg-gray-100'
+                    "
                     @click="toggleTag(tag.name)"
                   >
                     <span class="truncate">{{ tag.name }}</span>
@@ -361,15 +347,7 @@
 <script lang="ts" setup>
 import { ref, computed, watch } from 'vue'
 import type { Editor } from '@tiptap/core'
-import {
-  VButton,
-  VDropdown,
-  VLoading,
-  Toast,
-  VEmpty,
-  VAlert,
-  VTabbar
-} from '@halo-dev/components'
+import { VButton, VDropdown, VLoading, Toast, VEmpty, VAlert, VTabbar } from '@halo-dev/components'
 import { FormKit, FormKitMessages } from '@formkit/vue'
 import axios, { AxiosError } from 'axios'
 
@@ -421,7 +399,7 @@ type ActiveTab = 'article' | 'title' | 'tags'
 
 const props = withDefaults(defineProps<Props>(), {
   isActive: false,
-  disabled: false
+  disabled: false,
 })
 
 const dropdownVisible = ref(false)
@@ -444,22 +422,22 @@ const formData = ref({
   topic: '',
   format: 'html',
   style: '通俗易懂',
-  maxLength: 2000
+  maxLength: 2000,
 })
 
 const tabItems = [
   {
     id: 'article',
-    label: '文章生成'
+    label: '文章生成',
   },
   {
     id: 'title',
-    label: '标题生成'
+    label: '标题生成',
   },
   {
     id: 'tags',
-    label: 'AI标签'
-  }
+    label: 'AI标签',
+  },
 ]
 
 const styleOptions = [
@@ -478,7 +456,7 @@ const styleOptions = [
   { label: '教程指南', value: '教程指南' },
   { label: '评论分析', value: '评论分析' },
   { label: '故事叙述', value: '故事叙述' },
-  { label: '对话访谈', value: '对话访谈' }
+  { label: '对话访谈', value: '对话访谈' },
 ]
 
 const titleStyleOptions = [
@@ -491,26 +469,26 @@ const titleStyleOptions = [
   { label: '数字式', value: '数字式' },
   { label: '对比式', value: '对比式' },
   { label: '故事式', value: '故事式' },
-  { label: '热点式', value: '热点式' }
+  { label: '热点式', value: '热点式' },
 ]
 
 const styleHelpMap: Record<string, string> = {
-  '通俗易懂': '用简单语言解释复杂概念，适合大众阅读',
-  '正式学术': '严谨的学术写作风格，适合论文和研究报告',
-  '新闻资讯': '客观、简洁的新闻报道风格，注重事实',
-  '技术文档': '详细、准确的技术说明，适合开发者',
-  '创意文学': '富有想象力的文学表达，语言优美',
-  '幽默风趣': '轻松幽默的表达方式，增加趣味性',
-  '严谨专业': '专业、权威的写作风格，适合商务场合',
-  '轻松活泼': '轻松愉快的表达方式，亲和力强',
-  '商务正式': '正式的商务写作风格，专业且礼貌',
-  '科普教育': '通俗易懂的科学解释，适合教学',
-  '个人博客': '个人化的写作风格，亲切自然',
-  '产品介绍': '突出产品特点，吸引用户关注',
-  '教程指南': '步骤清晰，易于跟随操作',
-  '评论分析': '深入分析，提供独到见解',
-  '故事叙述': '生动有趣的故事化表达',
-  '对话访谈': '问答形式，互动性强'
+  通俗易懂: '用简单语言解释复杂概念，适合大众阅读',
+  正式学术: '严谨的学术写作风格，适合论文和研究报告',
+  新闻资讯: '客观、简洁的新闻报道风格，注重事实',
+  技术文档: '详细、准确的技术说明，适合开发者',
+  创意文学: '富有想象力的文学表达，语言优美',
+  幽默风趣: '轻松幽默的表达方式，增加趣味性',
+  严谨专业: '专业、权威的写作风格，适合商务场合',
+  轻松活泼: '轻松愉快的表达方式，亲和力强',
+  商务正式: '正式的商务写作风格，专业且礼貌',
+  科普教育: '通俗易懂的科学解释，适合教学',
+  个人博客: '个人化的写作风格，亲切自然',
+  产品介绍: '突出产品特点，吸引用户关注',
+  教程指南: '步骤清晰，易于跟随操作',
+  评论分析: '深入分析，提供独到见解',
+  故事叙述: '生动有趣的故事化表达',
+  对话访谈: '问答形式，互动性强',
 }
 
 const tooltipText = computed(() => {
@@ -521,9 +499,9 @@ const tooltipText = computed(() => {
 })
 
 const canGenerate = computed(() => {
-  return formData.value.topic.trim().length > 0 &&
-    formData.value.topic.length <= 1000 &&
-    !loading.value
+  return (
+    formData.value.topic.trim().length > 0 && formData.value.topic.length <= 1000 && !loading.value
+  )
 })
 
 const canGenerateTitle = computed(() => {
@@ -575,7 +553,7 @@ const resetForm = () => {
     topic: '',
     format: 'html',
     style: '通俗易懂',
-    maxLength: 2000
+    maxLength: 2000,
   }
   errorMessage.value = ''
   titleErrorMessage.value = ''
@@ -616,13 +594,15 @@ const handleGenerate = async () => {
 const generateContent = async (): Promise<GenerateResponse> => {
   const apiBaseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
 
-  return axios.post(`${apiBaseUrl}/generate/article`, {
-    topic: formData.value.topic,
-    format: formData.value.format,
-    style: formData.value.style,
-    type: 'full',
-    maxLength: formData.value.maxLength
-  }).then(res => res.data)
+  return axios
+    .post(`${apiBaseUrl}/generate/article`, {
+      topic: formData.value.topic,
+      format: formData.value.format,
+      style: formData.value.style,
+      type: 'full',
+      maxLength: formData.value.maxLength,
+    })
+    .then((res) => res.data)
 }
 
 const generateTitles = async () => {
@@ -640,9 +620,10 @@ const generateTitles = async () => {
     const response = await generateTitleContent(content)
 
     if (response.success && response.content) {
-      const titles = response.content.split('\n')
-        .map(title => title.trim())
-        .filter(title => title.length > 0)
+      const titles = response.content
+        .split('\n')
+        .map((title) => title.trim())
+        .filter((title) => title.length > 0)
 
       generatedTitles.value = titles
       Toast.success(`成功生成 ${titles.length} 个标题`)
@@ -663,11 +644,13 @@ const generateTitles = async () => {
 const generateTitleContent = async (content: string): Promise<GenerateResponse> => {
   const apiBaseUrl = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
 
-  return axios.post(`${apiBaseUrl}/generate/title`, {
-    content,
-    style: titleStyle.value,
-    count: parseInt(titleCount.value, 10)
-  }).then(res => res.data)
+  return axios
+    .post(`${apiBaseUrl}/generate/title`, {
+      content,
+      style: titleStyle.value,
+      count: parseInt(titleCount.value, 10),
+    })
+    .then((res) => res.data)
 }
 
 const getPostNameFromUrl = () => {
@@ -693,11 +676,11 @@ const fetchAITags = async () => {
       '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/generateTags',
       {
         postName,
-        ensure: true
+        ensure: true,
       },
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     )
 
     if (data.success && Array.isArray(data.tags)) {
@@ -705,7 +688,7 @@ const fetchAITags = async () => {
       tagStats.value = {
         total: data.totalCount || data.tags.length,
         existing: data.existingCount || 0,
-        new: data.newCount || 0
+        new: data.newCount || 0,
       }
 
       if (tags.value.length === 0) {
@@ -717,7 +700,8 @@ const fetchAITags = async () => {
   } catch (error) {
     console.error('获取AI标签失败:', error)
     if (error instanceof AxiosError) {
-      tagErrorMessage.value = error.response?.data?.detail || error.response?.data?.message || '请求失败，请重试'
+      tagErrorMessage.value =
+        error.response?.data?.detail || error.response?.data?.message || '请求失败，请重试'
     } else {
       tagErrorMessage.value = error instanceof Error ? error.message : '生成标签失败'
     }
@@ -747,7 +731,7 @@ const handleSelectAll = () => {
     return
   }
 
-  selectedTags.value = tags.value.map(tag => tag.name)
+  selectedTags.value = tags.value.map((tag) => tag.name)
 }
 
 const confirmSelection = async () => {
@@ -768,8 +752,8 @@ const confirmSelection = async () => {
     const { data: existingTagsResponse } = await axios.get<HaloTagListResponse>(
       '/apis/content.halo.run/v1alpha1/tags',
       {
-        headers: { 'Content-Type': 'application/json' }
-      }
+        headers: { 'Content-Type': 'application/json' },
+      },
     )
 
     const existingTagsMap = new Map<string, string>()
@@ -780,7 +764,7 @@ const confirmSelection = async () => {
     })
 
     const createPromises = selectedTags.value
-      .filter(tagName => !existingTagsMap.has(tagName))
+      .filter((tagName) => !existingTagsMap.has(tagName))
       .map(async (tagDisplayName) => {
         try {
           const slug = `tag-${Math.random().toString(36).slice(2, 10)}`
@@ -791,18 +775,18 @@ const confirmSelection = async () => {
               kind: 'Tag',
               metadata: {
                 generateName: 'tag-',
-                annotations: {}
+                annotations: {},
               },
               spec: {
                 displayName: tagDisplayName,
                 slug,
                 color: '#ffffff',
-                cover: ''
-              }
+                cover: '',
+              },
             },
             {
-              headers: { 'Content-Type': 'application/json' }
-            }
+              headers: { 'Content-Type': 'application/json' },
+            },
           )
 
           return tag.metadata.name
@@ -812,39 +796,31 @@ const confirmSelection = async () => {
         }
       })
 
-    const newTagNames = (await Promise.all(createPromises)).filter((name): name is string => Boolean(name))
-    const allTagNames = [
-      ...Array.from(existingTagsMap.values()),
-      ...newTagNames
-    ]
+    const newTagNames = (await Promise.all(createPromises)).filter((name): name is string =>
+      Boolean(name),
+    )
+    const allTagNames = [...Array.from(existingTagsMap.values()), ...newTagNames]
 
     if (allTagNames.length === 0) {
       throw new Error('没有成功创建或找到任何标签')
     }
 
-    const { data: post } = await axios.get(
-      `/apis/content.halo.run/v1alpha1/posts/${postName}`,
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    const { data: post } = await axios.get(`/apis/content.halo.run/v1alpha1/posts/${postName}`, {
+      headers: { 'Content-Type': 'application/json' },
+    })
 
     const existingTags = post.spec?.tags || []
     const updatedPost = {
       ...post,
       spec: {
         ...post.spec,
-        tags: [...new Set([...existingTags, ...allTagNames])]
-      }
+        tags: [...new Set([...existingTags, ...allTagNames])],
+      },
     }
 
-    await axios.put(
-      `/apis/content.halo.run/v1alpha1/posts/${postName}`,
-      updatedPost,
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-    )
+    await axios.put(`/apis/content.halo.run/v1alpha1/posts/${postName}`, updatedPost, {
+      headers: { 'Content-Type': 'application/json' },
+    })
 
     Toast.success(`成功应用 ${selectedTags.value.length} 个标签到文章`)
     dropdownVisible.value = false
@@ -852,7 +828,9 @@ const confirmSelection = async () => {
   } catch (error) {
     console.error('应用标签失败:', error)
     if (error instanceof AxiosError) {
-      Toast.error(error.response?.data?.message || error.response?.data?.detail || '应用标签失败，请重试')
+      Toast.error(
+        error.response?.data?.message || error.response?.data?.detail || '应用标签失败，请重试',
+      )
     } else {
       Toast.error(error instanceof Error ? error.message : '应用标签失败')
     }
@@ -942,166 +920,4 @@ const cleanTitleFromListMarkers = (title: string): string => {
   console.log('最终清理后的标题:', cleanedTitle)
   return cleanedTitle
 }
-
 </script>
-
-<style scoped>
-.generate-toolbar-item {
-  display: inline-block;
-}
-
-.generate-toolbar-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  padding: 6px;
-  border-radius: 4px;
-  color: #6b7280;
-  transition: all 0.2s ease;
-}
-
-.generate-toolbar-btn:hover:not(:disabled) {
-  color: #374151;
-  background: transparent;
-}
-
-.generate-toolbar-btn:disabled {
-  color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.generate-toolbar-btn:disabled:hover {
-  background: transparent;
-}
-
-/* 生成下拉框样式 */
-.generate-dropdown {
-  width: 900px;
-  max-height: 650px;
-  overflow: hidden;
-}
-
-.generate-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  height: 400px;
-  padding: 12px;
-}
-
-.topic-section,
-.format-section {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.section-content {
-  flex: 1;
-  overflow: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-
-
-
-
-/* 标题生成配置样式 */
-.likcc-summaraidgpt-title-settings {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 12px;
-}
-
-.likcc-summaraidgpt-title-config {
-  width: 100%;
-}
-
-.likcc-summaraidgpt-config-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.likcc-summaraidgpt-config-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.likcc-summaraidgpt-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #374151;
-  margin: 0;
-}
-
-.likcc-summaraidgpt-select,
-.likcc-summaraidgpt-number {
-  width: 100%;
-}
-
-.likcc-summaraidgpt-generate-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.likcc-summaraidgpt-hint {
-  font-size: 12px;
-  color: #6b7280;
-  flex: 1;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .generate-dropdown {
-    width: 90vw;
-  }
-
-  .generate-content {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-
-  .likcc-summaraidgpt-config-row {
-    grid-template-columns: 1fr;
-  }
-
-  .likcc-summaraidgpt-generate-section {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-</style>

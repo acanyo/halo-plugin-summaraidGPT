@@ -1,6 +1,7 @@
 package com.handsome.summary.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.handsome.summary.agent.model.AgentSettings;
 import lombok.Data;
 import reactor.core.publisher.Mono;
 import java.util.List;
@@ -12,6 +13,7 @@ public interface SettingConfigGetter {
     Mono<RoleConfig> getRoleConfig();
     Mono<GenerationConfig> getGenerationConfig();
     Mono<AssistantConfig> getAssistantConfig();
+    Mono<AgentSettings> getAgentSettings();
     Mono<AiSecurityConfig> getAiSecurityConfig();
     Mono<RagConfig> getRagConfig();
     
@@ -209,11 +211,13 @@ public interface SettingConfigGetter {
         public static final String GROUP = "assistant";
         public static final String DEFAULT_ASSISTANT_AVATAR =
             "/plugins/summaraidGPT/assets/static/icon.svg";
+        public static final int DEFAULT_PET_SIZE = 76;
         private Boolean enableAssistant = true;
         private String assistantName = "智阅助手";
         private String assistantAvatar = DEFAULT_ASSISTANT_AVATAR;
         private AssistantStyleConfig styleConfig = new AssistantStyleConfig();
         private FloatingPositionConfig floatingPosition = new FloatingPositionConfig();
+        private Integer petSize = DEFAULT_PET_SIZE;
         private List<String> petSpeechMessages = List.of(
             "有什么站内资料想查？",
             "选中文字后也可以直接问我。",
@@ -246,10 +250,10 @@ public interface SettingConfigGetter {
     @JsonIgnoreProperties(ignoreUnknown = true)
     class AssistantStyleConfig {
         private String stylePreset = "default";
-        private String primaryColor = "#2563eb";
-        private String secondaryColor = "#eaf3ff";
-        private String surfaceColor = "#fbfdff";
-        private String textColor = "#172033";
+        private String primaryColor = "#a16207";
+        private String secondaryColor = "#f4f4f5";
+        private String surfaceColor = "#fafafa";
+        private String textColor = "#18181b";
         private String borderRadius = "soft";
         private String colorMode = "light";
     }

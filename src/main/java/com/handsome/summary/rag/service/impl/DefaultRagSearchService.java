@@ -5,8 +5,9 @@ import static run.halo.app.extension.index.query.Queries.equal;
 import com.handsome.summary.rag.extension.RagKnowledgeBase;
 import com.handsome.summary.rag.model.RagSearchResult;
 import com.handsome.summary.rag.service.RagAiService;
-import com.handsome.summary.rag.service.RagIndexService;
 import com.handsome.summary.rag.service.RagSearchService;
+import com.handsome.summary.rag.service.support.RagMetadataScoreBooster;
+import com.handsome.summary.rag.service.support.RagSearchQuery;
 import com.handsome.summary.rag.store.RagVectorStore;
 import com.handsome.summary.service.SettingConfigGetter;
 import java.util.ArrayList;
@@ -48,20 +49,21 @@ public class DefaultRagSearchService implements RagSearchService {
                 if (!enabled(ragConfig.getEnableRag(), true)) {
                     return Mono.just(List.<RagSearchResult>of());
                 }
+                var searchQuery = RagSearchQuery.from(query);
                 var finalLimit = normalizedInt(limit, normalizedInt(ragConfig.getRerankTopN(), 8, 1,
                     30), 1, 30);
                 return resolveKnowledgeBases(knowledgeBase)
                     .flatMapMany(Flux::fromIterable)
-                    .flatMap(kb -> searchKnowledgeBase(kb, query, ragConfig)
+                    .flatMap(kb -> searchKnowledgeBase(kb, searchQuery, ragConfig)
                         .flatMapMany(Flux::fromIterable))
                     .collectList()
-                    .flatMap(results -> rerankIfNeeded(query, results, basicConfig, ragConfig,
+                    .flatMap(results -> rerankIfNeeded(searchQuery, results, basicConfig, ragConfig,
                         finalLimit));
             });
     }
 
     private Mono<List<RagSearchResult>> searchKnowledgeBase(RagKnowledgeBase knowledgeBase,
-        String query, SettingConfigGetter.RagConfig ragConfig) {
+        RagSearchQuery searchQuery, SettingConfigGetter.RagConfig ragConfig) {
         var status = knowledgeBase.getStatus();
         if (status == null || !RagKnowledgeBase.IndexState.READY.name().equals(status.getIndexState())
             || !StringUtils.hasText(status.getIndexVersion())) {
@@ -72,22 +74,23 @@ public class DefaultRagSearchService implements RagSearchService {
         var hybrid = enabled(ragConfig.getEnableHybridSearch(), true);
         var kbName = knowledgeBase.getMetadata().getName();
         var indexVersion = status.getIndexVersion();
-        return ragAiService.embedQuery(query, status.getEmbeddingModelName())
+        return ragAiService.embedQuery(searchQuery.original(), status.getEmbeddingModelName())
             .flatMap(vector -> {
                 var vectorSearch = ragVectorStore.vectorSearch(kbName, indexVersion, vector,
                     vectorTopK);
                 var keywordSearch = hybrid
-                    ? ragVectorStore.keywordSearch(kbName, indexVersion, query, keywordTopK)
+                    ? ragVectorStore.keywordSearch(kbName, indexVersion, searchQuery.keyword(),
+                        keywordTopK)
                     : Mono.just(List.<RagSearchResult>of());
                 return Mono.zip(vectorSearch, keywordSearch)
                     .map(tuple -> fuse(tuple.getT1(), tuple.getT2()));
             });
     }
 
-    private Mono<List<RagSearchResult>> rerankIfNeeded(String query, List<RagSearchResult> results,
-        SettingConfigGetter.BasicConfig basicConfig, SettingConfigGetter.RagConfig ragConfig,
-        int finalLimit) {
-        var fused = dedupeAndSort(results).stream()
+    private Mono<List<RagSearchResult>> rerankIfNeeded(RagSearchQuery searchQuery,
+        List<RagSearchResult> results, SettingConfigGetter.BasicConfig basicConfig,
+        SettingConfigGetter.RagConfig ragConfig, int finalLimit) {
+        var fused = dedupeAndSort(RagMetadataScoreBooster.apply(results, searchQuery)).stream()
             .limit(Math.max(finalLimit, normalizedInt(ragConfig.getRerankTopN(), 8, 1, 30)))
             .toList();
         if (fused.isEmpty()) {
@@ -96,7 +99,8 @@ public class DefaultRagSearchService implements RagSearchService {
         if (!enabled(ragConfig.getEnableRerank(), true)) {
             return Mono.just(fused.stream().limit(finalLimit).toList());
         }
-        return ragAiService.rerank(query, fused, basicConfig.getRerankModelName(), finalLimit)
+        return ragAiService.rerank(searchQuery.original(), fused, basicConfig.getRerankModelName(),
+                finalLimit)
             .map(reranked -> reranked.stream().limit(finalLimit).toList())
             .onErrorResume(error -> {
                 log.warn("RAG rerank failed, fallback to fused order: {}", error.getMessage());

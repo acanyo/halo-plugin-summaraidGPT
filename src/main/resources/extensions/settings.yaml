@@ -827,6 +827,17 @@ spec:
           key: assistantAvatar
           value: "/plugins/summaraidGPT/assets/static/icon.svg"
           help: "选择聊天标题和助手消息头像；默认使用插件图标。"
+        - $formkit: number
+          label: 悬浮宠物大小（px）
+          name: petSize
+          id: petSize
+          key: petSize
+          value: 76
+          min: 48
+          max: 160
+          step: 2
+          validation: required|min:48|max:160
+          help: "控制前台宠物单帧宽度，单位 px；高度会按 PetDex 比例自动计算。"
         - $formkit: list
           label: 宠物气泡文案
           name: petSpeechMessages
@@ -851,10 +862,10 @@ spec:
           label: 样式配置
           value:
             stylePreset: default
-            primaryColor: "#2563eb"
-            secondaryColor: "#eaf3ff"
-            surfaceColor: "#fbfdff"
-            textColor: "#172033"
+            primaryColor: "#a16207"
+            secondaryColor: "#f4f4f5"
+            surfaceColor: "#fafafa"
+            textColor: "#18181b"
             borderRadius: soft
             colorMode: light
           children:
@@ -865,7 +876,7 @@ spec:
               key: assistantStylePreset
               value: default
               options:
-                - label: 默认
+                - label: 默认暖白
                   value: default
                 - label: 黑金
                   value: graphite
@@ -884,15 +895,15 @@ spec:
               name: primaryColor
               id: assistantPrimaryColor
               key: assistantPrimaryColor
-              value: "#2563eb"
-              help: "用于发送按钮、引用高亮、重点状态。"
+              value: "#a16207"
+              help: "用于发送按钮、引用高亮、重点状态；默认暖白方案使用琥珀金。"
             - $formkit: color
               if: "$get(assistantStylePreset).value === 'custom'"
               label: 辅色
               name: secondaryColor
               id: assistantSecondaryColor
               key: assistantSecondaryColor
-              value: "#eaf3ff"
+              value: "#f4f4f5"
               help: "用于浅色背景、悬浮状态和来源卡片。"
             - $formkit: color
               if: "$get(assistantStylePreset).value === 'custom'"
@@ -900,7 +911,7 @@ spec:
               name: surfaceColor
               id: assistantSurfaceColor
               key: assistantSurfaceColor
-              value: "#fbfdff"
+              value: "#fafafa"
               help: "用于聊天窗口、输入区和来源面板背景。"
             - $formkit: color
               if: "$get(assistantStylePreset).value === 'custom'"
@@ -908,7 +919,7 @@ spec:
               name: textColor
               id: assistantTextColor
               key: assistantTextColor
-              value: "#172033"
+              value: "#18181b"
               help: "用于标题、正文和常规按钮文字。"
             - $formkit: select
               label: 圆角风格
@@ -976,3 +987,186 @@ spec:
               min: 0
               max: 800
               help: "距离页面底部的像素值；用户拖动后本地位置优先。"
+
+    - group: agent
+      label: Agent 能力
+      formSchema:
+        - $formkit: switch
+          name: enabled
+          label: 启用站点操作 Agent
+          value: true
+          help: 开启后，前台宠物助手可以在白名单工具范围内搜索站内内容、打开可信页面、定位评论区和生成评论草稿。
+        - $formkit: group
+          name: builtIn
+          label: 预设能力
+          value:
+            pageContext: true
+            haloNavigation: true
+            haloContentSearch: true
+            ragContentSearch: true
+            networkAccess: false
+            commentCapability: assist
+          children:
+            - $formkit: switch
+              name: pageContext
+              label: 当前页面上下文
+              value: true
+              help: 允许模型读取当前页面标题、地址、选中文本、导航链接摘要和评论区状态。
+            - $formkit: switch
+              name: haloNavigation
+              label: 打开可信页面
+              value: true
+              help: 允许模型打开 Halo 搜索、RAG 检索或当前页面上下文中返回过的可信链接。
+            - $formkit: switch
+              name: haloContentSearch
+              label: Halo 内容搜索
+              value: true
+              help: 允许模型搜索公开文章、独立页面、分类和标签。
+            - $formkit: switch
+              name: ragContentSearch
+              label: RAG 知识库检索
+              value: true
+              help: 允许模型检索本站 RAG 知识库并读取有限详情。
+            - $formkit: switch
+              name: networkAccess
+              label: 后端网络访问
+              value: false
+              help: 允许模型读取白名单公网 URL。默认关闭，且会阻止 localhost、内网和链路本地地址。
+            - $formkit: select
+              name: commentCapability
+              label: 评论能力
+              value: assist
+              help: 关闭：不开放评论工具。辅助：允许定位评论区和填写草稿。提交：访客确认后尝试提交评论。
+              options:
+                - label: 关闭
+                  value: off
+                - label: 辅助
+                  value: assist
+                - label: 提交
+                  value: submit
+        - $formkit: group
+          name: toolSecurity
+          label: 浏览器工具安全
+          value:
+            allowedExternalOrigins: []
+            allowNewTab: false
+          children:
+            - $formkit: array
+              name: allowedExternalOrigins
+              label: 允许打开的外部站点
+              value: []
+              addLabel: 添加外部站点
+              emptyText: 暂无外部站点
+              help: 仅填写 Origin，例如 https://github.com。未配置时只允许打开本站链接。
+              itemLabels:
+                - type: text
+                  label: $value.origin
+              children:
+                - $formkit: text
+                  name: origin
+                  label: Origin
+                  placeholder: https://example.com
+            - $formkit: switch
+              name: allowNewTab
+              label: 允许新窗口打开
+              value: false
+        - $formkit: group
+          name: haloSearch
+          label: Halo 搜索
+          value:
+            allowedTypes:
+              - post.content.halo.run
+              - singlepage.content.halo.run
+            defaultLimit: 5
+          children:
+            - $formkit: checkbox
+              name: allowedTypes
+              label: 允许搜索的内容类型
+              value:
+                - post.content.halo.run
+                - singlepage.content.halo.run
+              options:
+                - label: 文章
+                  value: post.content.halo.run
+                - label: 独立页面
+                  value: singlepage.content.halo.run
+                - label: 瞬间
+                  value: moment.moment.halo.run
+            - $formkit: number
+              name: defaultLimit
+              label: 默认返回数量
+              value: 5
+              min: 1
+              max: 20
+        - $formkit: group
+          name: ragSearch
+          label: RAG 检索
+          value:
+            defaultLimit: 5
+            maxContentChars: 3000
+          children:
+            - $formkit: number
+              name: defaultLimit
+              label: 默认返回数量
+              value: 5
+              min: 1
+              max: 20
+            - $formkit: number
+              name: maxContentChars
+              label: 单条详情最大字符数
+              value: 3000
+              min: 500
+              max: 10000
+        - $formkit: group
+          name: haloResourceDetail
+          label: Halo 资源详情
+          value:
+            maxContentChars: 3000
+          children:
+            - $formkit: number
+              name: maxContentChars
+              label: 单条详情最大字符数
+              value: 3000
+              min: 500
+              max: 10000
+        - $formkit: group
+          name: networkAccess
+          label: 后端网络访问
+          value:
+            allowedOrigins: []
+            maxResponseChars: 4000
+            timeoutSeconds: 5
+          children:
+            - $formkit: array
+              name: allowedOrigins
+              label: 允许读取的 Origin
+              value: []
+              addLabel: 添加 Origin
+              emptyText: 暂无 Origin
+              help: 仅填写完整 Origin，例如 https://api.example.com。
+              itemLabels:
+                - type: text
+                  label: $value.origin
+              children:
+                - $formkit: text
+                  name: origin
+                  label: Origin
+                  placeholder: https://api.example.com
+            - $formkit: number
+              name: maxResponseChars
+              label: 最大响应字符数
+              value: 4000
+              min: 1000
+              max: 20000
+            - $formkit: number
+              name: timeoutSeconds
+              label: 请求超时（秒）
+              value: 5
+              min: 1
+              max: 15
+        - $formkit: textarea
+          name: aiTools
+          label: 自定义浏览器工具 JSON
+          value: "[]"
+          rows: 8
+          help: 高级选项。仅支持 navigate、scroll-to、highlight、dispatch-event、registered 这几类浏览器动作。

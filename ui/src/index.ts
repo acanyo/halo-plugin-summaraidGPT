@@ -10,6 +10,7 @@ import RiBrainLine from '~icons/ri/brain-line'
 import RiBearSmileLine from '~icons/ri/bear-smile-line'
 import RiFileList3Line from '~icons/ri/file-list-3-line'
 import RiMessage3Line from '~icons/ri/message-3-line'
+import 'uno.css'
 
 export default definePlugin({
   routes: [

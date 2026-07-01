@@ -5,6 +5,7 @@ const API_PREFIX = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
 export interface Metadata {
   name: string
   creationTimestamp?: string
+  deletionTimestamp?: string
 }
 
 export interface AiCallLog {
@@ -32,22 +33,45 @@ export interface AiCallLog {
 }
 
 export interface ListAiCallLogsParams {
-  limit?: number
+  page?: number
+  size?: number
   operation?: string
   modelType?: string
   success?: boolean
 }
 
+export interface AiCallLogPage {
+  items: AiCallLog[]
+  page: number
+  size: number
+  total: number
+}
+
+export interface AiCallLogMutationResponse {
+  success: boolean
+  message?: string
+  affected?: number
+}
+
 export const aiCallLogApi = {
   async list(params: ListAiCallLogsParams = {}) {
-    const { data } = await axiosInstance.get<{ items: AiCallLog[] }>(
-      `${API_PREFIX}/aiCallLogs`,
-      { params },
-    )
-    return data.items || []
+    const { data } = await axiosInstance.get<AiCallLogPage>(`${API_PREFIX}/aiCallLogs`, { params })
+    return {
+      items: data.items || [],
+      page: data.page || params.page || 1,
+      size: data.size || params.size || 20,
+      total: data.total || 0,
+    }
   },
 
   async delete(name: string) {
     await axiosInstance.delete(`${API_PREFIX}/aiCallLogs/${name}`)
+  },
+
+  async clear() {
+    const { data } = await axiosInstance.delete<AiCallLogMutationResponse>(
+      `${API_PREFIX}/aiCallLogs`,
+    )
+    return data
   },
 }

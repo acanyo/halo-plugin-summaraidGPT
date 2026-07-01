@@ -27,6 +27,9 @@ export const DEFAULT_RAG_PET_SPEECH_MESSAGES = [
 ];
 
 export const PETDEX_THINKING_SPEECH_MESSAGE = '正在检索知识库，稍等一下。';
+export const DEFAULT_RAG_PET_SIZE = 76;
+export const MIN_RAG_PET_SIZE = 48;
+export const MAX_RAG_PET_SIZE = 160;
 
 const PETDEX_SHEET_COLUMNS = 8;
 const PETDEX_SHEET_ROWS = 9;

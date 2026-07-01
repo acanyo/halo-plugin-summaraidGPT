@@ -137,6 +137,13 @@ export interface RagConversation {
   }
 }
 
+export interface RagConversationPage {
+  items: RagConversation[]
+  page: number
+  size: number
+  total: number
+}
+
 export interface SaveKnowledgeBaseRequest {
   name: string
   displayName: string
@@ -382,12 +389,21 @@ export const ragApi = {
     return data
   },
 
-  async listConversations(knowledgeBase: string, limit = 50) {
-    const { data } = await axiosInstance.get<{ items: RagConversation[] }>(
-      `${API_PREFIX}/ragConversations`,
-      { params: { knowledgeBase, limit } },
-    )
-    return data.items || []
+  async listConversations(params: {
+    knowledgeBase?: string
+    keyword?: string
+    page?: number
+    size?: number
+  }) {
+    const { data } = await axiosInstance.get<RagConversationPage>(`${API_PREFIX}/ragConversations`, {
+      params,
+    })
+    return {
+      items: data.items || [],
+      page: data.page || params.page || 1,
+      size: data.size || params.size || 20,
+      total: data.total || 0,
+    }
   },
 
   async getConversation(name: string, visitorId: string) {

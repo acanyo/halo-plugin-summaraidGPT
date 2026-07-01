@@ -32,7 +32,7 @@ import run.halo.app.extension.ReactiveExtensionClient;
 @RequiredArgsConstructor
 public class DefaultRagIndexService implements RagIndexService {
 
-    private static final String CHUNKER_VERSION = "chunker-v1";
+    private static final String CHUNKER_VERSION = "chunker-v2";
     private static final Duration LUCENE_REBUILD_MIN_TIMEOUT = Duration.ofMinutes(2);
     private static final Duration LUCENE_REBUILD_MAX_TIMEOUT = Duration.ofMinutes(30);
 
@@ -68,19 +68,21 @@ public class DefaultRagIndexService implements RagIndexService {
                 }
                 return progress.update(5, "准备重建索引")
                     .then(markIndexing(kbName))
-                    .then(progress.update(15, "读取知识库文档"))
-                    .then(listDocuments(kbName))
-                    .flatMap(documents -> progress.update(25, "清洗并分块文档")
-                        .thenReturn(documents))
-                    .flatMap(documents -> buildAndStore(kbName, documents, basicConfig, ragConfig,
-                        startedAt, progress));
+                    .flatMap(kb -> progress.update(15, "读取知识库文档")
+                        .then(listDocuments(kbName))
+                        .flatMap(documents -> progress.update(25, "清洗并分块文档")
+                            .thenReturn(documents))
+                        .flatMap(documents -> buildAndStore(kb, documents, basicConfig,
+                            ragConfig, startedAt, progress)));
             })
             .onErrorResume(error -> markError(kbName, error).then(Mono.error(error)));
     }
 
-    private Mono<RagIndexSummary> buildAndStore(String knowledgeBase, List<RagDocument> documents,
+    private Mono<RagIndexSummary> buildAndStore(RagKnowledgeBase knowledgeBase,
+        List<RagDocument> documents,
         SettingConfigGetter.BasicConfig basicConfig, SettingConfigGetter.RagConfig ragConfig,
         long startedAt, ProgressListener progressListener) {
+        var knowledgeBaseName = knowledgeBaseName(knowledgeBase);
         var chunkSize = normalizedInt(ragConfig.getChunkSize(), 900, 200, 3000);
         var chunkOverlap = normalizedInt(ragConfig.getChunkOverlap(), 120, 0, Math.min(800,
             chunkSize / 2));
@@ -100,8 +102,8 @@ public class DefaultRagIndexService implements RagIndexService {
 
         if (chunkInputs.isEmpty()) {
             return progressListener.update(80, "清空空知识库索引")
-                .then(ragVectorStore.rebuild(knowledgeBase, "empty", List.of()))
-                .then(updateKnowledgeBaseReady(knowledgeBase, documents.size(), 0,
+                .then(ragVectorStore.rebuild(knowledgeBaseName, "empty", List.of()))
+                .then(updateKnowledgeBaseReady(knowledgeBaseName, documents.size(), 0,
                     basicConfig.getEmbeddingModelName(), 0, "empty", startedAt,
                     RagKnowledgeBase.IndexState.EMPTY.name()))
                 .thenReturn(RagIndexSummary.builder()
@@ -128,12 +130,12 @@ public class DefaultRagIndexService implements RagIndexService {
                     indexedChunks.add(toIndexedChunk(knowledgeBase, chunkInputs.get(i), vectors.get(i)));
                 }
                 return progressListener.update(75, "写入 Lucene 向量索引")
-                    .then(writeLuceneIndex(knowledgeBase, indexVersion, indexedChunks, dimensions))
+                    .then(writeLuceneIndex(knowledgeBaseName, indexVersion, indexedChunks, dimensions))
                     .then(progressListener.update(85, "Lucene 向量索引写入完成"))
                     .then(progressListener.update(90, "更新知识库索引状态"))
                     .then(updateDocumentStatuses(documents, chunkInputs))
-                    .then(updateKnowledgeBaseReady(knowledgeBase, documents.size(), indexedChunks.size(),
-                        embeddingModelName, dimensions, indexVersion, startedAt,
+                    .then(updateKnowledgeBaseReady(knowledgeBaseName, documents.size(),
+                        indexedChunks.size(), embeddingModelName, dimensions, indexVersion, startedAt,
                         RagKnowledgeBase.IndexState.READY.name()))
                     .thenReturn(RagIndexSummary.builder()
                         .documentCount(documents.size())
@@ -179,12 +181,15 @@ public class DefaultRagIndexService implements RagIndexService {
             .collectList();
     }
 
-    private RagIndexedChunk toIndexedChunk(String knowledgeBase, ChunkInput input, float[] vector) {
+    private RagIndexedChunk toIndexedChunk(RagKnowledgeBase knowledgeBase, ChunkInput input,
+        float[] vector) {
         var document = input.document();
         var spec = document.getSpec();
         return RagIndexedChunk.builder()
             .id(document.getMetadata().getName() + "#" + input.chunkIndex())
-            .knowledgeBase(knowledgeBase)
+            .knowledgeBase(knowledgeBaseName(knowledgeBase))
+            .knowledgeBaseDisplayName(knowledgeBaseDisplayName(knowledgeBase))
+            .knowledgeBaseDescription(knowledgeBaseDescription(knowledgeBase))
             .documentName(document.getMetadata().getName())
             .sourceType(spec.getSourceType())
             .sourceName(spec.getSourceName())
@@ -323,6 +328,27 @@ public class DefaultRagIndexService implements RagIndexService {
 
     private String defaultString(String value) {
         return value == null ? "" : value;
+    }
+
+    private String knowledgeBaseName(RagKnowledgeBase knowledgeBase) {
+        return knowledgeBase != null && knowledgeBase.getMetadata() != null
+            ? defaultString(knowledgeBase.getMetadata().getName())
+            : DEFAULT_KNOWLEDGE_BASE;
+    }
+
+    private String knowledgeBaseDisplayName(RagKnowledgeBase knowledgeBase) {
+        var spec = knowledgeBase == null ? null : knowledgeBase.getSpec();
+        if (spec != null && StringUtils.hasText(spec.getDisplayName())) {
+            return spec.getDisplayName().strip();
+        }
+        return knowledgeBaseName(knowledgeBase);
+    }
+
+    private String knowledgeBaseDescription(RagKnowledgeBase knowledgeBase) {
+        var spec = knowledgeBase == null ? null : knowledgeBase.getSpec();
+        return spec != null && StringUtils.hasText(spec.getDescription())
+            ? spec.getDescription().strip()
+            : "";
     }
 
     private String errorMessage(Throwable error) {

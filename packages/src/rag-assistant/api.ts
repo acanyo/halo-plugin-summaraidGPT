@@ -4,7 +4,13 @@ import type {
   RagChatStreamEvent,
   RagConversation,
 } from './types';
-import { DEFAULT_RAG_PET_SPEECH_MESSAGES } from './petdex';
+import {
+  DEFAULT_RAG_PET_SIZE,
+  DEFAULT_RAG_PET_SPEECH_MESSAGES,
+  MAX_RAG_PET_SIZE,
+  MIN_RAG_PET_SIZE,
+} from './petdex';
+import { normalizeAgentRuntimeConfig } from './agent/normalize';
 import { DEFAULT_RAG_ASSISTANT_STYLE, normalizeAssistantStyle } from './theme';
 
 export const RAG_API_BASE = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1';
@@ -30,8 +36,10 @@ export const DEFAULT_RAG_ASSISTANT_CONFIG: RagAssistantConfig = {
   buttonPosition: 'right',
   horizontalOffset: DEFAULT_FLOATING_OFFSET,
   verticalOffset: DEFAULT_FLOATING_OFFSET,
+  petSize: DEFAULT_RAG_PET_SIZE,
   petSpeechMessages: DEFAULT_RAG_PET_SPEECH_MESSAGES,
   pet: DEFAULT_RAG_ASSISTANT_PET,
+  agent: normalizeAgentRuntimeConfig(undefined),
 };
 
 export async function fetchRagAssistantConfig(): Promise<RagAssistantConfig> {
@@ -153,9 +161,11 @@ function normalizeConfig(config: Partial<RagAssistantConfig>): RagAssistantConfi
     styleConfig: normalizeAssistantStyle(config.styleConfig),
     horizontalOffset: normalizeFloatingOffset(config.horizontalOffset),
     verticalOffset: normalizeFloatingOffset(config.verticalOffset),
+    petSize: normalizePetSize(config.petSize),
     petSpeechMessages:
       normalizeSpeechMessages(config.petSpeechMessages) || DEFAULT_RAG_PET_SPEECH_MESSAGES,
     pet: normalizePetConfig(config.pet) || DEFAULT_RAG_ASSISTANT_PET,
+    agent: normalizeAgentRuntimeConfig(config.agent),
   };
 }
 
@@ -202,6 +212,14 @@ function normalizeFloatingOffset(offset?: number): number {
     return DEFAULT_FLOATING_OFFSET;
   }
   return Math.round(Math.min(Math.max(value, 0), MAX_FLOATING_OFFSET));
+}
+
+function normalizePetSize(size?: number): number {
+  const value = Number(size);
+  if (!Number.isFinite(value)) {
+    return DEFAULT_RAG_PET_SIZE;
+  }
+  return Math.round(Math.min(Math.max(value, MIN_RAG_PET_SIZE), MAX_RAG_PET_SIZE));
 }
 
 function normalizeAssistantName(name?: string): string {

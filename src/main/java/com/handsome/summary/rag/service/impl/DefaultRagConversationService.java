@@ -9,7 +9,6 @@ import com.handsome.summary.rag.model.RagConversationMessage;
 import com.handsome.summary.rag.model.RagSourceReference;
 import com.handsome.summary.rag.service.RagConversationService;
 import com.handsome.summary.rag.service.RagGenerationService;
-import com.handsome.summary.rag.service.RagIndexService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,18 +36,34 @@ public class DefaultRagConversationService implements RagConversationService {
     private static final int MAX_VISITOR_ID_LENGTH = 80;
     private static final int MAX_USER_AGENT_LENGTH = 300;
     private static final int MAX_TITLE_LENGTH = 80;
+    private static final String ALL_KNOWLEDGE_BASE_SCOPE = "__all__";
 
     private final ReactiveExtensionClient client;
     private final RagGenerationService ragGenerationService;
 
     @Override
-    public Flux<RagConversation> list(String knowledgeBase, int limit) {
-        var options = ListOptions.builder()
-            .fieldQuery(equal("spec.knowledgeBase", normalizeKnowledgeBase(knowledgeBase)))
-            .build();
+    public Mono<ConversationPage> list(String knowledgeBase, String keyword, int page, int size) {
+        var normalizedPage = Math.max(page, 1);
+        var normalizedSize = Math.max(1, Math.min(size, 100));
+        var offset = (normalizedPage - 1) * normalizedSize;
+        var optionsBuilder = ListOptions.builder();
+        if (StringUtils.hasText(knowledgeBase)) {
+            optionsBuilder.fieldQuery(equal("spec.knowledgeBase", knowledgeBase.strip()));
+        }
+        var options = optionsBuilder.build();
         return client.listAll(RagConversation.class, options, Sort.unsorted())
+            .filter(conversation -> matchesKeyword(conversation, keyword))
             .sort(Comparator.comparing(this::lastMessageAt).reversed())
-            .take(Math.max(1, Math.min(limit, 200)));
+            .collectList()
+            .map(items -> new ConversationPage(
+                items.stream()
+                    .skip(offset)
+                    .limit(normalizedSize)
+                    .toList(),
+                normalizedPage,
+                normalizedSize,
+                items.size()
+            ));
     }
 
     @Override
@@ -83,13 +98,14 @@ public class DefaultRagConversationService implements RagConversationService {
     @Override
     public Mono<RagAnswer> ask(String knowledgeBase, String conversationId, String visitorId,
         String userAgent, String question, Integer limit) {
-        var normalizedKnowledgeBase = normalizeKnowledgeBase(knowledgeBase);
-        return getOrCreate(normalizedKnowledgeBase, conversationId, visitorId, userAgent, question)
+        var conversationScope = conversationScope(knowledgeBase);
+        var searchScope = searchScope(knowledgeBase);
+        return getOrCreate(conversationScope, conversationId, visitorId, userAgent, question)
             .flatMap(conversation -> {
                 var history = toHistoryMessages(conversation);
                 return appendMessage(conversation.getMetadata().getName(),
                         userMessage(question))
-                    .then(ragGenerationService.askWithHistory(normalizedKnowledgeBase, question,
+                    .then(ragGenerationService.askWithHistory(searchScope, question,
                         limit, history))
                     .flatMap(answer -> saveAssistantMessage(conversation.getMetadata().getName(),
                             answer.getAnswer(), answer.getSources(), false)
@@ -102,8 +118,9 @@ public class DefaultRagConversationService implements RagConversationService {
     @Override
     public Flux<RagChatStreamEvent> stream(String knowledgeBase, String conversationId,
         String visitorId, String userAgent, String question, Integer limit) {
-        var normalizedKnowledgeBase = normalizeKnowledgeBase(knowledgeBase);
-        return getOrCreate(normalizedKnowledgeBase, conversationId, visitorId, userAgent, question)
+        var conversationScope = conversationScope(knowledgeBase);
+        var searchScope = searchScope(knowledgeBase);
+        return getOrCreate(conversationScope, conversationId, visitorId, userAgent, question)
             .flatMapMany(conversation -> {
                 var name = conversation.getMetadata().getName();
                 var history = toHistoryMessages(conversation);
@@ -113,12 +130,27 @@ public class DefaultRagConversationService implements RagConversationService {
                 return appendMessage(name, userMessage(question))
                     .thenMany(Flux.concat(
                         Flux.just(RagChatStreamEvent.conversation(name)),
-                        ragGenerationService.streamWithHistory(normalizedKnowledgeBase, question,
+                        ragGenerationService.streamWithHistory(searchScope, question,
                             limit, history)
                             .concatMap(event -> handleStreamEvent(name, event, answerText,
                                 sourceReferences, assistantSaved))
                     ));
             });
+    }
+
+    @Override
+    public Mono<RagConversation> recordUserMessage(String knowledgeBase, String conversationId,
+        String visitorId, String userAgent, String content) {
+        var conversationScope = conversationScope(knowledgeBase);
+        return getOrCreate(conversationScope, conversationId, visitorId, userAgent, content)
+            .flatMap(conversation -> appendMessage(conversation.getMetadata().getName(),
+                userMessage(content)));
+    }
+
+    @Override
+    public Mono<RagConversation> recordAssistantMessage(String conversationId, String content,
+        List<RagSourceReference> sources, boolean error) {
+        return saveAssistantMessage(conversationId, content, sources, error);
     }
 
     private Mono<RagChatStreamEvent> handleStreamEvent(String conversationName,
@@ -408,9 +440,12 @@ public class DefaultRagConversationService implements RagConversationService {
             : metadata.getCreationTimestamp();
     }
 
-    private String normalizeKnowledgeBase(String knowledgeBase) {
-        return StringUtils.hasText(knowledgeBase) ? knowledgeBase.strip()
-            : RagIndexService.DEFAULT_KNOWLEDGE_BASE;
+    private String conversationScope(String knowledgeBase) {
+        return StringUtils.hasText(knowledgeBase) ? knowledgeBase.strip() : ALL_KNOWLEDGE_BASE_SCOPE;
+    }
+
+    private String searchScope(String knowledgeBase) {
+        return StringUtils.hasText(knowledgeBase) ? knowledgeBase.strip() : null;
     }
 
     private String normalizeConversationId(String value) {
@@ -430,7 +465,7 @@ public class DefaultRagConversationService implements RagConversationService {
         String visitorId) {
         var spec = conversation.getSpec();
         var conversationKnowledgeBase = spec == null ? null : spec.getKnowledgeBase();
-        if (!normalizeKnowledgeBase(conversationKnowledgeBase).equals(normalizeKnowledgeBase(knowledgeBase))) {
+        if (!conversationScope(conversationKnowledgeBase).equals(conversationScope(knowledgeBase))) {
             return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "Conversation belongs to another knowledge base"));
         }
@@ -454,6 +489,35 @@ public class DefaultRagConversationService implements RagConversationService {
         var title = StringUtils.hasText(question) ? question.strip().replaceAll("\\s+", " ")
             : "RAG 会话";
         return truncate(title, MAX_TITLE_LENGTH);
+    }
+
+    private boolean matchesKeyword(RagConversation conversation, String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return true;
+        }
+        var normalizedKeyword = keyword.strip().toLowerCase(Locale.ROOT);
+        var haystack = new StringBuilder();
+        appendSearchText(haystack, conversation == null || conversation.getMetadata() == null
+            ? null : conversation.getMetadata().getName());
+        var spec = conversation == null ? null : conversation.getSpec();
+        if (spec != null) {
+            appendSearchText(haystack, spec.getTitle());
+            appendSearchText(haystack, spec.getVisitorId());
+            appendSearchText(haystack, spec.getUserAgent());
+            if (spec.getMessages() != null) {
+                spec.getMessages().stream()
+                    .map(RagConversation.Message::getContent)
+                    .filter(StringUtils::hasText)
+                    .forEach(content -> appendSearchText(haystack, content));
+            }
+        }
+        return haystack.toString().toLowerCase(Locale.ROOT).contains(normalizedKeyword);
+    }
+
+    private void appendSearchText(StringBuilder haystack, String value) {
+        if (StringUtils.hasText(value)) {
+            haystack.append(' ').append(value);
+        }
     }
 
     private String trimToNull(String value) {

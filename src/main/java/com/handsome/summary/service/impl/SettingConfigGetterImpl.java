@@ -53,6 +53,12 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     }
 
     @Override
+    public Mono<com.handsome.summary.agent.model.AgentSettings> getAgentSettings() {
+        return settingFetcher.fetch("agent", com.handsome.summary.agent.model.AgentSettings.class)
+            .defaultIfEmpty(com.handsome.summary.agent.model.AgentSettings.defaults());
+    }
+
+    @Override
     public Mono<AiSecurityConfig> getAiSecurityConfig() {
         return getBasicConfig()
             .map(config -> config.getAiSecuritySetting() != null
