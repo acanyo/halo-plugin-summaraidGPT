@@ -14,8 +14,6 @@ jobs:
       contents: write
     with:
       app-id: app-OWBzA
-      node-version: 22
-      pnpm-version: 9
-      java-version: 21
-      ui-path: ui
-      skip-node-setup: true
+      node-version: "24"
+      pnpm-version: ""
+      ui-path: "."
