@@ -20,7 +20,7 @@ spec:
   repo: https://github.com/acanyo/halo-plugin-summaraidGPT
   issues: https://github.com/acanyo/halo-plugin-summaraidGPT/issues
   displayName: "智阅全能AI助手"
-  description: "AI摘要|AI对话|AI创作|AI润色|AI标题|标签生成，一站式焕新内容生产力。"
+  description: "智阅全能AI助手是一款面向 Halo 的 AI 内容与站点助手，集摘要写作、润色改写、标题标签生成、RAG 知识库问答、站内检索与前台宠物助手于一体。"
   pluginDependencies:
     ai-foundation?: "*"
   license:
