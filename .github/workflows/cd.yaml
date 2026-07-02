@@ -15,5 +15,5 @@ jobs:
     with:
       app-id: app-OWBzA
       node-version: "24"
-      pnpm-version: ""
+      pnpm-version: "10"
       ui-path: "."
