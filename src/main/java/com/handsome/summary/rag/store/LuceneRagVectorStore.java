@@ -25,6 +25,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.index.VectorSimilarityFunction;
 import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -103,6 +104,52 @@ public class LuceneRagVectorStore implements RagVectorStore {
                 throw e;
             } catch (LinkageError e) {
                 safeDeleteDirectory(stagingPath);
+                throw new IllegalStateException("Failed to initialize RAG Lucene runtime: "
+                    + LuceneRuntimeDiagnostics.describe(), e);
+            }
+        }).subscribeOn(Schedulers.boundedElastic()).then();
+    }
+
+    @Override
+    public Mono<Void> replaceDocuments(String knowledgeBase, String indexVersion,
+        List<String> documentNames, List<RagIndexedChunk> chunks) {
+        return Mono.fromRunnable(() -> {
+            var names = documentNames(documentNames, chunks);
+            if (names.isEmpty() && (chunks == null || chunks.isEmpty())) {
+                return;
+            }
+            var targetPath = indexPath(knowledgeBase, indexVersion);
+            var startedAt = System.currentTimeMillis();
+            var safeChunks = defaultChunks(chunks);
+            var dimensions = vectorDimensions(safeChunks);
+            log.info("RAG Lucene replace documents start kb={} version={} documents={} chunks={} "
+                    + "dimensions={} targetPath={} runtime={}",
+                knowledgeBase, indexVersion, names.size(), safeChunks.size(), dimensions,
+                targetPath, LuceneRuntimeDiagnostics.describe());
+            try {
+                Files.createDirectories(targetPath);
+                try (var directory = FSDirectory.open(targetPath);
+                    var analyzer = new CJKAnalyzer()) {
+                    var config = new IndexWriterConfig(analyzer);
+                    config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+                    config.setCodec(new SummaraidGptLuceneCodec());
+                    try (var writer = new IndexWriter(directory, config)) {
+                        for (var documentName : names) {
+                            writer.deleteDocuments(new Term(FIELD_DOCUMENT_NAME, documentName));
+                        }
+                        for (var chunk : safeChunks) {
+                            writer.addDocument(toDocument(chunk));
+                        }
+                        writer.commit();
+                    }
+                }
+                log.info("RAG Lucene replace documents success kb={} version={} documents={} "
+                        + "chunks={} durationMs={}",
+                    knowledgeBase, indexVersion, names.size(), safeChunks.size(),
+                    System.currentTimeMillis() - startedAt);
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to replace RAG Lucene documents", e);
+            } catch (LinkageError e) {
                 throw new IllegalStateException("Failed to initialize RAG Lucene runtime: "
                     + LuceneRuntimeDiagnostics.describe(), e);
             }
@@ -343,6 +390,28 @@ public class LuceneRagVectorStore implements RagVectorStore {
 
     private List<String> defaultList(List<String> values) {
         return values == null ? List.of() : values;
+    }
+
+    private List<RagIndexedChunk> defaultChunks(List<RagIndexedChunk> chunks) {
+        return chunks == null ? List.of() : chunks;
+    }
+
+    private List<String> documentNames(List<String> documentNames, List<RagIndexedChunk> chunks) {
+        var names = new ArrayList<String>();
+        if (documentNames != null) {
+            documentNames.stream()
+                .filter(StringUtils::hasText)
+                .map(String::strip)
+                .forEach(names::add);
+        }
+        if (chunks != null) {
+            chunks.stream()
+                .map(RagIndexedChunk::getDocumentName)
+                .filter(StringUtils::hasText)
+                .map(String::strip)
+                .forEach(names::add);
+        }
+        return names.stream().distinct().toList();
     }
 
     private String defaultString(String value) {

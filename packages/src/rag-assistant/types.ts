@@ -3,6 +3,7 @@ import type { AgentRuntimeConfig } from './agent/types';
 export interface RagAssistantConfig {
   assistantAvatar?: string;
   assistantName: string;
+  displayMode: 'assistant' | 'petOnly';
   welcomeMessage: string;
   quickQuestions: string[];
   styleConfig: RagAssistantStyleConfig;
@@ -12,7 +13,15 @@ export interface RagAssistantConfig {
   petSize: number;
   petSpeechMessages?: string[];
   pet?: RagAssistantPetConfig;
+  access: RagAssistantAccessConfig;
   agent?: AgentRuntimeConfig;
+}
+
+export interface RagAssistantAccessConfig {
+  mode: 'anonymous_chat' | 'anonymous_chat_agent' | 'authenticated_chat' | 'authenticated_chat_agent';
+  allowAnonymous: boolean;
+  agentAllowed: boolean;
+  authenticated: boolean;
 }
 
 export interface RagAssistantPetConfig {

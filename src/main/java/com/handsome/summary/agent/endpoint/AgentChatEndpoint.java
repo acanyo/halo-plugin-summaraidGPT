@@ -105,12 +105,15 @@ public class AgentChatEndpoint implements CustomEndpoint {
                 return Mono.zip(
                     settingConfigGetter.getAiConfigForFunction("rag"),
                     settingConfigGetter.getAgentSettings(),
+                    settingConfigGetter.getAiSecurityConfig(),
                     isAuthenticated(request)
                 ).flatMap(tuple -> {
                     var aiConfig = tuple.getT1();
                     var agentSettings = tuple.getT2();
-                    var authenticated = tuple.getT3();
-                    var toolSet = agentToolService.buildTools(agentSettings, authenticated);
+                    var accessMode = aiRequestSecurityService.resolveAccessMode(tuple.getT3());
+                    var authenticated = tuple.getT4();
+                    var toolSet = agentToolService.buildTools(agentSettings, authenticated,
+                        accessMode.agentAllowed());
                     var turn = agentChatTurnRecorder.start(aiConfig.getModelName(),
                         context.knowledgeBase(), context.conversationId(), context.visitorId(),
                         userAgent(request), context.chatRequest(),

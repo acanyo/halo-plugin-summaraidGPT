@@ -1,5 +1,6 @@
 package com.handsome.summary.service;
 
+import com.handsome.summary.agent.model.AgentAccessMode;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -46,6 +47,13 @@ public class AiRequestSecurityService {
             .then();
     }
 
+    public AgentAccessMode resolveAccessMode(SettingConfigGetter.AiSecurityConfig security) {
+        if (security == null) {
+            return AgentAccessMode.ANONYMOUS_CHAT_AGENT;
+        }
+        return AgentAccessMode.from(security.getAccessMode(), security.getAllowAnonymousAccess());
+    }
+
     public void dispose() {
         counters.clear();
     }
@@ -53,7 +61,18 @@ public class AiRequestSecurityService {
     private void secure(ServerRequest request, SettingConfigGetter.AiSecurityConfig security,
         Principal principal) {
         verifyHotlink(request, security);
+        verifyChatAccess(security, principal);
         verifyRateLimit(request, security, principal);
+    }
+
+    private void verifyChatAccess(SettingConfigGetter.AiSecurityConfig security,
+        Principal principal) {
+        var accessMode = resolveAccessMode(security);
+        if (!accessMode.authenticationRequired() || authenticated(principal)) {
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+            "请登录后使用 AI 助手");
     }
 
     private void verifyHotlink(ServerRequest request, SettingConfigGetter.AiSecurityConfig security) {
@@ -122,10 +141,15 @@ public class AiRequestSecurityService {
     private String limiterName(ServerRequest request, Principal principal, int requestLimit,
         int windowSeconds) {
         var principalName = principal == null ? null : principal.getName();
-        var identity = StringUtils.hasText(principalName) && !ANONYMOUS_USER.equals(principalName)
+        var identity = authenticated(principal)
             ? "user:" + principalName
             : "ip:" + clientIp(request);
         return LIMITER_PREFIX + digest(identity + ":" + requestLimit + ":" + windowSeconds);
+    }
+
+    private boolean authenticated(Principal principal) {
+        var principalName = principal == null ? null : principal.getName();
+        return StringUtils.hasText(principalName) && !ANONYMOUS_USER.equals(principalName);
     }
 
     private void cleanupCounters(long now, long windowMillis) {

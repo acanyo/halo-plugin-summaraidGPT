@@ -4,6 +4,7 @@ import static run.halo.app.extension.index.query.Queries.equal;
 
 import com.handsome.summary.pet.extension.PetCompanion;
 import com.handsome.summary.pet.model.SavePetCompanionCommand;
+import com.handsome.summary.pet.service.PetCompanionAssetStorageService;
 import com.handsome.summary.pet.service.PetCompanionService;
 import com.handsome.summary.pet.service.PetdexImportService;
 import com.handsome.summary.pet.support.DefaultPetCompanionAssets;
@@ -30,6 +31,7 @@ public class DefaultPetCompanionService implements PetCompanionService {
 
     private final ReactiveExtensionClient client;
     private final PetdexImportService petdexImportService;
+    private final PetCompanionAssetStorageService petCompanionAssetStorageService;
 
     @Override
     public Flux<PetCompanion> list() {
@@ -51,11 +53,14 @@ public class DefaultPetCompanionService implements PetCompanionService {
 
     @Override
     public Mono<PetCompanion> save(SavePetCompanionCommand command) {
-        var name = resourceName(command);
-        var spec = toSpec(command);
-        var active = Boolean.TRUE.equals(spec.getActive());
-        var mutation = upsert(name, spec);
-        return active ? deactivateAllExcept(name).then(mutation) : mutation;
+        return petCompanionAssetStorageService.localizePetdexAssets(command)
+            .flatMap(localizedCommand -> {
+                var name = resourceName(localizedCommand);
+                var spec = toSpec(localizedCommand);
+                var active = Boolean.TRUE.equals(spec.getActive());
+                var mutation = upsert(name, spec);
+                return active ? deactivateAllExcept(name).then(mutation) : mutation;
+            });
     }
 
     @Override

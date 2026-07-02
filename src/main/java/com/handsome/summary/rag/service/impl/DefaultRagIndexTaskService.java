@@ -10,6 +10,7 @@ import com.handsome.summary.rag.service.RagIndexTaskService;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +41,22 @@ public class DefaultRagIndexTaskService implements RagIndexTaskService {
     public Mono<RagIndexTask> startFullRebuild(String knowledgeBase) {
         var kbName = normalizeKnowledgeBase(knowledgeBase);
         return runningTask(kbName)
-            .switchIfEmpty(Mono.defer(() -> createTask(kbName)
+            .switchIfEmpty(Mono.defer(() -> createTask(kbName, RagIndexTask.TaskType.FULL_REBUILD,
+                    List.of())
                 .doOnNext(this::runFullRebuild)));
+    }
+
+    @Override
+    public Mono<RagIndexTask> startDocumentRebuild(String knowledgeBase, List<String> documentNames) {
+        var kbName = normalizeKnowledgeBase(knowledgeBase);
+        var names = normalizedNames(documentNames);
+        if (names.isEmpty()) {
+            return Mono.error(new IllegalArgumentException("documentNames must not be empty"));
+        }
+        return runningTask(kbName)
+            .switchIfEmpty(Mono.defer(() -> createTask(kbName, RagIndexTask.TaskType.DOCUMENT_REBUILD,
+                    names)
+                .doOnNext(this::runDocumentRebuild)));
     }
 
     @Override
@@ -80,14 +95,20 @@ public class DefaultRagIndexTaskService implements RagIndexTaskService {
             .next();
     }
 
-    private Mono<RagIndexTask> createTask(String knowledgeBase) {
+    private Mono<RagIndexTask> createTask(String knowledgeBase, RagIndexTask.TaskType taskType,
+        List<String> documentNames) {
         var task = new RagIndexTask();
         var metadata = new Metadata();
         metadata.setName("rag-task-" + UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
         task.setMetadata(metadata);
         var spec = new RagIndexTask.Spec();
-        spec.setTaskType(RagIndexTask.TaskType.FULL_REBUILD.name());
+        spec.setTaskType(taskType.name());
         spec.setKnowledgeBase(knowledgeBase);
+        var names = normalizedNames(documentNames);
+        spec.setDocumentNames(names);
+        if (!names.isEmpty()) {
+            spec.setDocumentName(names.getFirst());
+        }
         task.setSpec(spec);
         var status = new RagIndexTask.Status();
         status.setPhase(RagIndexTask.Phase.QUEUED.name());
@@ -120,6 +141,34 @@ public class DefaultRagIndexTaskService implements RagIndexTaskService {
                 ignored -> {
                 },
                 error -> log.error("RAG index task failed unexpectedly", error)
+            );
+    }
+
+    private void runDocumentRebuild(RagIndexTask task) {
+        var documentNames = normalizedNames(task.getSpec() == null ? null
+            : task.getSpec().getDocumentNames());
+        log.info("RAG document index task started: task={}, kb={}, documents={}",
+            task.getMetadata().getName(), task.getSpec().getKnowledgeBase(), documentNames.size());
+        updateTask(task.getMetadata().getName(), RagIndexTask.Phase.RUNNING, 5,
+                "开始增量索引", null, null)
+            .then(ragIndexService.indexDocuments(task.getSpec().getKnowledgeBase(), documentNames,
+                (progress, message) -> updateTask(task.getMetadata().getName(),
+                    RagIndexTask.Phase.RUNNING, progress, message, null, null).then()))
+            .doOnSuccess(summary -> log.info("RAG document index task succeeded: task={}, kb={}, "
+                    + "documents={}, chunks={}, durationMs={}",
+                task.getMetadata().getName(), task.getSpec().getKnowledgeBase(),
+                summary.getDocumentCount(), summary.getChunkCount(), summary.getDurationMillis()))
+            .flatMap(summary -> updateTask(task.getMetadata().getName(),
+                RagIndexTask.Phase.SUCCEEDED, 100, "增量索引完成", summary, null))
+            .doOnError(error -> log.error("RAG document index task failed: task={}, kb={}",
+                task.getMetadata().getName(), task.getSpec().getKnowledgeBase(), error))
+            .onErrorResume(error -> updateTask(task.getMetadata().getName(),
+                RagIndexTask.Phase.FAILED, 100, "增量索引失败", null, error))
+            .subscribeOn(Schedulers.boundedElastic())
+            .subscribe(
+                ignored -> {
+                },
+                error -> log.error("RAG document index task failed unexpectedly", error)
             );
     }
 
@@ -250,6 +299,17 @@ public class DefaultRagIndexTaskService implements RagIndexTaskService {
     private String normalizeKnowledgeBase(String knowledgeBase) {
         return StringUtils.hasText(knowledgeBase) ? knowledgeBase.strip()
             : RagIndexService.DEFAULT_KNOWLEDGE_BASE;
+    }
+
+    private List<String> normalizedNames(List<String> names) {
+        if (names == null) {
+            return List.of();
+        }
+        return names.stream()
+            .filter(StringUtils::hasText)
+            .map(String::strip)
+            .distinct()
+            .toList();
     }
 
     private String errorMessage(Throwable error) {

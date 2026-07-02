@@ -92,6 +92,8 @@ public interface SettingConfigGetter {
     @JsonIgnoreProperties(ignoreUnknown = true)
     class AiSecurityConfig {
         private Boolean antiHotlinkEnabled = true;
+        private String accessMode = "anonymous_chat_agent";
+        private Boolean allowAnonymousAccess = true;
         private Boolean allowMissingOrigin = false;
         private Object allowedOrigins = List.of();
         private Boolean rateLimitEnabled = true;
@@ -214,6 +216,7 @@ public interface SettingConfigGetter {
             "/plugins/summaraidGPT/assets/static/icon.svg";
         public static final int DEFAULT_PET_SIZE = 76;
         private Boolean enableAssistant = true;
+        private String displayMode = "assistant";
         private String assistantName = "智阅助手";
         private String assistantAvatar = DEFAULT_ASSISTANT_AVATAR;
         private String welcomeMessage = """
@@ -229,11 +232,20 @@ public interface SettingConfigGetter {
         private AssistantStyleConfig styleConfig = new AssistantStyleConfig();
         private FloatingPositionConfig floatingPosition = new FloatingPositionConfig();
         private Integer petSize = DEFAULT_PET_SIZE;
+        private String petdexProxyBaseUrl;
+        private PetdexAttachmentStorageConfig petdexAttachmentStorage =
+            new PetdexAttachmentStorageConfig();
         private List<String> petSpeechMessages = List.of(
             "有什么站内资料想查？",
             "选中文字后也可以直接问我。",
             "我会优先基于知识库回答。",
             "需要我帮你追溯文章来源吗？"
+        );
+        private List<String> petOnlySpeechMessages = List.of(
+            "今天也要元气满满。",
+            "我就在这里陪你逛逛。",
+            "休息一下，看看风景吧。",
+            "路过的时候记得摸摸我。"
         );
 
         public String getButtonPosition() {
@@ -247,6 +259,14 @@ public interface SettingConfigGetter {
         public Integer getVerticalOffset() {
             return floatingPosition != null ? floatingPosition.getVerticalOffset() : null;
         }
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    class PetdexAttachmentStorageConfig {
+        private Boolean enabled = false;
+        private String policyName;
+        private String groupName;
     }
 
     @Data
@@ -276,6 +296,7 @@ public interface SettingConfigGetter {
         private Boolean enableRag = true;
         private Integer chunkSize = 900;
         private Integer chunkOverlap = 120;
+        private Integer indexDocumentBatchSize = 8;
         private Integer embeddingBatchSize = 1;
         private Integer embeddingParallelCalls = 1;
         private Integer embeddingMaxRetries = 0;

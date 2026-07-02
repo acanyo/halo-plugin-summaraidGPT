@@ -5,6 +5,7 @@ import static com.handsome.summary.rag.extension.RagIndexTask.KIND;
 import com.handsome.summary.rag.model.RagIndexSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
+import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -35,6 +36,9 @@ public class RagIndexTask extends AbstractExtension {
 
         @Schema(description = "Optional document metadata.name")
         private String documentName;
+
+        @Schema(description = "Optional document metadata.names")
+        private List<String> documentNames;
     }
 
     @Data

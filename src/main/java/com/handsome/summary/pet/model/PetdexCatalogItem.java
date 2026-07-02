@@ -8,6 +8,10 @@ public record PetdexCatalogItem(
     String installScriptUrl,
     String spritesheetUrl,
     String petJsonUrl,
-    String zipUrl
+    String zipUrl,
+    String publicInstallScriptUrl,
+    String publicSpritesheetUrl,
+    String publicPetJsonUrl,
+    String publicZipUrl
 ) {
 }

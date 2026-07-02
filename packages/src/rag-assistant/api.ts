@@ -42,6 +42,7 @@ const DEFAULT_RAG_ASSISTANT_PET: NonNullable<RagAssistantConfig['pet']> = {
 export const DEFAULT_RAG_ASSISTANT_CONFIG: RagAssistantConfig = {
   assistantAvatar: DEFAULT_ASSISTANT_AVATAR,
   assistantName: DEFAULT_ASSISTANT_NAME,
+  displayMode: 'assistant',
   welcomeMessage: DEFAULT_WELCOME_MESSAGE.replace('{assistantName}', DEFAULT_ASSISTANT_NAME),
   quickQuestions: DEFAULT_QUICK_QUESTIONS,
   styleConfig: DEFAULT_RAG_ASSISTANT_STYLE,
@@ -51,6 +52,12 @@ export const DEFAULT_RAG_ASSISTANT_CONFIG: RagAssistantConfig = {
   petSize: DEFAULT_RAG_PET_SIZE,
   petSpeechMessages: DEFAULT_RAG_PET_SPEECH_MESSAGES,
   pet: DEFAULT_RAG_ASSISTANT_PET,
+  access: {
+    mode: 'anonymous_chat_agent',
+    allowAnonymous: true,
+    agentAllowed: true,
+    authenticated: false,
+  },
   agent: normalizeAgentRuntimeConfig(undefined),
 };
 
@@ -170,6 +177,7 @@ function normalizeConfig(config: Partial<RagAssistantConfig>): RagAssistantConfi
     buttonPosition,
     assistantAvatar: normalizeAvatarUrl(config.assistantAvatar),
     assistantName: normalizeAssistantName(config.assistantName),
+    displayMode: normalizeDisplayMode(config.displayMode),
     welcomeMessage: normalizeWelcomeMessage(config.welcomeMessage, config.assistantName),
     quickQuestions:
       normalizeStringList(config.quickQuestions, 8, MAX_QUICK_QUESTION_CHARS)
@@ -181,8 +189,33 @@ function normalizeConfig(config: Partial<RagAssistantConfig>): RagAssistantConfi
     petSpeechMessages:
       normalizeStringList(config.petSpeechMessages, 12) || DEFAULT_RAG_PET_SPEECH_MESSAGES,
     pet: normalizePetConfig(config.pet) || DEFAULT_RAG_ASSISTANT_PET,
+    access: normalizeAccessConfig(config.access),
     agent: normalizeAgentRuntimeConfig(config.agent),
   };
+}
+
+function normalizeAccessConfig(
+  access: Partial<RagAssistantConfig['access']> | undefined,
+): RagAssistantConfig['access'] {
+  const mode = normalizeAccessMode(access?.mode);
+  return {
+    mode,
+    allowAnonymous: mode === 'anonymous_chat' || mode === 'anonymous_chat_agent',
+    agentAllowed: mode === 'anonymous_chat_agent' || mode === 'authenticated_chat_agent',
+    authenticated: access?.authenticated === true,
+  };
+}
+
+function normalizeAccessMode(mode?: string): RagAssistantConfig['access']['mode'] {
+  if (
+    mode === 'anonymous_chat'
+    || mode === 'anonymous_chat_agent'
+    || mode === 'authenticated_chat'
+    || mode === 'authenticated_chat_agent'
+  ) {
+    return mode;
+  }
+  return 'anonymous_chat_agent';
 }
 
 function normalizePetConfig(
@@ -259,6 +292,10 @@ function normalizePetSize(size?: number): number {
 function normalizeAssistantName(name?: string): string {
   const value = name?.trim();
   return value || DEFAULT_ASSISTANT_NAME;
+}
+
+function normalizeDisplayMode(mode?: string): RagAssistantConfig['displayMode'] {
+  return mode === 'petOnly' ? 'petOnly' : 'assistant';
 }
 
 function parseSseFrame(frame: string): string | undefined {

@@ -20,6 +20,8 @@ export interface PetCompanion {
     installScriptUrl?: string
     petJsonUrl?: string
     spritesheetUrl?: string
+    publicPetJsonUrl?: string
+    publicSpritesheetUrl?: string
     enabled?: boolean
     active?: boolean
   }
@@ -59,6 +61,10 @@ export interface PetdexCatalogItem {
   spritesheetUrl: string
   petJsonUrl: string
   zipUrl?: string
+  publicInstallScriptUrl?: string
+  publicSpritesheetUrl?: string
+  publicPetJsonUrl?: string
+  publicZipUrl?: string
 }
 
 export interface PetdexCatalogResponse {

@@ -30,6 +30,14 @@ public class AgentToolService {
     private final AgentToolNormalizer normalizer;
 
     public AgentToolSet buildTools(AgentSettings settings, boolean authenticated) {
+        return buildTools(settings, authenticated, true);
+    }
+
+    public AgentToolSet buildTools(AgentSettings settings, boolean authenticated,
+        boolean agentAllowed) {
+        if (!agentAllowed) {
+            return AgentToolSet.disabled();
+        }
         var resolvedSettings = settings == null ? AgentSettings.defaults() : settings;
         if (!resolvedSettings.isEnabled()) {
             return AgentToolSet.disabled();

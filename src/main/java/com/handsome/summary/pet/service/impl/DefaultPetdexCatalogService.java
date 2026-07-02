@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.handsome.summary.pet.model.PetdexCatalogItem;
 import com.handsome.summary.pet.model.PetdexCatalogResponse;
 import com.handsome.summary.pet.service.PetdexCatalogService;
+import com.handsome.summary.pet.support.PetdexProxyUrlResolver;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -32,30 +33,35 @@ public class DefaultPetdexCatalogService implements PetdexCatalogService {
         .connectTimeout(Duration.ofSeconds(8))
         .followRedirects(HttpClient.Redirect.NORMAL)
         .build();
+    private final PetdexProxyUrlResolver petdexProxyUrlResolver;
 
     private volatile CacheEntry cacheEntry;
+
+    public DefaultPetdexCatalogService(PetdexProxyUrlResolver petdexProxyUrlResolver) {
+        this.petdexProxyUrlResolver = petdexProxyUrlResolver;
+    }
 
     @Override
     public Mono<PetdexCatalogResponse> list() {
         var cache = cacheEntry;
-        if (cache != null && cache.isFresh()) {
-            return Mono.just(cache.response());
-        }
-        return fetchManifest()
-            .map(this::parseManifest)
-            .doOnNext(response -> cacheEntry = new CacheEntry(response, Instant.now()));
+        var catalog = cache != null && cache.isFresh()
+            ? Mono.just(cache.response())
+            : fetchManifest()
+                .map(this::parseManifest)
+                .doOnNext(response -> cacheEntry = new CacheEntry(response, Instant.now()));
+        return catalog.flatMap(petdexProxyUrlResolver::publicCatalog);
     }
 
     private Mono<String> fetchManifest() {
-        var request = HttpRequest.newBuilder(MANIFEST_URI)
-            .timeout(Duration.ofSeconds(12))
-            .header("Accept", "application/json,*/*")
-            .header("User-Agent", "summaraidGPT-petdex-catalog/1.0")
-            .GET()
-            .build();
-
-        return Mono.fromFuture(httpClient.sendAsync(request,
-                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)))
+        return petdexProxyUrlResolver.requestUri(MANIFEST_URI)
+            .map(requestUri -> HttpRequest.newBuilder(requestUri)
+                .timeout(Duration.ofSeconds(12))
+                .header("Accept", "application/json,*/*")
+                .header("User-Agent", "summaraidGPT-petdex-catalog/1.0")
+                .GET()
+                .build())
+            .flatMap(request -> Mono.fromFuture(httpClient.sendAsync(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))))
             .map(response -> {
                 if (response.statusCode() < 200 || response.statusCode() >= 300) {
                     throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
@@ -112,6 +118,10 @@ public class DefaultPetdexCatalogService implements PetdexCatalogService {
             displayName,
             text(node, "kind"),
             text(node, "submittedBy"),
+            "https://petdex.dev/install/" + installSlug,
+            spritesheetUrl,
+            petJsonUrl,
+            zipUrl,
             "https://petdex.dev/install/" + installSlug,
             spritesheetUrl,
             petJsonUrl,

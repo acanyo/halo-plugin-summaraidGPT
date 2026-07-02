@@ -85,6 +85,9 @@ public class RagEndpoint implements CustomEndpoint {
     public record RebuildRequest(String knowledgeBase) {
     }
 
+    public record IndexDocumentsRequest(String knowledgeBase, List<String> documentNames) {
+    }
+
     public record RebuildResponse(String knowledgeBase, RagIndexSummary summary) {
     }
 
@@ -305,6 +308,12 @@ public class RagEndpoint implements CustomEndpoint {
                 builder -> builder.operationId("RagRebuild")
                     .tag(tag)
                     .description("Start a RAG index rebuild task.")
+                    .response(responseBuilder().implementation(RebuildTaskResponse.class))
+            )
+            .POST("ragIndexDocuments", this::indexDocuments,
+                builder -> builder.operationId("RagIndexDocuments")
+                    .tag(tag)
+                    .description("Start an incremental RAG document index task.")
                     .response(responseBuilder().implementation(RebuildTaskResponse.class))
             )
             .POST("ragRebuildNow", this::rebuildNow,
@@ -585,14 +594,15 @@ public class RagEndpoint implements CustomEndpoint {
             .flatMap(body -> {
                 var knowledgeBase = normalizeKnowledgeBase(body.knowledgeBase());
                 return ragDocumentImportService.importPublishedPosts(knowledgeBase, body.postNames())
-                    .flatMap(imported -> {
+                    .flatMap(importResult -> {
                         if (enabled(body.rebuildAfterImport(), false)) {
-                            return ragIndexTaskService.startFullRebuild(knowledgeBase)
-                                .map(task -> new ImportPostsResponse(knowledgeBase, imported,
-                                    null, task));
+                            return ragIndexTaskService.startDocumentRebuild(knowledgeBase,
+                                    importResult.documentNames())
+                                .map(task -> new ImportPostsResponse(knowledgeBase,
+                                    importResult.imported(), null, task));
                         }
-                        return Mono.just(new ImportPostsResponse(knowledgeBase, imported, null,
-                            null));
+                        return Mono.just(new ImportPostsResponse(knowledgeBase,
+                            importResult.imported(), null, null));
                     });
             })
             .flatMap(this::ok)
@@ -607,14 +617,15 @@ public class RagEndpoint implements CustomEndpoint {
                 var knowledgeBase = normalizeKnowledgeBase(body.knowledgeBase());
                 return ragDocumentImportService.importPublishedDocsmeDocuments(knowledgeBase,
                         body.docNames())
-                    .flatMap(imported -> {
+                    .flatMap(importResult -> {
                         if (enabled(body.rebuildAfterImport(), false)) {
-                            return ragIndexTaskService.startFullRebuild(knowledgeBase)
+                            return ragIndexTaskService.startDocumentRebuild(knowledgeBase,
+                                    importResult.documentNames())
                                 .map(task -> new ImportDocsmeDocumentsResponse(knowledgeBase,
-                                    imported, null, task));
+                                    importResult.imported(), null, task));
                         }
-                        return Mono.just(new ImportDocsmeDocumentsResponse(knowledgeBase, imported,
-                            null, null));
+                        return Mono.just(new ImportDocsmeDocumentsResponse(knowledgeBase,
+                            importResult.imported(), null, null));
                     });
             })
             .flatMap(this::ok)
@@ -628,6 +639,25 @@ public class RagEndpoint implements CustomEndpoint {
             .flatMap(body -> {
                 var knowledgeBase = normalizeKnowledgeBase(body.knowledgeBase());
                 return ragIndexTaskService.startFullRebuild(knowledgeBase)
+                    .map(task -> new RebuildTaskResponse(knowledgeBase, task));
+            })
+            .flatMap(this::ok)
+            .onErrorResume(this::errorResponse);
+    }
+
+    private Mono<ServerResponse> indexDocuments(ServerRequest request) {
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(IndexDocumentsRequest.class)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Index documents request body is required"))))
+            .flatMap(body -> {
+                var knowledgeBase = normalizeKnowledgeBase(body.knowledgeBase());
+                var documentNames = normalizedNames(body.documentNames());
+                if (documentNames.isEmpty()) {
+                    return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "documentNames must not be empty"));
+                }
+                return ragIndexTaskService.startDocumentRebuild(knowledgeBase, documentNames)
                     .map(task -> new RebuildTaskResponse(knowledgeBase, task));
             })
             .flatMap(this::ok)

@@ -350,7 +350,10 @@ const deletePetFromDropdown = (event: Event, pet: PetCompanion) => {
 }
 
 const previewStyle = (pet: PetCompanion) => {
-  return spritePreviewStyle(pet.spec?.spritesheetUrl, PET_LIST_PREVIEW_HEIGHT)
+  return spritePreviewStyle(
+    pet.spec?.publicSpritesheetUrl || pet.spec?.spritesheetUrl,
+    PET_LIST_PREVIEW_HEIGHT,
+  )
 }
 
 const displayName = (pet?: PetCompanion) =>
@@ -384,6 +387,9 @@ const isPetdexCatalogImported = (pet: PetdexCatalogItem) =>
   importedPetdexKeys.value.has(pet.slug) ||
   importedPetdexKeys.value.has(pet.petJsonUrl) ||
   importedPetdexKeys.value.has(pet.spritesheetUrl)
+
+const catalogSpritesheetUrl = (pet: PetdexCatalogItem) =>
+  pet.publicSpritesheetUrl || pet.spritesheetUrl
 
 const kindText = (kind?: string) => {
   if (kind === 'character') return '角色'
@@ -790,7 +796,7 @@ onMounted(loadPets)
                 ></span>
                 <span
                   class=":uno: relative block bg-no-repeat drop-shadow-[0_7px_8px_rgba(15,23,42,0.16)] [background-position:0_0] [image-rendering:pixelated]"
-                  :style="spritePreviewStyle(pet.spritesheetUrl, PET_CATALOG_PREVIEW_HEIGHT)"
+                  :style="spritePreviewStyle(catalogSpritesheetUrl(pet), PET_CATALOG_PREVIEW_HEIGHT)"
                 ></span>
               </div>
               <VEntityField :title="pet.displayName">

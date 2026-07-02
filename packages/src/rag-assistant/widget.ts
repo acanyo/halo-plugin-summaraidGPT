@@ -339,6 +339,14 @@ export class RagAssistantWidget extends LitElement {
   }
 
   public openAssistant(question?: string, autoSubmit = false): void {
+    if (this.isPetOnlyMode) {
+      this.petPanelOpen = false;
+      this.open = false;
+      this.clearSelectionPopup();
+      this.showNextPetSpeech();
+      return;
+    }
+
     this.petPanelOpen = true;
     this.petPanelHeight = this.clampPetPanelHeight(this.petPanelHeight);
     this.petSpeechVisible = false;
@@ -361,7 +369,7 @@ export class RagAssistantWidget extends LitElement {
     return html`
       ${this.renderSelectionPopup()}
       ${this.renderBubble()}
-      ${this.open ? this.renderStage() : nothing}
+      ${this.open && !this.isPetOnlyMode ? this.renderStage() : nothing}
     `;
   }
 
@@ -382,14 +390,21 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private async initializeAssistant(): Promise<void> {
-    await Promise.allSettled([
-      this.loadConfig(),
-      this.loadStoredConversation(),
-    ]);
+    await this.loadConfig();
+    if (this.isPetOnlyMode) {
+      this.open = false;
+      this.petPanelOpen = false;
+      this.clearSelectionPopup();
+      return;
+    }
+    await this.loadStoredConversation();
     await this.resumeAgentAfterNavigationIfNeeded();
   }
 
   private async resumeAgentAfterNavigationIfNeeded(): Promise<void> {
+    if (this.isPetOnlyMode) {
+      return;
+    }
     const intent = consumeAgentAfterNavigationIntent();
     if (!intent?.openChat) {
       return;
@@ -513,6 +528,9 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private renderSelectionPopup(): TemplateResult | typeof nothing {
+    if (this.isPetOnlyMode) {
+      return nothing;
+    }
     return renderSelectionPopover(
       this.selectionPopup,
       () => this.askWithSelection(),
@@ -589,6 +607,17 @@ export class RagAssistantWidget extends LitElement {
     if (this.suppressNextBubbleClick) {
       event.preventDefault();
       event.stopPropagation();
+      return;
+    }
+
+    if (this.isPetOnlyMode) {
+      this.petPanelOpen = false;
+      this.open = false;
+      if (this.petSpeechVisible) {
+        this.petSpeechVisible = false;
+      } else {
+        this.showNextPetSpeech();
+      }
       return;
     }
 
@@ -975,8 +1004,15 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private async submitQuestion(rawQuestion: string): Promise<void> {
+    if (this.isPetOnlyMode) {
+      return;
+    }
     const question = rawQuestion.trim();
     if (!question || this.streaming) {
+      return;
+    }
+    if (!this.canUseAssistantChat) {
+      this.showLoginRequiredMessage();
       return;
     }
 
@@ -1060,7 +1096,7 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private async resumeAgentAfterNavigation(resume: AgentAfterNavigationResume): Promise<void> {
-    if (this.streaming || !this.useAgentChat) {
+    if (this.isPetOnlyMode || this.streaming || !this.useAgentChat) {
       return;
     }
     const assistantMessageId = createMessageId();
@@ -1334,6 +1370,22 @@ export class RagAssistantWidget extends LitElement {
     this.streaming = false;
   }
 
+  private showLoginRequiredMessage(): void {
+    const content = '请登录后再使用 RAG 智能助手。';
+    const lastMessage = this.messages[this.messages.length - 1];
+    this.petPanelOpen = true;
+    this.petSpeechVisible = false;
+    this.appendAgentActivity('请登录后再使用智能助手', 'warning');
+    if (lastMessage?.role === 'assistant' && lastMessage.content === content) {
+      return;
+    }
+    this.messages = [
+      ...this.messages,
+      createMessage('assistant', content, { error: true }),
+    ];
+    void this.updateComplete.then(() => this.scrollPetPanelToBottom());
+  }
+
   private finishAssistantMessage(messageId: string): void {
     this.updateMessage(messageId, (message) => ({
       ...message,
@@ -1370,6 +1422,9 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private newConversation(): void {
+    if (this.isPetOnlyMode) {
+      return;
+    }
     this.abortCurrentRequest();
     this.clearConversationId();
     this.agentHistoryMessages = [];
@@ -1383,6 +1438,10 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private askWithSelection(): void {
+    if (this.isPetOnlyMode) {
+      this.clearSelectionPopup();
+      return;
+    }
     const text = this.selectionPopup.text.trim();
     if (!text) {
       return;
@@ -1396,6 +1455,10 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private updateSelectionPopup(): void {
+    if (this.isPetOnlyMode) {
+      this.selectionPopup = EMPTY_SELECTION_POPUP;
+      return;
+    }
     this.selectionPopup = resolveSelectionPopup(MAX_SELECTION_LENGTH);
   }
 
@@ -1433,6 +1496,9 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private openPetStage(): void {
+    if (this.isPetOnlyMode) {
+      return;
+    }
     this.open = true;
     this.petPanelOpen = false;
     void this.updateComplete.then(() => {
@@ -1572,7 +1638,18 @@ export class RagAssistantWidget extends LitElement {
     return this.config.assistantName || DEFAULT_RAG_ASSISTANT_CONFIG.assistantName;
   }
 
+  private get isPetOnlyMode(): boolean {
+    return this.config.displayMode === 'petOnly';
+  }
+
+  private get canUseAssistantChat(): boolean {
+    return this.config.access.allowAnonymous || this.config.access.authenticated;
+  }
+
   private get petInputPlaceholder(): string {
+    if (!this.canUseAssistantChat) {
+      return '请登录后使用智能助手';
+    }
     return this.selectedContext ? '想问这段内容什么？' : RAG_INPUT_PLACEHOLDER;
   }
 

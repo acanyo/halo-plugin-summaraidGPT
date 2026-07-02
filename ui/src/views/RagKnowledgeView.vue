@@ -778,8 +778,8 @@ const importPosts = (mode: 'all' | 'selected') => {
     confirmText: mode === 'selected' ? '导入所选' : '导入全部',
     description:
       mode === 'selected'
-        ? `将导入所选 ${postNames.length} 篇公开文章。${rebuildAfterImport.value ? '导入后会立即重建索引。' : ''}`
-        : `将导入全部已发布且公开可见的文章。${rebuildAfterImport.value ? '导入后会立即重建索引。' : ''}`,
+        ? `将导入所选 ${postNames.length} 篇公开文章。${rebuildAfterImport.value ? '导入后会立即增量索引本次导入内容。' : ''}`
+        : `将导入全部已发布且公开可见的文章。${rebuildAfterImport.value ? '导入后会立即增量索引本次导入内容。' : ''}`,
     onConfirm: async () => {
       importing.value = true
       try {
@@ -789,13 +789,17 @@ const importPosts = (mode: 'all' | 'selected') => {
         Toast.success(
           result.task
             ? `已导入 ${result.imported} 篇文章，索引任务已启动`
-            : `已导入 ${result.imported} 篇文章，请重建索引`,
+            : result.summary
+              ? `已导入 ${result.imported} 篇文章，增量索引已完成`
+              : `已导入 ${result.imported} 篇文章，请重建索引`,
         )
         showImportPostsModal.value = false
         selectedPostNames.value = []
         if (result.task) {
           latestTask.value = result.task
           subscribeIndexTask(result.task)
+        } else if (result.summary) {
+          localNeedsRebuild.value = false
         } else {
           markNeedsRebuild()
         }
@@ -825,8 +829,8 @@ const importDocsmeDocuments = (mode: 'all' | 'selected') => {
     confirmText: mode === 'selected' ? '导入所选' : '导入全部',
     description:
       mode === 'selected'
-        ? `将导入所选 ${docNames.length} 篇已发布文档。${rebuildAfterImport.value ? '导入后会立即重建索引。' : ''}`
-        : `将导入全部已发布的 Docsme 文档。${rebuildAfterImport.value ? '导入后会立即重建索引。' : ''}`,
+        ? `将导入所选 ${docNames.length} 篇已发布文档。${rebuildAfterImport.value ? '导入后会立即增量索引本次导入内容。' : ''}`
+        : `将导入全部已发布的 Docsme 文档。${rebuildAfterImport.value ? '导入后会立即增量索引本次导入内容。' : ''}`,
     onConfirm: async () => {
       importing.value = true
       try {
@@ -836,13 +840,17 @@ const importDocsmeDocuments = (mode: 'all' | 'selected') => {
         Toast.success(
           result.task
             ? `已导入 ${result.imported} 篇文档，索引任务已启动`
-            : `已导入 ${result.imported} 篇文档，请重建索引`,
+            : result.summary
+              ? `已导入 ${result.imported} 篇文档，增量索引已完成`
+              : `已导入 ${result.imported} 篇文档，请重建索引`,
         )
         showImportPostsModal.value = false
         selectedDocsmeDocumentNames.value = []
         if (result.task) {
           latestTask.value = result.task
           subscribeIndexTask(result.task)
+        } else if (result.summary) {
+          localNeedsRebuild.value = false
         } else {
           markNeedsRebuild()
         }
@@ -865,7 +873,7 @@ const importTextDocument = async () => {
 
   importing.value = true
   try {
-    await Promise.all(
+    const savedDocuments = await Promise.all(
       files.map((file) => {
         const title = file.title.trim() || textImportTitleFromFileName(file.fileName)
         const sourceName = file.sourceName.trim() || title || generatedTextImportSourceName()
@@ -884,10 +892,11 @@ const importTextDocument = async () => {
     )
 
     if (rebuildAfterImport.value) {
-      const result = await ragApi.rebuild(activeKnowledgeBaseName.value)
+      const documentNames = savedDocuments.map((document) => document.metadata.name)
+      const result = await ragApi.indexDocuments(activeKnowledgeBaseName.value, documentNames)
       latestTask.value = result.task
       subscribeIndexTask(result.task)
-      Toast.success(`已导入 ${files.length} 个文件，索引任务已启动`)
+      Toast.success(`已导入 ${files.length} 个文件，增量索引任务已启动`)
     } else {
       markNeedsRebuild()
       Toast.success(`已导入 ${files.length} 个文件，请重建索引`)
@@ -1030,7 +1039,7 @@ const subscribeIndexTask = (task: RagIndexTask) => {
       closeTaskSubscription()
       if (updatedTask.status?.phase === 'SUCCEEDED') {
         localNeedsRebuild.value = false
-        Toast.success('索引重建完成')
+        Toast.success(updatedTask.spec?.taskType === 'DOCUMENT_REBUILD' ? '增量索引完成' : '索引重建完成')
       } else if (updatedTask.status?.phase === 'FAILED') {
         localNeedsRebuild.value = true
         Toast.error(formatIndexError(updatedTask.status?.errorMessage))
@@ -2206,10 +2215,9 @@ onBeforeUnmount(() => {
                 <RiAlertLine class=":uno: h-4.5 w-4.5" />
               </div>
               <div class=":uno: min-w-0">
-                <p class=":uno: m-0 text-sm font-semibold">导入完成后立即重建索引</p>
+                <p class=":uno: m-0 text-sm font-semibold">导入完成后立即索引</p>
                 <p class=":uno: m-0 mt-1 text-xs leading-5 text-amber-800">
-                  会重新向量化当前知识库全部启用条目，可能耗时并消耗 AI
-                  配额；通常建议导入完成后确认内容，再手动重建。
+                  只会向量化本次导入的条目；如果模型或分块配置变化，会自动切换为全量重建以保持索引一致。
                 </p>
               </div>
             </div>

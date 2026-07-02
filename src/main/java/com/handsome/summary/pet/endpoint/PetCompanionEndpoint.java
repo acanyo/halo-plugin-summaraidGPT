@@ -8,6 +8,8 @@ import com.handsome.summary.pet.model.PetdexCatalogResponse;
 import com.handsome.summary.pet.model.SavePetCompanionCommand;
 import com.handsome.summary.pet.service.PetCompanionService;
 import com.handsome.summary.pet.service.PetdexCatalogService;
+import com.handsome.summary.pet.support.PetdexProxyUrlResolver;
+import com.handsome.summary.service.SettingConfigGetter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
 import run.halo.app.extension.GroupVersion;
+import run.halo.app.extension.MetadataOperator;
 
 @Slf4j
 @Component
@@ -31,8 +34,33 @@ public class PetCompanionEndpoint implements CustomEndpoint {
 
     private final PetCompanionService petCompanionService;
     private final PetdexCatalogService petdexCatalogService;
+    private final SettingConfigGetter settingConfigGetter;
+    private final PetdexProxyUrlResolver petdexProxyUrlResolver;
 
-    public record PetCompanionResponse(List<PetCompanion> items) {
+    public record PetCompanionResponse(List<PetCompanionView> items) {
+    }
+
+    public record PetCompanionView(
+        MetadataOperator metadata,
+        PetCompanionSpecResponse spec,
+        PetCompanion.Status status
+    ) {
+    }
+
+    public record PetCompanionSpecResponse(
+        String displayName,
+        String description,
+        String source,
+        String petdexId,
+        String installCommand,
+        String installScriptUrl,
+        String petJsonUrl,
+        String spritesheetUrl,
+        String publicPetJsonUrl,
+        String publicSpritesheetUrl,
+        Boolean enabled,
+        Boolean active
+    ) {
     }
 
     public record SavePetCompanionRequest(
@@ -85,13 +113,13 @@ public class PetCompanionEndpoint implements CustomEndpoint {
                 builder -> builder.operationId("SavePetCompanion")
                     .tag(tag)
                     .description("Create or update a floating assistant pet.")
-                    .response(responseBuilder().implementation(PetCompanion.class))
+                    .response(responseBuilder().implementation(PetCompanionView.class))
             )
             .POST("petCompanions/import", this::importPet,
                 builder -> builder.operationId("ImportPetCompanion")
                     .tag(tag)
                     .description("Import a PetDex pet from an install command without executing shell scripts.")
-                    .response(responseBuilder().implementation(PetCompanion.class))
+                    .response(responseBuilder().implementation(PetCompanionView.class))
             )
             .GET("petCompanions/petdex", this::listPetdexCatalog,
                 builder -> builder.operationId("ListPetdexCatalog")
@@ -105,7 +133,7 @@ public class PetCompanionEndpoint implements CustomEndpoint {
                     .description("Set a pet as the active floating assistant pet.")
                     .parameter(parameterBuilder().name("name").in(ParameterIn.PATH).required(true)
                         .implementation(String.class))
-                    .response(responseBuilder().implementation(PetCompanion.class))
+                    .response(responseBuilder().implementation(PetCompanionView.class))
             )
             .POST("petCompanions/{name}/status", this::updateStatus,
                 builder -> builder.operationId("UpdatePetCompanionStatus")
@@ -113,7 +141,7 @@ public class PetCompanionEndpoint implements CustomEndpoint {
                     .description("Enable or disable a pet.")
                     .parameter(parameterBuilder().name("name").in(ParameterIn.PATH).required(true)
                         .implementation(String.class))
-                    .response(responseBuilder().implementation(PetCompanion.class))
+                    .response(responseBuilder().implementation(PetCompanionView.class))
             )
             .DELETE("petCompanions/{name}", this::deletePet,
                 builder -> builder.operationId("DeletePetCompanion")
@@ -127,8 +155,11 @@ public class PetCompanionEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> listPets(ServerRequest request) {
-        return petCompanionService.list()
-            .collectList()
+        return settingConfigGetter.getAssistantConfig()
+            .onErrorReturn(new SettingConfigGetter.AssistantConfig())
+            .flatMap(assistantConfig -> petCompanionService.list()
+                .map(pet -> toPublicPet(pet, assistantConfig))
+                .collectList())
             .map(PetCompanionResponse::new)
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
@@ -139,6 +170,7 @@ public class PetCompanionEndpoint implements CustomEndpoint {
             .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "Pet companion request body is required")))
             .flatMap(body -> petCompanionService.save(body.toCommand()))
+            .flatMap(this::toPublicPet)
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
     }
@@ -149,6 +181,7 @@ public class PetCompanionEndpoint implements CustomEndpoint {
                 "PetDex import request body is required")))
             .flatMap(body -> petCompanionService.importFromPetdex(body.command(), body.enabled(),
                 body.active()))
+            .flatMap(this::toPublicPet)
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
     }
@@ -161,6 +194,7 @@ public class PetCompanionEndpoint implements CustomEndpoint {
 
     private Mono<ServerResponse> setActive(ServerRequest request) {
         return petCompanionService.setActive(request.pathVariable("name"))
+            .flatMap(this::toPublicPet)
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
     }
@@ -171,8 +205,50 @@ public class PetCompanionEndpoint implements CustomEndpoint {
                 "Pet status request body is required")))
             .flatMap(body -> petCompanionService.updateStatus(request.pathVariable("name"),
                 body.enabled()))
+            .flatMap(this::toPublicPet)
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
+    }
+
+    private Mono<PetCompanionView> toPublicPet(PetCompanion pet) {
+        var fallback = toPublicPet(pet, new SettingConfigGetter.AssistantConfig());
+        return settingConfigGetter.getAssistantConfig()
+            .map(assistantConfig -> toPublicPet(pet, assistantConfig))
+            .defaultIfEmpty(fallback)
+            .onErrorReturn(fallback);
+    }
+
+    private PetCompanionView toPublicPet(PetCompanion pet,
+        SettingConfigGetter.AssistantConfig assistantConfig) {
+        if (pet == null) {
+            return null;
+        }
+        return new PetCompanionView(
+            pet.getMetadata(),
+            toPublicSpec(pet.getSpec(), assistantConfig),
+            pet.getStatus()
+        );
+    }
+
+    private PetCompanionSpecResponse toPublicSpec(PetCompanion.Spec spec,
+        SettingConfigGetter.AssistantConfig assistantConfig) {
+        if (spec == null) {
+            return null;
+        }
+        return new PetCompanionSpecResponse(
+            spec.getDisplayName(),
+            spec.getDescription(),
+            spec.getSource(),
+            spec.getPetdexId(),
+            spec.getInstallCommand(),
+            spec.getInstallScriptUrl(),
+            spec.getPetJsonUrl(),
+            spec.getSpritesheetUrl(),
+            petdexProxyUrlResolver.publicUrl(spec.getPetJsonUrl(), assistantConfig),
+            petdexProxyUrlResolver.publicUrl(spec.getSpritesheetUrl(), assistantConfig),
+            spec.getEnabled(),
+            spec.getActive()
+        );
     }
 
     private Mono<ServerResponse> deletePet(ServerRequest request) {

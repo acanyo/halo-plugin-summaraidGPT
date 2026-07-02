@@ -6,6 +6,7 @@ import com.handsome.summary.rag.extension.RagDocument;
 import com.handsome.summary.rag.service.DocsmeDocumentSourceService;
 import com.handsome.summary.rag.service.RagContentService;
 import com.handsome.summary.rag.service.RagDocumentImportService;
+import com.handsome.summary.rag.service.RagDocumentImportService.ImportResult;
 import com.handsome.summary.rag.service.RagIndexService;
 import java.time.Instant;
 import java.util.Arrays;
@@ -39,7 +40,7 @@ public class HaloPostRagDocumentImportService implements RagDocumentImportServic
     private final RagIndexService ragIndexService;
 
     @Override
-    public Mono<Integer> importPublishedPosts(String knowledgeBase, List<String> postNames) {
+    public Mono<ImportResult> importPublishedPosts(String knowledgeBase, List<String> postNames) {
         var kbName = normalizeKnowledgeBase(knowledgeBase);
         var posts = postNames == null || postNames.isEmpty()
             ? listAllPublishedPosts()
@@ -50,19 +51,19 @@ public class HaloPostRagDocumentImportService implements RagDocumentImportServic
             .thenMany(posts)
             .flatMap(post -> toRagDocument(kbName, post))
             .flatMap(this::upsert)
-            .count()
-            .map(Long::intValue);
+            .collectList()
+            .map(this::toImportResult);
     }
 
     @Override
-    public Mono<Integer> importPublishedDocsmeDocuments(String knowledgeBase, List<String> docNames) {
+    public Mono<ImportResult> importPublishedDocsmeDocuments(String knowledgeBase, List<String> docNames) {
         var kbName = normalizeKnowledgeBase(knowledgeBase);
         return ragIndexService.ensureKnowledgeBase(kbName)
             .thenMany(docsmeDocumentSourceService.listPublishedByNames(docNames))
             .map(document -> toRagDocument(kbName, document))
             .flatMap(this::upsert)
-            .count()
-            .map(Long::intValue);
+            .collectList()
+            .map(this::toImportResult);
     }
 
     private Flux<Post> listAllPublishedPosts() {
@@ -160,6 +161,16 @@ public class HaloPostRagDocumentImportService implements RagDocumentImportServic
                 return client.update(existing);
             })
             .switchIfEmpty(Mono.defer(() -> client.create(document)));
+    }
+
+    private ImportResult toImportResult(List<RagDocument> documents) {
+        var documentNames = documents.stream()
+            .filter(document -> document.getMetadata() != null
+                && StringUtils.hasText(document.getMetadata().getName()))
+            .map(document -> document.getMetadata().getName())
+            .distinct()
+            .toList();
+        return new ImportResult(documents.size(), documentNames);
     }
 
     private String documentName(String knowledgeBase, String sourceType, String sourceName) {

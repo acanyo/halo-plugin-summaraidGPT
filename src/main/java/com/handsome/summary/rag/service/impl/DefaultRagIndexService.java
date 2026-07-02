@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.Metadata;
@@ -33,6 +34,8 @@ import run.halo.app.extension.ReactiveExtensionClient;
 public class DefaultRagIndexService implements RagIndexService {
 
     private static final String CHUNKER_VERSION = "chunker-v2";
+    private static final int DEFAULT_INDEX_DOCUMENT_BATCH_SIZE = 8;
+    private static final Duration EMBEDDING_HEARTBEAT_INTERVAL = Duration.ofSeconds(60);
     private static final Duration LUCENE_REBUILD_MIN_TIMEOUT = Duration.ofMinutes(2);
     private static final Duration LUCENE_REBUILD_MAX_TIMEOUT = Duration.ofMinutes(30);
 
@@ -78,6 +81,42 @@ public class DefaultRagIndexService implements RagIndexService {
             .onErrorResume(error -> markError(kbName, error).then(Mono.error(error)));
     }
 
+    @Override
+    public Mono<RagIndexSummary> indexDocuments(String knowledgeBase, List<String> documentNames) {
+        return indexDocuments(knowledgeBase, documentNames, ProgressListener.noop());
+    }
+
+    @Override
+    public Mono<RagIndexSummary> indexDocuments(String knowledgeBase, List<String> documentNames,
+        ProgressListener progressListener) {
+        var kbName = normalizeKnowledgeBase(knowledgeBase);
+        var names = normalizedNames(documentNames);
+        var startedAt = System.currentTimeMillis();
+        var progress = progressListener == null ? ProgressListener.noop() : progressListener;
+        if (names.isEmpty()) {
+            return currentSummary(kbName, startedAt);
+        }
+        return Mono.zip(settingConfigGetter.getBasicConfig(), settingConfigGetter.getRagConfig())
+            .flatMap(tuple -> {
+                var basicConfig = tuple.getT1();
+                var ragConfig = tuple.getT2();
+                if (!enabled(ragConfig.getEnableRag(), true)) {
+                    return Mono.error(new IllegalStateException("RAG 知识库未启用"));
+                }
+                return ensureKnowledgeBase(kbName)
+                    .flatMap(kb -> {
+                        if (!incrementalIndexAvailable(kb)) {
+                            return progress.update(5, "当前索引状态不支持增量索引，切换为全量重建")
+                                .then(rebuild(kbName, progress));
+                        }
+                        return progress.update(10, "读取待索引文档")
+                            .then(fetchDocuments(names))
+                            .flatMap(documents -> indexDocumentsIncrementally(kb, names,
+                                documents, basicConfig, ragConfig, startedAt, progress));
+                    });
+            });
+    }
+
     private Mono<RagIndexSummary> buildAndStore(RagKnowledgeBase knowledgeBase,
         List<RagDocument> documents,
         SettingConfigGetter.BasicConfig basicConfig, SettingConfigGetter.RagConfig ragConfig,
@@ -86,19 +125,7 @@ public class DefaultRagIndexService implements RagIndexService {
         var chunkSize = normalizedInt(ragConfig.getChunkSize(), 900, 200, 3000);
         var chunkOverlap = normalizedInt(ragConfig.getChunkOverlap(), 120, 0, Math.min(800,
             chunkSize / 2));
-        var chunkInputs = new ArrayList<ChunkInput>();
-        for (var document : documents) {
-            var spec = document.getSpec();
-            if (spec == null || !enabled(spec.getEnabled(), true)
-                || !StringUtils.hasText(spec.getContent())) {
-                continue;
-            }
-            var chunks = ragContentService.split(spec.getTitle(), spec.getContent(), chunkSize,
-                chunkOverlap);
-            for (var i = 0; i < chunks.size(); i++) {
-                chunkInputs.add(new ChunkInput(document, chunks.get(i), i));
-            }
-        }
+        var chunkInputs = chunkInputs(documents, chunkSize, chunkOverlap);
 
         if (chunkInputs.isEmpty()) {
             return progressListener.update(80, "清空空知识库索引")
@@ -115,11 +142,11 @@ public class DefaultRagIndexService implements RagIndexService {
                     .build());
         }
 
-        var texts = chunkInputs.stream().map(ChunkInput::content).toList();
         var embeddingModelName = basicConfig.getEmbeddingModelName();
         var embeddingOptions = embeddingOptions(ragConfig);
         return progressListener.update(45, "调用 AI 基座生成 Embedding")
-            .then(ragAiService.embedValues(texts, embeddingModelName, embeddingOptions))
+            .then(embedInDocumentBatches(chunkInputs, embeddingModelName, embeddingOptions, ragConfig,
+                progressListener))
             .flatMap(vectors -> {
                 validateEmbeddings(vectors, chunkInputs.size());
                 var dimensions = vectors.getFirst().length;
@@ -144,6 +171,258 @@ public class DefaultRagIndexService implements RagIndexService {
                         .indexVersion(indexVersion)
                         .durationMillis(System.currentTimeMillis() - startedAt)
                         .build());
+            });
+    }
+
+    private Mono<RagIndexSummary> indexDocumentsIncrementally(RagKnowledgeBase knowledgeBase,
+        List<String> requestedDocumentNames, List<RagDocument> documents,
+        SettingConfigGetter.BasicConfig basicConfig, SettingConfigGetter.RagConfig ragConfig,
+        long startedAt, ProgressListener progressListener) {
+        var knowledgeBaseName = knowledgeBaseName(knowledgeBase);
+        var targetDocuments = documents.stream()
+            .filter(document -> belongsToKnowledgeBase(document, knowledgeBaseName))
+            .toList();
+        if (targetDocuments.isEmpty()) {
+            return currentSummary(knowledgeBaseName, startedAt);
+        }
+        var chunkSize = normalizedInt(ragConfig.getChunkSize(), 900, 200, 3000);
+        var chunkOverlap = normalizedInt(ragConfig.getChunkOverlap(), 120, 0, Math.min(800,
+            chunkSize / 2));
+        var chunkInputs = chunkInputs(targetDocuments, chunkSize, chunkOverlap);
+        if (chunkInputs.isEmpty()) {
+            return deleteDocumentChunks(knowledgeBaseName, requestedDocumentNames, targetDocuments,
+                knowledgeBase, startedAt, progressListener);
+        }
+
+        var embeddingModelName = basicConfig.getEmbeddingModelName();
+        var embeddingOptions = embeddingOptions(ragConfig);
+        return progressListener.update(30, "为本次导入文档生成 Embedding")
+            .then(embedInDocumentBatches(chunkInputs, embeddingModelName, embeddingOptions, ragConfig,
+                progressListener))
+            .flatMap(vectors -> {
+                validateEmbeddings(vectors, chunkInputs.size());
+                var dimensions = vectors.getFirst().length;
+                var indexVersion = indexVersion(embeddingModelName, dimensions, chunkSize,
+                    chunkOverlap);
+                if (!compatibleIndexVersion(knowledgeBase, indexVersion)) {
+                    return progressListener.update(5, "索引配置已变化，切换为全量重建")
+                        .then(rebuild(knowledgeBaseName, progressListener));
+                }
+                var indexedChunks = new ArrayList<RagIndexedChunk>();
+                for (var i = 0; i < chunkInputs.size(); i++) {
+                    indexedChunks.add(toIndexedChunk(knowledgeBase, chunkInputs.get(i), vectors.get(i)));
+                }
+                return progressListener.update(75, "写入本次导入文档的 Lucene 向量")
+                    .then(ragVectorStore.replaceDocuments(knowledgeBaseName, indexVersion,
+                        requestedDocumentNames, indexedChunks))
+                    .then(updateDocumentStatuses(targetDocuments, chunkInputs))
+                    .then(updateKnowledgeBaseFromDocumentStatuses(knowledgeBaseName,
+                        embeddingModelName, dimensions, indexVersion, startedAt));
+            });
+    }
+
+    private Mono<RagIndexSummary> deleteDocumentChunks(String knowledgeBase,
+        List<String> documentNames, List<RagDocument> documents, RagKnowledgeBase currentKnowledgeBase,
+        long startedAt, ProgressListener progressListener) {
+        var status = currentKnowledgeBase.getStatus();
+        var indexVersion = status == null ? null : status.getIndexVersion();
+        var deleteFromIndex = StringUtils.hasText(indexVersion)
+            && !"empty".equals(indexVersion)
+            ? ragVectorStore.replaceDocuments(knowledgeBase, indexVersion, documentNames, List.of())
+            : Mono.<Void>empty();
+        var embeddingModelName = status == null ? null : status.getEmbeddingModelName();
+        var dimensions = status == null || status.getEmbeddingDimensions() == null
+            ? 0 : status.getEmbeddingDimensions();
+        var versionForStatus = StringUtils.hasText(indexVersion) ? indexVersion : "empty";
+        return progressListener.update(75, "移除空文档的旧索引分块")
+            .then(deleteFromIndex)
+            .then(updateDocumentStatuses(documents, List.of()))
+            .then(updateKnowledgeBaseFromDocumentStatuses(knowledgeBase, embeddingModelName,
+                dimensions, versionForStatus, startedAt));
+    }
+
+    private Mono<List<float[]>> embedInDocumentBatches(List<ChunkInput> chunkInputs,
+        String embeddingModelName, RagEmbeddingOptions embeddingOptions,
+        SettingConfigGetter.RagConfig ragConfig, ProgressListener progressListener) {
+        var documentBatchSize = normalizedInt(ragConfig.getIndexDocumentBatchSize(),
+            DEFAULT_INDEX_DOCUMENT_BATCH_SIZE, 1, 50);
+        var batches = documentBatches(chunkInputs, documentBatchSize);
+        var totalBatches = batches.size();
+        var vectors = new ArrayList<float[]>(chunkInputs.size());
+        return Flux.fromIterable(batches)
+            .index()
+            .concatMap(tuple -> {
+                var batchIndex = tuple.getT1().intValue();
+                var batch = tuple.getT2();
+                var batchNumber = batchIndex + 1;
+                var documentCount = documentCount(batch);
+                var startMessage = "调用 AI 基座生成 Embedding（第 %d/%d 批，%d 篇文档，%d 个分块）"
+                    .formatted(batchNumber, totalBatches, documentCount, batch.size());
+                var progress = embeddingProgress(batchIndex, totalBatches);
+                return progressListener.update(progress, startMessage)
+                    .then(withEmbeddingHeartbeat(
+                        ragAiService.embedValues(batch.stream().map(ChunkInput::content).toList(),
+                            embeddingModelName, embeddingOptions),
+                        progressListener, progress, startMessage))
+                    .doOnNext(batchVectors -> validateEmbeddings(batchVectors, batch.size()))
+                    .flatMap(batchVectors -> {
+                        vectors.addAll(batchVectors);
+                        var completeMessage = "Embedding 已完成第 %d/%d 批（累计 %d/%d 个分块）"
+                            .formatted(batchNumber, totalBatches, vectors.size(), chunkInputs.size());
+                        return progressListener.update(embeddingProgress(batchNumber, totalBatches),
+                                completeMessage)
+                            .thenReturn(batchVectors);
+                    });
+            }, 1)
+            .then(Mono.fromSupplier(() -> List.copyOf(vectors)));
+    }
+
+    private <T> Mono<T> withEmbeddingHeartbeat(Mono<T> work, ProgressListener progressListener,
+        int progress, String message) {
+        var sharedWork = work.cache();
+        var heartbeat = Flux.interval(EMBEDDING_HEARTBEAT_INTERVAL)
+            .concatMap(ignored -> progressListener.update(progress, message)
+                .onErrorResume(error -> {
+                    log.warn("Failed to update RAG embedding heartbeat", error);
+                    return Mono.empty();
+                }))
+            .takeUntilOther(sharedWork)
+            .then();
+        return Mono.when(heartbeat, sharedWork).then(sharedWork);
+    }
+
+    private List<List<ChunkInput>> documentBatches(List<ChunkInput> chunkInputs,
+        int documentBatchSize) {
+        var batches = new ArrayList<List<ChunkInput>>();
+        var current = new ArrayList<ChunkInput>();
+        String currentDocumentName = null;
+        var documentsInBatch = 0;
+        for (var input : chunkInputs) {
+            var documentName = documentName(input.document());
+            if (!documentName.equals(currentDocumentName)) {
+                if (!current.isEmpty() && documentsInBatch >= documentBatchSize) {
+                    batches.add(List.copyOf(current));
+                    current.clear();
+                    documentsInBatch = 0;
+                }
+                documentsInBatch++;
+                currentDocumentName = documentName;
+            }
+            current.add(input);
+        }
+        if (!current.isEmpty()) {
+            batches.add(List.copyOf(current));
+        }
+        return batches;
+    }
+
+    private int documentCount(List<ChunkInput> chunkInputs) {
+        return (int) chunkInputs.stream()
+            .map(input -> documentName(input.document()))
+            .distinct()
+            .count();
+    }
+
+    private int embeddingProgress(int completedBatches, int totalBatches) {
+        if (totalBatches <= 0) {
+            return 45;
+        }
+        var progress = 45 + (int) Math.floor((completedBatches * 29.0d) / totalBatches);
+        return Math.max(45, Math.min(progress, 74));
+    }
+
+    private List<ChunkInput> chunkInputs(List<RagDocument> documents, int chunkSize,
+        int chunkOverlap) {
+        var chunkInputs = new ArrayList<ChunkInput>();
+        for (var document : documents) {
+            var spec = document.getSpec();
+            if (spec == null || !enabled(spec.getEnabled(), true)
+                || !StringUtils.hasText(spec.getContent())) {
+                continue;
+            }
+            var chunks = ragContentService.split(spec.getTitle(), spec.getContent(), chunkSize,
+                chunkOverlap);
+            for (var i = 0; i < chunks.size(); i++) {
+                chunkInputs.add(new ChunkInput(document, chunks.get(i), i));
+            }
+        }
+        return chunkInputs;
+    }
+
+    private Mono<List<RagDocument>> fetchDocuments(List<String> documentNames) {
+        return Flux.fromIterable(documentNames)
+            .concatMap(name -> client.fetch(RagDocument.class, name))
+            .collectList();
+    }
+
+    private boolean belongsToKnowledgeBase(RagDocument document, String knowledgeBase) {
+        var spec = document == null ? null : document.getSpec();
+        return spec != null && knowledgeBase.equals(normalizeKnowledgeBase(spec.getKnowledgeBase()));
+    }
+
+    private boolean incrementalIndexAvailable(RagKnowledgeBase knowledgeBase) {
+        var status = knowledgeBase.getStatus();
+        if (status == null || status.getIndexState() == null) {
+            return true;
+        }
+        if (RagKnowledgeBase.IndexState.EMPTY.name().equals(status.getIndexState())) {
+            return true;
+        }
+        return RagKnowledgeBase.IndexState.READY.name().equals(status.getIndexState())
+            && StringUtils.hasText(status.getIndexVersion());
+    }
+
+    private boolean compatibleIndexVersion(RagKnowledgeBase knowledgeBase, String indexVersion) {
+        var status = knowledgeBase.getStatus();
+        if (status == null || RagKnowledgeBase.IndexState.EMPTY.name().equals(status.getIndexState())) {
+            return true;
+        }
+        return RagKnowledgeBase.IndexState.READY.name().equals(status.getIndexState())
+            && StringUtils.hasText(status.getIndexVersion())
+            && status.getIndexVersion().equals(indexVersion);
+    }
+
+    private Mono<RagIndexSummary> updateKnowledgeBaseFromDocumentStatuses(String knowledgeBase,
+        String embeddingModelName, int dimensions, String indexVersion, long startedAt) {
+        return listDocuments(knowledgeBase)
+            .flatMap(documents -> {
+                var chunkCount = documents.stream()
+                    .map(RagDocument::getStatus)
+                    .map(status -> status == null || status.getChunkCount() == null
+                        ? 0 : status.getChunkCount())
+                    .reduce(0, Integer::sum);
+                var state = chunkCount > 0
+                    ? RagKnowledgeBase.IndexState.READY.name()
+                    : RagKnowledgeBase.IndexState.EMPTY.name();
+                var finalVersion = chunkCount > 0 && StringUtils.hasText(indexVersion)
+                    ? indexVersion
+                    : "empty";
+                return updateKnowledgeBaseReady(knowledgeBase, documents.size(), chunkCount,
+                    embeddingModelName, dimensions, finalVersion, startedAt, state)
+                    .thenReturn(RagIndexSummary.builder()
+                        .documentCount(documents.size())
+                        .chunkCount(chunkCount)
+                        .embeddingDimensions(dimensions)
+                        .indexVersion(finalVersion)
+                        .durationMillis(System.currentTimeMillis() - startedAt)
+                        .build());
+            });
+    }
+
+    private Mono<RagIndexSummary> currentSummary(String knowledgeBase, long startedAt) {
+        return ensureKnowledgeBase(knowledgeBase)
+            .map(kb -> {
+                var status = kb.getStatus();
+                return RagIndexSummary.builder()
+                    .documentCount(status == null || status.getDocumentCount() == null
+                        ? 0 : status.getDocumentCount())
+                    .chunkCount(status == null || status.getChunkCount() == null
+                        ? 0 : status.getChunkCount())
+                    .embeddingDimensions(status == null || status.getEmbeddingDimensions() == null
+                        ? 0 : status.getEmbeddingDimensions())
+                    .indexVersion(status == null ? null : status.getIndexVersion())
+                    .durationMillis(System.currentTimeMillis() - startedAt)
+                    .build();
             });
     }
 
@@ -351,6 +630,12 @@ public class DefaultRagIndexService implements RagIndexService {
             : "";
     }
 
+    private String documentName(RagDocument document) {
+        return document != null && document.getMetadata() != null
+            ? defaultString(document.getMetadata().getName())
+            : "";
+    }
+
     private String errorMessage(Throwable error) {
         var current = error;
         while (current != null && current.getCause() != null && current.getCause() != current) {
@@ -364,6 +649,17 @@ public class DefaultRagIndexService implements RagIndexService {
 
     private String normalizeKnowledgeBase(String knowledgeBase) {
         return StringUtils.hasText(knowledgeBase) ? knowledgeBase.strip() : DEFAULT_KNOWLEDGE_BASE;
+    }
+
+    private List<String> normalizedNames(List<String> names) {
+        if (names == null) {
+            return List.of();
+        }
+        return names.stream()
+            .filter(StringUtils::hasText)
+            .map(String::strip)
+            .distinct()
+            .toList();
     }
 
     private record ChunkInput(RagDocument document, String content, int chunkIndex) {

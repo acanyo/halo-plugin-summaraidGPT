@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.handsome.summary.pet.model.PetdexImportResult;
 import com.handsome.summary.pet.service.PetdexImportService;
+import com.handsome.summary.pet.support.PetdexProxyUrlResolver;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -35,6 +36,11 @@ public class DefaultPetdexImportService implements PetdexImportService {
         .connectTimeout(Duration.ofSeconds(8))
         .followRedirects(HttpClient.Redirect.NORMAL)
         .build();
+    private final PetdexProxyUrlResolver petdexProxyUrlResolver;
+
+    public DefaultPetdexImportService(PetdexProxyUrlResolver petdexProxyUrlResolver) {
+        this.petdexProxyUrlResolver = petdexProxyUrlResolver;
+    }
 
     @Override
     public Mono<PetdexImportResult> resolve(String installCommand) {
@@ -106,15 +112,15 @@ public class DefaultPetdexImportService implements PetdexImportService {
     }
 
     private Mono<String> fetchText(URI uri, String accept, int maxChars) {
-        var request = HttpRequest.newBuilder(uri)
-            .timeout(Duration.ofSeconds(12))
-            .header("Accept", accept)
-            .header("User-Agent", "summaraidGPT-petdex-importer/1.0")
-            .GET()
-            .build();
-
-        return Mono.fromFuture(httpClient.sendAsync(request,
-                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)))
+        return petdexProxyUrlResolver.requestUri(uri)
+            .map(requestUri -> HttpRequest.newBuilder(requestUri)
+                .timeout(Duration.ofSeconds(12))
+                .header("Accept", accept)
+                .header("User-Agent", "summaraidGPT-petdex-importer/1.0")
+                .GET()
+                .build())
+            .flatMap(request -> Mono.fromFuture(httpClient.sendAsync(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))))
             .map(response -> {
                 if (response.statusCode() < 200 || response.statusCode() >= 300) {
                     throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,

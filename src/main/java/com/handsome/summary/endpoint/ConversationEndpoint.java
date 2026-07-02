@@ -2,14 +2,17 @@ package com.handsome.summary.endpoint;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
 
+import com.handsome.summary.agent.model.AgentAccessMode;
 import com.handsome.summary.agent.model.AgentSettings;
 import com.handsome.summary.pet.extension.PetCompanion;
 import com.handsome.summary.pet.service.PetCompanionService;
 import com.handsome.summary.pet.support.DefaultPetCompanionAssets;
+import com.handsome.summary.pet.support.PetdexProxyUrlResolver;
 import com.handsome.summary.service.AiFoundationAiService;
 import com.handsome.summary.service.AiRequestSecurityService;
 import com.handsome.summary.service.SettingConfigGetter;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +42,8 @@ public class ConversationEndpoint implements CustomEndpoint {
 
     private static final String AI_FOUNDATION_SERVICE = "aiFoundation";
     private static final String DEFAULT_ASSISTANT_NAME = "智阅助手";
+    private static final String DEFAULT_DISPLAY_MODE = "assistant";
+    private static final String PET_ONLY_DISPLAY_MODE = "petOnly";
     private static final String DEFAULT_BUTTON_POSITION = "right";
     private static final String DEFAULT_STYLE_PRESET = "default";
     private static final String DEFAULT_PRIMARY_COLOR = "#a16207";
@@ -58,12 +63,14 @@ public class ConversationEndpoint implements CustomEndpoint {
     private final AiRequestSecurityService aiRequestSecurityService;
     private final SettingConfigGetter settingConfigGetter;
     private final PetCompanionService petCompanionService;
+    private final PetdexProxyUrlResolver petdexProxyUrlResolver;
 
     public record ConversationRequest(String conversationHistory) {}
     
     public record DialogConfig(
         String assistantAvatar,
         String assistantName,
+        String displayMode,
         String welcomeMessage,
         List<String> quickQuestions,
         AssistantStyleConfig styleConfig,
@@ -73,7 +80,15 @@ public class ConversationEndpoint implements CustomEndpoint {
         Integer petSize,
         List<String> petSpeechMessages,
         PetConfig pet,
+        AccessConfig access,
         AgentSettings agent
+    ) {}
+
+    public record AccessConfig(
+        String mode,
+        Boolean allowAnonymous,
+        Boolean agentAllowed,
+        Boolean authenticated
     ) {}
 
     public record PetConfig(
@@ -314,16 +329,25 @@ public class ConversationEndpoint implements CustomEndpoint {
      * 获取对话框配置信息
      */
     private Mono<ServerResponse> getDialogConfig(ServerRequest request) {
-        return Mono.zip(settingConfigGetter.getAssistantConfig(), settingConfigGetter.getAgentSettings())
+        return Mono.zip(
+                settingConfigGetter.getAssistantConfig(),
+                settingConfigGetter.getAgentSettings(),
+                settingConfigGetter.getAiSecurityConfig(),
+                isAuthenticated(request)
+            )
             .flatMap(tuple -> petCompanionService.getActive()
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
                 .map(activePet -> {
                     var assistantConfig = tuple.getT1();
+                    var securityConfig = tuple.getT3();
+                    var accessMode = aiRequestSecurityService.resolveAccessMode(securityConfig);
                     var assistantName = normalizeAssistantName(assistantConfig.getAssistantName());
+                    var displayMode = normalizeDisplayMode(assistantConfig.getDisplayMode());
                     return new DialogConfig(
                         normalizeAvatarUrl(assistantConfig.getAssistantAvatar()),
                         assistantName,
+                        displayMode,
                         normalizeWelcomeMessage(assistantConfig.getWelcomeMessage(),
                             assistantName),
                         normalizeQuickQuestions(assistantConfig.getQuickQuestions()),
@@ -332,8 +356,10 @@ public class ConversationEndpoint implements CustomEndpoint {
                         normalizeFloatingOffset(assistantConfig.getHorizontalOffset()),
                         normalizeFloatingOffset(assistantConfig.getVerticalOffset()),
                         normalizePetSize(assistantConfig.getPetSize()),
-                        normalizePetSpeechMessages(assistantConfig.getPetSpeechMessages()),
-                        activePet.map(this::toPetConfig).orElseGet(this::defaultPetConfig),
+                        resolvePetSpeechMessages(assistantConfig, displayMode),
+                        activePet.map(pet -> toPetConfig(pet, assistantConfig))
+                            .orElseGet(this::defaultPetConfig),
+                        toAccessConfig(accessMode, tuple.getT4()),
                         tuple.getT2()
                     );
                 }))
@@ -343,21 +369,23 @@ public class ConversationEndpoint implements CustomEndpoint {
             .onErrorResume(e -> {
                 log.error("获取对话框配置失败", e);
                 // 返回默认配置
+                var fallbackAssistantConfig = new SettingConfigGetter.AssistantConfig();
                 DialogConfig defaultConfig = new DialogConfig(
                     SettingConfigGetter.AssistantConfig.DEFAULT_ASSISTANT_AVATAR,
                     DEFAULT_ASSISTANT_NAME,
-                    normalizeWelcomeMessage(new SettingConfigGetter.AssistantConfig()
-                        .getWelcomeMessage(), DEFAULT_ASSISTANT_NAME),
-                    normalizeQuickQuestions(new SettingConfigGetter.AssistantConfig()
-                        .getQuickQuestions()),
+                    DEFAULT_DISPLAY_MODE,
+                    normalizeWelcomeMessage(fallbackAssistantConfig.getWelcomeMessage(),
+                        DEFAULT_ASSISTANT_NAME),
+                    normalizeQuickQuestions(fallbackAssistantConfig.getQuickQuestions()),
                     defaultStyleConfig(),
                     DEFAULT_BUTTON_POSITION,
                     DEFAULT_FLOATING_OFFSET,
                     DEFAULT_FLOATING_OFFSET,
                     SettingConfigGetter.AssistantConfig.DEFAULT_PET_SIZE,
-                    normalizePetSpeechMessages(new SettingConfigGetter.AssistantConfig()
-                        .getPetSpeechMessages()),
+                    normalizePetSpeechMessages(fallbackAssistantConfig.getPetSpeechMessages(),
+                        fallbackAssistantConfig.getPetSpeechMessages()),
                     defaultPetConfig(),
+                    toAccessConfig(AgentAccessMode.ANONYMOUS_CHAT_AGENT, false),
                     AgentSettings.defaults()
                 );
                 return ServerResponse.ok()
@@ -366,7 +394,14 @@ public class ConversationEndpoint implements CustomEndpoint {
             });
     }
 
-    private PetConfig toPetConfig(PetCompanion pet) {
+    private Mono<Boolean> isAuthenticated(ServerRequest request) {
+        return request.principal()
+            .map(Principal::getName)
+            .map(name -> StringUtils.hasText(name) && !"anonymousUser".equals(name))
+            .defaultIfEmpty(false);
+    }
+
+    private PetConfig toPetConfig(PetCompanion pet, SettingConfigGetter.AssistantConfig assistantConfig) {
         var spec = pet.getSpec();
         if (spec == null) {
             return null;
@@ -374,8 +409,8 @@ public class ConversationEndpoint implements CustomEndpoint {
         return new PetConfig(
             spec.getEnabled(),
             normalizeAssistantName(spec.getDisplayName()),
-            spec.getPetJsonUrl(),
-            spec.getSpritesheetUrl()
+            petdexProxyUrlResolver.publicUrl(spec.getPetJsonUrl(), assistantConfig),
+            petdexProxyUrlResolver.publicUrl(spec.getSpritesheetUrl(), assistantConfig)
         );
     }
 
@@ -388,7 +423,19 @@ public class ConversationEndpoint implements CustomEndpoint {
         );
     }
 
-    private List<String> normalizePetSpeechMessages(List<String> messages) {
+    private List<String> resolvePetSpeechMessages(
+        SettingConfigGetter.AssistantConfig assistantConfig,
+        String displayMode
+    ) {
+        var defaults = new SettingConfigGetter.AssistantConfig();
+        return PET_ONLY_DISPLAY_MODE.equals(displayMode)
+            ? normalizePetSpeechMessages(assistantConfig.getPetOnlySpeechMessages(),
+                defaults.getPetOnlySpeechMessages())
+            : normalizePetSpeechMessages(assistantConfig.getPetSpeechMessages(),
+                defaults.getPetSpeechMessages());
+    }
+
+    private List<String> normalizePetSpeechMessages(List<String> messages, List<String> fallback) {
         var normalized = messages == null ? List.<String>of() : messages.stream()
             .filter(StringUtils::hasText)
             .map(String::strip)
@@ -398,7 +445,7 @@ public class ConversationEndpoint implements CustomEndpoint {
         if (!normalized.isEmpty()) {
             return normalized;
         }
-        return new SettingConfigGetter.AssistantConfig().getPetSpeechMessages();
+        return fallback;
     }
 
     private String normalizeWelcomeMessage(String welcomeMessage, String assistantName) {
@@ -438,6 +485,19 @@ public class ConversationEndpoint implements CustomEndpoint {
 
     private String normalizeAssistantName(String assistantName) {
         return StringUtils.hasText(assistantName) ? assistantName.strip() : DEFAULT_ASSISTANT_NAME;
+    }
+
+    private String normalizeDisplayMode(String displayMode) {
+        return PET_ONLY_DISPLAY_MODE.equals(displayMode) ? PET_ONLY_DISPLAY_MODE : DEFAULT_DISPLAY_MODE;
+    }
+
+    private AccessConfig toAccessConfig(AgentAccessMode accessMode, boolean authenticated) {
+        return new AccessConfig(
+            accessMode.value(),
+            accessMode.anonymousChatAllowed(),
+            accessMode.agentAllowed(),
+            authenticated
+        );
     }
 
     private String normalizeAvatarUrl(String avatarUrl) {

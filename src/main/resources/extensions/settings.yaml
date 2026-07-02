@@ -224,6 +224,7 @@ spec:
           label: AI 接口安全
           value:
             antiHotlinkEnabled: true
+            accessMode: anonymous_chat_agent
             allowMissingOrigin: false
             allowedOrigins: []
             rateLimitEnabled: true
@@ -237,6 +238,20 @@ spec:
               key: aiAntiHotlinkEnabled
               value: true
               help: 开启后会校验 Sec-Fetch-Site、Origin 和 Referer，只允许本站或额外白名单来源调用 AI 接口，降低匿名恶意调用 AI 或 Agent 能力的风险。
+            - $formkit: select
+              label: AI 助手访问模式
+              name: accessMode
+              value: anonymous_chat_agent
+              help: 控制访客能否对话，以及是否允许 Agent 使用站点操作能力。
+              options:
+                - label: 匿名用户可对话
+                  value: anonymous_chat
+                - label: 匿名用户可对话和使用 Agent
+                  value: anonymous_chat_agent
+                - label: 登录用户可对话
+                  value: authenticated_chat
+                - label: 登录用户可对话和使用 Agent
+                  value: authenticated_chat_agent
             - $formkit: switch
               if: "$get(aiAntiHotlinkEnabled).value === true"
               label: 允许缺失来源
@@ -491,6 +506,14 @@ spec:
           max: 800
           validation: required|min:0|max:800
           help: 相邻分块保留少量重叠，降低语义断裂。
+        - $formkit: number
+          label: 索引文档批量大小
+          name: indexDocumentBatchSize
+          value: 8
+          min: 1
+          max: 50
+          validation: required|min:1|max:50
+          help: 重建索引时每批送入 Embedding 阶段的文档数量。知识库较大或模型较慢时建议调小到 5。
         - $formkit: group
           name: embeddingCallSetting
           label: Embedding 调用
@@ -815,6 +838,18 @@ spec:
           key: enableAssistant
           value: true
           help: "关闭后将不在前台显示 RAG 智能助手"
+        - $formkit: select
+          label: 前台显示模式
+          name: displayMode
+          id: assistantDisplayMode
+          key: assistantDisplayMode
+          value: assistant
+          options:
+            - label: 宠物 + 对话
+              value: assistant
+            - label: 仅显示宠物
+              value: petOnly
+          help: "选择“仅显示宠物”后，前台只展示悬浮宠物和气泡，不打开问答面板。"
         - $formkit: text
           label: 助手名称
           name: assistantName
@@ -823,6 +858,7 @@ spec:
           value: "智阅助手"
           help: "前台 RAG 智能助手窗口中显示的名称"
         - $formkit: textarea
+          if: $get(assistantDisplayMode).value != "petOnly"
           label: 欢迎语
           name: welcomeMessage
           id: welcomeMessage
@@ -833,6 +869,7 @@ spec:
           rows: 3
           help: "全屏会话首次打开时显示，支持 {assistantName} 占位符。"
         - $formkit: list
+          if: $get(assistantDisplayMode).value != "petOnly"
           label: 快捷问题
           name: quickQuestions
           id: quickQuestions
@@ -852,6 +889,7 @@ spec:
               index: "$index"
               validation: required
         - $formkit: attachment
+          if: $get(assistantDisplayMode).value != "petOnly"
           label: 对话头像
           name: assistantAvatar
           id: assistantAvatar
@@ -869,8 +907,52 @@ spec:
           step: 2
           validation: required|min:48|max:160
           help: "控制前台宠物单帧宽度，单位 px；高度会按 PetDex 比例自动计算。"
+        - $formkit: text
+          label: PetDex 反代域名
+          name: petdexProxyBaseUrl
+          id: petdexProxyBaseUrl
+          key: petdexProxyBaseUrl
+          placeholder: "https://proxy.example.com/"
+          help: "可选。留空直连；填写 https://proxy.example.com/ 会把 PetDex 请求改到该域名同路径；前缀式代理可填写 https://proxy.example.com/{url}，也支持 {encodedUrl} 或 {path} 模板。"
+        - $formkit: group
+          label: PetDex 附件库本地化
+          name: petdexAttachmentStorage
+          id: petdexAttachmentStorage
+          key: petdexAttachmentStorage
+          value:
+            enabled: false
+            policyName: ""
+            groupName: ""
+          help: "开启后，导入 PetDex 宠物时会把 sprite.webp 和 petjson.json 上传到 Halo 附件库，前台使用本地附件资源。"
+          children:
+            - $formkit: switch
+              label: 保存 PetDex 资源到附件库
+              name: enabled
+              id: petdexAttachmentStorageEnabled
+              key: petdexAttachmentStorageEnabled
+              value: false
+              help: "适合国内服务器无法稳定加载 PetDex 远程资源的场景。"
+            - $formkit: attachmentPolicySelect
+              if: "$get(petdexAttachmentStorageEnabled).value === true"
+              label: 存储策略
+              name: policyName
+              id: petdexAttachmentPolicyName
+              key: petdexAttachmentPolicyName
+              auto-select: false
+              validation: required
+              help: "选择上传宠物资源使用的 Halo 附件存储策略。"
+            - $formkit: attachmentGroupSelect
+              if: "$get(petdexAttachmentStorageEnabled).value === true"
+              label: 附件分组
+              name: groupName
+              id: petdexAttachmentGroupName
+              key: petdexAttachmentGroupName
+              auto-select: false
+              clearable: true
+              help: "可选。选择上传后归档到哪个附件分组。"
         - $formkit: list
-          label: 宠物气泡文案
+          if: $get(assistantDisplayMode).value != "petOnly"
+          label: 对话模式宠物气泡文案
           name: petSpeechMessages
           id: petSpeechMessages
           key: petSpeechMessages
@@ -883,7 +965,27 @@ spec:
           min: 1
           max: 12
           addLabel: 添加文案
-          help: "前台悬浮宠物随机展示的气泡文案，所有宠物共用。"
+          help: "“宠物 + 对话”模式下展示的气泡文案，适合引导用户提问。"
+          children:
+            - $formkit: text
+              index: "$index"
+              validation: required
+        - $formkit: list
+          if: $get(assistantDisplayMode).value == "petOnly"
+          label: 仅宠物模式气泡文案
+          name: petOnlySpeechMessages
+          id: petOnlySpeechMessages
+          key: petOnlySpeechMessages
+          value:
+            - "今天也要元气满满。"
+            - "我就在这里陪你逛逛。"
+            - "休息一下，看看风景吧。"
+            - "路过的时候记得摸摸我。"
+          itemType: string
+          min: 1
+          max: 12
+          addLabel: 添加文案
+          help: "“仅显示宠物”模式下展示的气泡文案，适合做陪伴和装饰。"
           children:
             - $formkit: text
               index: "$index"
