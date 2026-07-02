@@ -50,6 +50,12 @@ const STYLE_PRESETS: Record<
     surfaceColor: '#fbfeff',
     textColor: '#142326',
   },
+  azure: {
+    primaryColor: '#3b82f6',
+    secondaryColor: '#dbeafe',
+    surfaceColor: '#f8fafc',
+    textColor: '#0f172a',
+  },
   forest: {
     primaryColor: '#2f7d50',
     secondaryColor: '#dceedd',
@@ -204,6 +210,7 @@ function normalizeStylePreset(
 ): RagAssistantStyleConfig['stylePreset'] {
   return value === 'graphite'
     || value === 'ocean'
+    || value === 'azure'
     || value === 'forest'
     || value === 'rose'
     || value === 'custom'

@@ -25,6 +25,10 @@ export function externalLinkIcon(): TemplateResult {
   return renderIconifyIcon('ri:external-link-line');
 }
 
+export function fullscreenIcon(): TemplateResult {
+  return renderIconifyIcon('ri:fullscreen-line');
+}
+
 export function focusIcon(): TemplateResult {
   return renderIconifyIcon('ri:focus-3-line');
 }
@@ -39,4 +43,16 @@ export function searchIcon(): TemplateResult {
 
 export function questionAnswerIcon(): TemplateResult {
   return renderIconifyIcon('ri:question-answer-line');
+}
+
+export function copyIcon(): TemplateResult {
+  return renderIconifyIcon('ri:file-copy-line');
+}
+
+export function retryIcon(): TemplateResult {
+  return renderIconifyIcon('ri:refresh-line');
+}
+
+export function stopIcon(): TemplateResult {
+  return renderIconifyIcon('ri:stop-circle-line');
 }

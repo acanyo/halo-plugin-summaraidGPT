@@ -122,6 +122,12 @@ export const stageStyles = css`
     background: rgba(255, 255, 255, 0.24);
   }
 
+  .pet-stage-action.is-danger {
+    color: rgba(255, 226, 226, 0.96);
+    border-color: rgba(248, 113, 113, 0.24);
+    background: rgba(127, 29, 29, 0.28);
+  }
+
   .pet-stage-action:disabled,
   .pet-stage-shortcuts button:disabled {
     cursor: not-allowed;
@@ -307,11 +313,75 @@ export const stageStyles = css`
       0 8px 18px color-mix(in srgb, var(--rag-gold) 16%, transparent);
   }
 
+  .pet-stage-message-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    opacity: 0;
+    transform: translateY(2px);
+    transition:
+      opacity 0.14s ease,
+      transform 0.14s ease;
+  }
+
+  .pet-stage-message:hover .pet-stage-message-actions,
+  .pet-stage-message:focus-within .pet-stage-message-actions {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .pet-stage-message-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 26px;
+    padding: 0 9px;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.11);
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 740;
+    backdrop-filter: blur(14px) saturate(1.06);
+    -webkit-backdrop-filter: blur(14px) saturate(1.06);
+  }
+
+  .pet-stage-message-actions button:hover:not(:disabled) {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.17);
+  }
+
+  .pet-stage-message-actions button:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+  }
+
+  .pet-stage-message-actions svg,
+  .pet-stage-message-actions .iconify-icon {
+    width: 13px;
+    height: 13px;
+  }
+
+  .pet-stage-message.user .pet-stage-message-actions button {
+    color: var(--rag-muted);
+    border-color: color-mix(in srgb, var(--rag-line) 70%, transparent);
+    background: color-mix(in srgb, var(--rag-paper) 72%, transparent);
+  }
+
   .pet-stage .markdown-body h1,
   .pet-stage .markdown-body h2,
   .pet-stage .markdown-body h3,
-  .pet-stage .markdown-body h4 {
+  .pet-stage .markdown-body h4,
+  .pet-stage .markdown-body h5,
+  .pet-stage .markdown-body h6 {
     color: rgba(255, 255, 255, 0.94);
+  }
+
+  .pet-stage .markdown-body hr {
+    background: rgba(255, 255, 255, 0.18);
   }
 
   .pet-stage .markdown-body code {
@@ -322,6 +392,15 @@ export const stageStyles = css`
   .pet-stage .markdown-body blockquote {
     background: rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.78);
+  }
+
+  .pet-stage .markdown-body th,
+  .pet-stage .markdown-body td {
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+
+  .pet-stage .markdown-body th {
+    background: rgba(255, 255, 255, 0.11);
   }
 
   .pet-stage .markdown-body a {
@@ -557,8 +636,8 @@ export const stageStyles = css`
 
     .pet-panel {
       width: min(344px, calc(100vw - 32px));
-      max-height: min(560px, calc(100dvh - 132px));
-      overflow-y: auto;
+      height: min(var(--rag-pet-panel-height, 318px), calc(100dvh - 132px));
+      overflow: hidden;
     }
 
     .pet-panel-head {

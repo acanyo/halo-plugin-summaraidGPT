@@ -26,6 +26,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import run.halo.app.content.ContentWrapper;
+import run.halo.app.content.PostContentService;
 import run.halo.app.core.extension.content.Category;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.core.extension.content.SinglePage;
@@ -45,6 +47,7 @@ public class HaloAgentPresetToolService {
 
     private final SearchService searchService;
     private final ReactiveExtensionClient extensionClient;
+    private final PostContentService postContentService;
     private final HttpClient httpClient = HttpClient.newBuilder()
         .followRedirects(HttpClient.Redirect.NEVER)
         .connectTimeout(Duration.ofSeconds(5))
@@ -94,7 +97,9 @@ public class HaloAgentPresetToolService {
         if (TYPE_POST.equals(parts[0])) {
             return extensionClient.fetch(Post.class, parts[1])
                 .filter(this::isPublicPost)
-                .map(post -> detailFromPost(post, maxChars))
+                .flatMap(post -> postContentService.getReleaseContent(post.getMetadata().getName())
+                    .map(content -> detailFromPost(post, contentText(content), maxChars))
+                    .switchIfEmpty(Mono.just(detailFromPost(post, "", maxChars))))
                 .cast(Object.class)
                 .defaultIfEmpty(failure("RESOURCE_NOT_FOUND", "post is not available"));
         }
@@ -259,9 +264,11 @@ public class HaloAgentPresetToolService {
         );
     }
 
-    private Map<String, Object> detailFromPost(Post post, int maxChars) {
-        var content = excerpt(defaultIfBlank(post.getStatusOrDefault().getExcerpt(),
-            Optional.ofNullable(post.getSpec().getExcerpt()).map(Post.Excerpt::getRaw).orElse("")), maxChars);
+    private Map<String, Object> detailFromPost(Post post, String releaseContent, int maxChars) {
+        var content = excerpt(defaultIfBlank(releaseContent,
+            defaultIfBlank(post.getStatusOrDefault().getExcerpt(),
+                Optional.ofNullable(post.getSpec().getExcerpt()).map(Post.Excerpt::getRaw)
+                    .orElse(""))), maxChars);
         return Map.of("ok", true, "resource", fromPost(post), "content", content,
             "truncated", content.length() >= maxChars);
     }
@@ -457,6 +464,13 @@ public class HaloAgentPresetToolService {
 
     private String defaultIfBlank(String value, String fallback) {
         return StringUtils.hasText(value) ? value : fallback;
+    }
+
+    private String contentText(ContentWrapper content) {
+        if (content == null) {
+            return "";
+        }
+        return defaultIfBlank(content.getContent(), content.getRaw());
     }
 
     private String defaultString(String value) {

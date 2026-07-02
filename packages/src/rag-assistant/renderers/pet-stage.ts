@@ -2,14 +2,14 @@ import { html, nothing, type TemplateResult } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { RAG_INPUT_PLACEHOLDER } from '../constants';
 import {
-  articleIcon,
   closeIcon,
+  copyIcon,
   focusIcon,
-  historyIcon,
   newChatIcon,
   questionAnswerIcon,
-  searchIcon,
+  retryIcon,
   sendIcon,
+  stopIcon,
 } from '../icons';
 import { markdownToHtml } from '../format';
 import { renderSourceList } from '../source-list';
@@ -21,8 +21,10 @@ export interface PetStageRenderOptions {
   assistantAvatar?: string;
   avatarFallbackText: string;
   messages: RagAssistantMessage[];
+  statusText: string;
   welcomeMessage: string;
   welcomeTime: string;
+  quickQuestions: string[];
   input: string;
   streaming: boolean;
   hasSources: boolean;
@@ -32,6 +34,9 @@ export interface PetStageRenderOptions {
   onNewConversation: () => void;
   onExpandLatestSources: () => void;
   onUsePrompt: (prompt: string) => void;
+  onStop: () => void;
+  onCopyMessage: (message: RagAssistantMessage) => void;
+  onRetryMessage: (message: RagAssistantMessage) => void;
   onSubmit: (event: Event) => void;
   onInput: (event: Event) => void;
   onKeydown: (event: KeyboardEvent) => void;
@@ -46,7 +51,7 @@ export function renderPetStage(options: PetStageRenderOptions): TemplateResult {
       <header class="pet-stage-head">
         <div class="pet-stage-title">
           <span>${options.assistantName}</span>
-          <strong>${options.streaming ? '正在找答案' : '想问我什么？'}</strong>
+          <strong>${options.statusText}</strong>
         </div>
         <div class="pet-stage-actions">
           <button
@@ -55,11 +60,18 @@ export function renderPetStage(options: PetStageRenderOptions): TemplateResult {
             ?disabled=${!options.hasSources}
             @click=${options.onExpandLatestSources}
           >
-            ${questionAnswerIcon()} 来源
+            ${questionAnswerIcon()} 关联资源
           </button>
           <button class="pet-stage-action" type="button" @click=${options.onNewConversation}>
             ${newChatIcon()} 新聊
           </button>
+          ${options.streaming
+            ? html`
+                <button class="pet-stage-action is-danger" type="button" @click=${options.onStop}>
+                  ${stopIcon()} 停止
+                </button>
+              `
+            : nothing}
           <button class="pet-stage-close" type="button" title="关闭" aria-label="关闭" @click=${options.onClose}>
             ${closeIcon()}
           </button>
@@ -82,33 +94,15 @@ export function renderPetStage(options: PetStageRenderOptions): TemplateResult {
 }
 
 function renderShortcuts(options: PetStageRenderOptions): TemplateResult {
-  const promptButtons = [
-    {
-      label: '总结当前页',
-      icon: articleIcon(),
-      prompt: '请结合当前页面内容和知识库，帮我总结重点。',
-    },
-    {
-      label: '搜索知识库',
-      icon: searchIcon(),
-      prompt: '请帮我检索知识库：',
-    },
-    {
-      label: '继续追问',
-      icon: historyIcon(),
-      prompt: '',
-    },
-  ];
-
   return html`
     <div class="pet-stage-shortcuts" aria-label="快捷操作">
-      ${promptButtons.map((item) => html`
-        <button type="button" @click=${() => options.onUsePrompt(item.prompt)}>
-          ${item.icon}<span>${item.label}</span>
+      ${options.quickQuestions.map((prompt) => html`
+        <button type="button" @click=${() => options.onUsePrompt(prompt)}>
+          ${questionAnswerIcon()}<span>${prompt}</span>
         </button>
       `)}
       <button type="button" ?disabled=${!options.hasSources} @click=${options.onExpandLatestSources}>
-        ${questionAnswerIcon()}<span>参考来源</span>
+        ${questionAnswerIcon()}<span>关联资源</span>
       </button>
       <button type="button" @click=${options.onNewConversation}>
         ${newChatIcon()}<span>新会话</span>
@@ -135,6 +129,19 @@ function renderStageMessage(
         <div class=${`pet-stage-bubble${message.error ? ' error' : ''}${message.streaming ? ' streaming' : ''}`}>
           ${renderMessageContent(message)}
           ${message.streaming ? renderTyping() : nothing}
+        </div>
+        <div class="pet-stage-message-actions">
+          <button type="button" title="复制" @click=${() => options.onCopyMessage(message)}>
+            ${copyIcon()}<span>复制</span>
+          </button>
+          <button
+            type="button"
+            title=${message.role === 'assistant' ? '重新生成' : '再次发送'}
+            ?disabled=${options.streaming}
+            @click=${() => options.onRetryMessage(message)}
+          >
+            ${retryIcon()}<span>${message.role === 'assistant' ? '重试' : '再问'}</span>
+          </button>
         </div>
         ${message.role === 'assistant' ? renderStageSources(sources, message.id, options) : nothing}
         <div class="pet-stage-time">${message.time}</div>
@@ -200,7 +207,7 @@ function renderStageSources(
       @toggle=${(event: Event) => options.onToggleSourceReferences(messageId, event)}
     >
       <summary>
-        ${questionAnswerIcon()} <span>${sources.length} 个参考来源</span>
+        ${questionAnswerIcon()} <span>${sources.length} 个关联资源</span>
       </summary>
       ${renderSourceList(sources)}
     </details>

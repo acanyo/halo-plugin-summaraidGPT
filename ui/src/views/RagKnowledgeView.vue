@@ -28,12 +28,16 @@ import RiArrowRightSLine from '~icons/ri/arrow-right-s-line'
 import RiArticleLine from '~icons/ri/article-line'
 import RiBookOpenLine from '~icons/ri/book-open-line'
 import RiCloseLine from '~icons/ri/close-line'
+import RiFileTextLine from '~icons/ri/file-text-line'
 import RiQuestionAnswerLine from '~icons/ri/question-answer-line'
 import RiSearchLine from '~icons/ri/search-line'
 import RiUploadLine from '~icons/ri/upload-line'
+import RagTextImportFormPanel from '@/components/rag/RagTextImportFormPanel.vue'
+import { createRagTextImportForm, type RagTextImportFile } from '@/components/rag/text-import'
 import {
   ragApi,
   type RagDocument,
+  type RagImportableDocsmeDocument,
   type RagImportablePost,
   type RagIndexTask,
   type RagKnowledgeBase,
@@ -43,10 +47,13 @@ import {
 } from '@/api/rag'
 import { hasUiPermission } from '@/utils/permissions'
 
+type ImportSourceType = 'POST' | 'DOCSME' | 'TEXT'
+
 const loadingKnowledgeBases = ref(false)
 const loadingDocuments = ref(false)
 const loadingStats = ref(false)
 const loadingImportablePosts = ref(false)
+const loadingImportableDocsmeDocuments = ref(false)
 const importing = ref(false)
 const rebuildingIndex = ref(false)
 const searching = ref(false)
@@ -59,6 +66,8 @@ const documents = ref<RagDocument[]>([])
 const stats = ref<RagStats>()
 const latestTask = ref<RagIndexTask>()
 const importablePosts = ref<RagImportablePost[]>([])
+const importableDocsmeDocuments = ref<RagImportableDocsmeDocument[]>([])
+const docsmeImportAvailable = ref(true)
 const activeKnowledgeBaseName = ref('')
 
 const showKnowledgeBaseModal = ref(false)
@@ -87,18 +96,27 @@ const documentForm = reactive({
 const documentSourceTypeOptions = [
   { label: '手动', value: 'MANUAL' },
   { label: '文章', value: 'POST' },
+  { label: '文档', value: 'DOCSME' },
   { label: '页面', value: 'PAGE' },
   { label: '附件', value: 'ATTACHMENT' },
 ]
 
 const showImportPostsModal = ref(false)
+const importSourceType = ref<ImportSourceType>('POST')
 const importKeyword = ref('')
 const selectedPostNames = ref<string[]>([])
-const rebuildAfterImport = ref(true)
+const selectedDocsmeDocumentNames = ref<string[]>([])
+const rebuildAfterImport = ref(false)
+const importablePostPage = ref(1)
+const importableDocsmeDocumentPage = ref(1)
+const importablePageSize = ref(10)
+const textImportForm = ref(createRagTextImportForm())
 
 const showSearchPanel = ref(false)
 const searchQuery = ref('')
+const searchLimit = ref(10)
 const searchResults = ref<RagSearchResult[]>([])
+const searchElapsedMs = ref<number>()
 
 const showAskPanel = ref(false)
 const askQuestion = ref('')
@@ -147,6 +165,14 @@ const pagedDocuments = computed(() => {
   return documents.value.slice(start, start + documentPageSize.value)
 })
 
+function pagedItems<T>(items: T[], page: number, size: number) {
+  const start = (page - 1) * size
+  return items.slice(start, start + size)
+}
+
+const importableMaxPage = (total: number) =>
+  Math.max(1, Math.ceil(total / Math.max(1, importablePageSize.value)))
+
 const importableFilteredPosts = computed(() => {
   const keyword = importKeyword.value.trim().toLowerCase()
   if (!keyword) {
@@ -160,12 +186,104 @@ const importableFilteredPosts = computed(() => {
   })
 })
 
+const importableFilteredDocsmeDocuments = computed(() => {
+  const keyword = importKeyword.value.trim().toLowerCase()
+  if (!keyword) {
+    return importableDocsmeDocuments.value
+  }
+  return importableDocsmeDocuments.value.filter((document) => {
+    return (
+      document.docName.toLowerCase().includes(keyword) ||
+      (document.docTreeName || '').toLowerCase().includes(keyword) ||
+      (document.title || '').toLowerCase().includes(keyword) ||
+      (document.projectDisplayName || '').toLowerCase().includes(keyword) ||
+      (document.projectName || '').toLowerCase().includes(keyword) ||
+      (document.versionSlug || '').toLowerCase().includes(keyword)
+    )
+  })
+})
+
 const selectedImportableSet = computed(() => new Set(selectedPostNames.value))
+const selectedDocsmeDocumentSet = computed(() => new Set(selectedDocsmeDocumentNames.value))
+
+const importablePostMaxPage = computed(() =>
+  importableMaxPage(importableFilteredPosts.value.length),
+)
+
+const importableDocsmeDocumentMaxPage = computed(() =>
+  importableMaxPage(importableFilteredDocsmeDocuments.value.length),
+)
+
+const pagedImportablePosts = computed(() =>
+  pagedItems(importableFilteredPosts.value, importablePostPage.value, importablePageSize.value),
+)
+
+const pagedImportableDocsmeDocuments = computed(() =>
+  pagedItems(
+    importableFilteredDocsmeDocuments.value,
+    importableDocsmeDocumentPage.value,
+    importablePageSize.value,
+  ),
+)
 
 const allVisiblePostsSelected = computed(
   () =>
-    importableFilteredPosts.value.length > 0 &&
-    importableFilteredPosts.value.every((post) => selectedImportableSet.value.has(post.postName)),
+    pagedImportablePosts.value.length > 0 &&
+    pagedImportablePosts.value.every((post) => selectedImportableSet.value.has(post.postName)),
+)
+
+const allVisibleDocsmeDocumentsSelected = computed(
+  () =>
+    pagedImportableDocsmeDocuments.value.length > 0 &&
+    pagedImportableDocsmeDocuments.value.every((document) =>
+      selectedDocsmeDocumentSet.value.has(document.docName),
+    ),
+)
+
+const selectedImportCount = computed(() => {
+  if (importSourceType.value === 'POST') return selectedPostNames.value.length
+  if (importSourceType.value === 'DOCSME') return selectedDocsmeDocumentNames.value.length
+  return 0
+})
+
+const loadingActiveImportables = computed(() =>
+  importSourceType.value === 'POST'
+    ? loadingImportablePosts.value
+    : importSourceType.value === 'DOCSME'
+      ? loadingImportableDocsmeDocuments.value
+      : false,
+)
+
+const activeImportAllButtonText = computed(() => {
+  if (importSourceType.value === 'POST') return '导入全部文章'
+  if (importSourceType.value === 'DOCSME') return '导入全部文档'
+  return '导入文件'
+})
+
+const activeImportUnavailable = computed(
+  () => importSourceType.value === 'DOCSME' && !docsmeImportAvailable.value,
+)
+
+const importSourceTitle = computed(() => {
+  if (importSourceType.value === 'POST') return '导入 Halo 文章'
+  if (importSourceType.value === 'DOCSME') return '导入 Docsme 文档'
+  return '导入 Markdown / 富文本文件'
+})
+
+const importSourceDescription = computed(() => {
+  if (importSourceType.value === 'POST') return '将已发布的博客文章同步到当前知识库'
+  if (importSourceType.value === 'DOCSME') return '将 Docsme 已发布文档同步到当前知识库'
+  return '上传文件并保存为当前知识库条目'
+})
+
+const importableTextFiles = computed(() =>
+  textImportForm.value.files.filter((file) => plainTextFromImportFile(file).length > 0),
+)
+
+const activeImportPrimaryDisabled = computed(
+  () =>
+    activeImportUnavailable.value ||
+    (importSourceType.value === 'TEXT' && importableTextFiles.value.length === 0),
 )
 
 const latestTaskRunning = computed(() => {
@@ -404,7 +522,7 @@ const saveKnowledgeBase = async () => {
       displayName: knowledgeBaseForm.displayName.trim(),
       description: knowledgeBaseForm.description.trim() || undefined,
       enabled: knowledgeBaseForm.enabled,
-      sourceTypes: ['POST', 'MANUAL'],
+      sourceTypes: ['POST', 'MANUAL', 'DOCSME'],
     })
     Toast.success(editingKnowledgeBase.value ? '更新成功' : '创建成功')
     showKnowledgeBaseModal.value = false
@@ -519,9 +637,39 @@ const updateDocumentEnabled = async (document: RagDocument, enabled: boolean) =>
 
 const openImportPostsModal = async () => {
   showImportPostsModal.value = true
+  importSourceType.value = 'POST'
   selectedPostNames.value = []
+  selectedDocsmeDocumentNames.value = []
   importKeyword.value = ''
+  importablePostPage.value = 1
+  importableDocsmeDocumentPage.value = 1
+  textImportForm.value = createRagTextImportForm()
   await fetchImportablePosts()
+}
+
+const switchImportSourceType = async (sourceType: ImportSourceType) => {
+  importSourceType.value = sourceType
+  if (sourceType === 'POST') {
+    importablePostPage.value = 1
+  } else if (sourceType === 'DOCSME') {
+    importableDocsmeDocumentPage.value = 1
+  }
+  if (sourceType === 'POST' && importablePosts.value.length === 0) {
+    await fetchImportablePosts()
+  }
+  if (sourceType === 'DOCSME' && importableDocsmeDocuments.value.length === 0) {
+    await fetchImportableDocsmeDocuments()
+  }
+}
+
+const fetchActiveImportables = async () => {
+  if (importSourceType.value === 'POST') {
+    await fetchImportablePosts()
+    return
+  }
+  if (importSourceType.value === 'DOCSME') {
+    await fetchImportableDocsmeDocuments()
+  }
 }
 
 const fetchImportablePosts = async () => {
@@ -540,16 +688,82 @@ const fetchImportablePosts = async () => {
   }
 }
 
+const fetchImportableDocsmeDocuments = async () => {
+  if (!activeKnowledgeBaseName.value) {
+    return
+  }
+  loadingImportableDocsmeDocuments.value = true
+  try {
+    const result = await ragApi.listImportableDocsmeDocuments({
+      knowledgeBase: activeKnowledgeBaseName.value,
+    })
+    importableDocsmeDocuments.value = result.items
+    docsmeImportAvailable.value = result.docsmeAvailable
+  } catch (error) {
+    Toast.error('可导入文档加载失败')
+  } finally {
+    loadingImportableDocsmeDocuments.value = false
+  }
+}
+
 const togglePostSelection = (name: string, checked: boolean) => {
   selectedPostNames.value = checked
     ? Array.from(new Set([...selectedPostNames.value, name]))
     : selectedPostNames.value.filter((item) => item !== name)
 }
 
+const checkboxChecked = (event: Event) => (event.target as HTMLInputElement).checked
+
 const toggleAllVisiblePosts = (checked: boolean) => {
-  selectedPostNames.value = checked
-    ? importableFilteredPosts.value.map((post) => post.postName)
-    : []
+  const currentPageNames = pagedImportablePosts.value.map((post) => post.postName)
+  if (checked) {
+    selectedPostNames.value = Array.from(new Set([...selectedPostNames.value, ...currentPageNames]))
+    return
+  }
+  const currentPageNameSet = new Set(currentPageNames)
+  selectedPostNames.value = selectedPostNames.value.filter((item) => !currentPageNameSet.has(item))
+}
+
+const toggleDocsmeDocumentSelection = (name: string, checked: boolean) => {
+  selectedDocsmeDocumentNames.value = checked
+    ? Array.from(new Set([...selectedDocsmeDocumentNames.value, name]))
+    : selectedDocsmeDocumentNames.value.filter((item) => item !== name)
+}
+
+const toggleAllVisibleDocsmeDocuments = (checked: boolean) => {
+  const currentPageNames = pagedImportableDocsmeDocuments.value.map((document) => document.docName)
+  if (checked) {
+    selectedDocsmeDocumentNames.value = Array.from(
+      new Set([...selectedDocsmeDocumentNames.value, ...currentPageNames]),
+    )
+    return
+  }
+  const currentPageNameSet = new Set(currentPageNames)
+  selectedDocsmeDocumentNames.value = selectedDocsmeDocumentNames.value.filter(
+    (item) => !currentPageNameSet.has(item),
+  )
+}
+
+const importAllActive = () => {
+  if (importSourceType.value === 'POST') {
+    importPosts('all')
+    return
+  }
+  if (importSourceType.value === 'DOCSME') {
+    importDocsmeDocuments('all')
+    return
+  }
+  importTextDocument()
+}
+
+const importSelectedActive = () => {
+  if (importSourceType.value === 'POST') {
+    importPosts('selected')
+    return
+  }
+  if (importSourceType.value === 'DOCSME') {
+    importDocsmeDocuments('selected')
+  }
 }
 
 const importPosts = (mode: 'all' | 'selected') => {
@@ -561,6 +775,7 @@ const importPosts = (mode: 'all' | 'selected') => {
 
   Dialog.warning({
     title: '导入公开文章',
+    confirmText: mode === 'selected' ? '导入所选' : '导入全部',
     description:
       mode === 'selected'
         ? `将导入所选 ${postNames.length} 篇公开文章。${rebuildAfterImport.value ? '导入后会立即重建索引。' : ''}`
@@ -594,6 +809,100 @@ const importPosts = (mode: 'all' | 'selected') => {
   })
 }
 
+const importDocsmeDocuments = (mode: 'all' | 'selected') => {
+  if (!docsmeImportAvailable.value) {
+    Toast.warning('未检测到 Docsme 文档插件')
+    return
+  }
+  const docNames = mode === 'selected' ? selectedDocsmeDocumentNames.value : []
+  if (mode === 'selected' && docNames.length === 0) {
+    Toast.warning('请先选择要导入的文档')
+    return
+  }
+
+  Dialog.warning({
+    title: '导入 Docsme 文档',
+    confirmText: mode === 'selected' ? '导入所选' : '导入全部',
+    description:
+      mode === 'selected'
+        ? `将导入所选 ${docNames.length} 篇已发布文档。${rebuildAfterImport.value ? '导入后会立即重建索引。' : ''}`
+        : `将导入全部已发布的 Docsme 文档。${rebuildAfterImport.value ? '导入后会立即重建索引。' : ''}`,
+    onConfirm: async () => {
+      importing.value = true
+      try {
+        const result = await ragApi.importDocsmeDocuments(activeKnowledgeBaseName.value, docNames, {
+          rebuildAfterImport: rebuildAfterImport.value,
+        })
+        Toast.success(
+          result.task
+            ? `已导入 ${result.imported} 篇文档，索引任务已启动`
+            : `已导入 ${result.imported} 篇文档，请重建索引`,
+        )
+        showImportPostsModal.value = false
+        selectedDocsmeDocumentNames.value = []
+        if (result.task) {
+          latestTask.value = result.task
+          subscribeIndexTask(result.task)
+        } else {
+          markNeedsRebuild()
+        }
+        await refreshAll()
+      } catch (error) {
+        Toast.error('导入失败')
+      } finally {
+        importing.value = false
+      }
+    },
+  })
+}
+
+const importTextDocument = async () => {
+  const files = importableTextFiles.value
+  if (files.length === 0) {
+    Toast.warning('请先上传可导入的文件')
+    return
+  }
+
+  importing.value = true
+  try {
+    await Promise.all(
+      files.map((file) => {
+        const title = file.title.trim() || textImportTitleFromFileName(file.fileName)
+        const sourceName = file.sourceName.trim() || title || generatedTextImportSourceName()
+        return ragApi.saveDocument({
+          name: textImportDocumentName(sourceName),
+          knowledgeBase: activeKnowledgeBaseName.value,
+          sourceType: 'MANUAL',
+          sourceName,
+          title,
+          content: textImportFileContent(file).trim(),
+          enabled: true,
+          tags: [],
+          categories: [],
+        })
+      }),
+    )
+
+    if (rebuildAfterImport.value) {
+      const result = await ragApi.rebuild(activeKnowledgeBaseName.value)
+      latestTask.value = result.task
+      subscribeIndexTask(result.task)
+      Toast.success(`已导入 ${files.length} 个文件，索引任务已启动`)
+    } else {
+      markNeedsRebuild()
+      Toast.success(`已导入 ${files.length} 个文件，请重建索引`)
+    }
+
+    showImportPostsModal.value = false
+    textImportForm.value = createRagTextImportForm()
+    await refreshAll()
+  } catch (error) {
+    Toast.error('文件导入失败')
+  } finally {
+    importing.value = false
+  }
+}
+
 const rebuildIndex = () => {
   Dialog.warning({
     title: '确认重建索引',
@@ -621,15 +930,19 @@ const rebuildIndex = () => {
 const runSearch = async () => {
   if (!searchQuery.value.trim()) {
     searchResults.value = []
+    searchElapsedMs.value = undefined
     return
   }
   searching.value = true
+  searchElapsedMs.value = undefined
+  const startedAt = performance.now()
   try {
     searchResults.value = await ragApi.search({
       knowledgeBase: activeKnowledgeBaseName.value,
       query: searchQuery.value.trim(),
-      limit: 10,
+      limit: Number(searchLimit.value) || 10,
     })
+    searchElapsedMs.value = Math.round(performance.now() - startedAt)
   } catch (error) {
     Toast.error('搜索失败')
   } finally {
@@ -761,11 +1074,91 @@ const statusInfo = (state?: string) => {
 
 const sourceTypeText = (sourceType?: string) => {
   if (sourceType === 'POST') return '文章'
+  if (sourceType === 'DOCSME') return '文档'
   if (sourceType === 'PAGE') return '页面'
   if (sourceType === 'MANUAL') return '手动'
   if (sourceType === 'ATTACHMENT') return '附件'
   return sourceType || '未知'
 }
+
+const searchScoreBreakdown = (item: RagSearchResult) =>
+  [
+    { label: '综合', value: item.score },
+    { label: '向量', value: item.vectorScore },
+    { label: '关键词', value: item.keywordScore },
+    { label: '重排', value: item.rerankScore },
+  ].filter((score) => typeof score.value === 'number' && Number.isFinite(score.value))
+
+const formatScore = (value?: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return '-'
+  }
+  const absolute = Math.abs(value)
+  if (absolute >= 100) {
+    return value.toFixed(0)
+  }
+  if (absolute >= 10) {
+    return value.toFixed(2)
+  }
+  return value.toFixed(4)
+}
+
+const searchResultTitle = (item: RagSearchResult) =>
+  item.title || item.documentName || item.sourceName || item.id
+
+const searchResultMetaLine = (item: RagSearchResult) =>
+  [
+    sourceTypeText(item.sourceType),
+    item.sourceName,
+    item.documentName,
+    typeof item.chunkIndex === 'number' ? `分块 #${item.chunkIndex}` : undefined,
+  ]
+    .filter((value) => value && !isImportedTechnicalLabel(item.sourceType, value))
+    .join(' · ')
+
+const searchMetadataEntries = (item: RagSearchResult) =>
+  Object.entries(item.metadata || {})
+    .filter(([, value]) => value !== undefined && value !== null && `${value}`.trim() !== '')
+    .slice(0, 8)
+    .map(([key, value]) => ({
+      key,
+      value: metadataValueText(value),
+    }))
+
+const metadataValueText = (value: unknown) => {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
+const visibleDocumentCategories = (document: RagDocument) => {
+  const sourceType = document.spec?.sourceType
+  return (document.spec?.categories || [])
+    .map((category) => category.trim())
+    .filter(Boolean)
+    .filter((category, index, categories) => categories.indexOf(category) === index)
+    .filter((category) => !isImportedTechnicalLabel(sourceType, category))
+    .slice(0, 2)
+}
+
+const isImportedTechnicalLabel = (sourceType: string | undefined, value: string) => {
+  if (sourceType === 'MANUAL') {
+    return false
+  }
+  return isUuidLike(value) || isDocsmeProjectId(sourceType, value)
+}
+
+const isUuidLike = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  )
+
+const isDocsmeProjectId = (sourceType: string | undefined, value: string) =>
+  sourceType === 'DOCSME' && /^project-[a-z0-9-]+$/i.test(value)
 
 const displayName = (knowledgeBase?: RagKnowledgeBase) =>
   knowledgeBase?.spec?.displayName || knowledgeBase?.metadata.name || '知识库'
@@ -795,6 +1188,44 @@ const splitInput = (value: string) =>
     .split(/[,，]/)
     .map((item) => item.trim())
     .filter(Boolean)
+
+const textImportFileContent = (file: RagTextImportFile) =>
+  file.mode === 'RICH_TEXT' ? file.richText : file.markdown
+
+const plainTextFromImportFile = (file: RagTextImportFile) => {
+  const content = textImportFileContent(file)
+  if (!content.trim()) {
+    return ''
+  }
+  if (file.mode !== 'RICH_TEXT') {
+    return content.trim()
+  }
+  if (typeof DOMParser === 'undefined') {
+    return content
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+  const parsed = new DOMParser().parseFromString(content, 'text/html')
+  return (parsed.body.textContent || '').replace(/\s+/g, ' ').trim()
+}
+
+const generatedTextImportSourceName = () =>
+  `text-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+
+const textImportTitleFromFileName = (fileName: string) =>
+  fileName.replace(/\.(md|markdown|txt|html?)$/i, '').trim()
+
+const textImportDocumentName = (sourceName: string) => {
+  const segment =
+    sourceName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48) || generatedTextImportSourceName()
+  return `ragdoc-text-${segment}`.slice(0, 63).replace(/-+$/g, '')
+}
 
 const markNeedsRebuild = () => {
   localNeedsRebuild.value = true
@@ -834,12 +1265,40 @@ watch(activeKnowledgeBaseName, () => {
   closeTaskSubscription()
   stopAsk()
   searchResults.value = []
+  searchElapsedMs.value = undefined
   answer.value = ''
   answerSources.value = []
   askStreamError.value = ''
   latestTask.value = undefined
   localNeedsRebuild.value = false
 })
+
+watch(importKeyword, () => {
+  importablePostPage.value = 1
+  importableDocsmeDocumentPage.value = 1
+})
+
+watch(importablePageSize, () => {
+  importablePostPage.value = 1
+  importableDocsmeDocumentPage.value = 1
+})
+
+watch(
+  () => importableFilteredPosts.value.length,
+  () => {
+    importablePostPage.value = Math.min(importablePostPage.value, importablePostMaxPage.value)
+  },
+)
+
+watch(
+  () => importableFilteredDocsmeDocuments.value.length,
+  () => {
+    importableDocsmeDocumentPage.value = Math.min(
+      importableDocsmeDocumentPage.value,
+      importableDocsmeDocumentMaxPage.value,
+    )
+  },
+)
 
 onMounted(async () => {
   await fetchKnowledgeBases()
@@ -1038,7 +1497,7 @@ onBeforeUnmount(() => {
           <template #icon>
             <RiSearchLine class="h-full w-full" />
           </template>
-          检索测试
+          命中调试
         </VButton>
         <VButton size="sm" @click="showAskPanel = !showAskPanel">
           <template #icon>
@@ -1215,7 +1674,7 @@ onBeforeUnmount(() => {
           >
             <div class=":uno: flex items-center gap-2 text-[13px] font-bold text-gray-900">
               <RiSearchLine class=":uno: h-4 w-4 text-slate-500" />
-              <span>检索测试</span>
+              <span>RAG 命中调试</span>
             </div>
             <VButton size="sm" circle v-tooltip="'关闭'" @click="showSearchPanel = false">
               <template #icon>
@@ -1225,7 +1684,7 @@ onBeforeUnmount(() => {
           </div>
           <div class=":uno: grid gap-3 p-4">
             <div
-              class="panel-form-row :uno: grid grid-cols-[minmax(0,1fr)_max-content] items-end gap-2.5 max-[720px]:grid-cols-1"
+              class="panel-form-row :uno: grid grid-cols-[minmax(0,1fr)_8.5rem_max-content] items-end gap-2.5 max-[720px]:grid-cols-1"
             >
               <FormKit
                 v-model="searchQuery"
@@ -1235,13 +1694,35 @@ onBeforeUnmount(() => {
                 placeholder="输入关键词或问题进行测试"
                 @keyup.enter="runSearch"
               />
+              <FormKit
+                v-model="searchLimit"
+                type="select"
+                name="searchLimit"
+                label="返回条数"
+                :options="[
+                  { label: '5 条', value: 5 },
+                  { label: '10 条', value: 10 },
+                  { label: '20 条', value: 20 },
+                ]"
+              />
               <VButton size="sm" :loading="searching" @click="runSearch">搜索</VButton>
+            </div>
+            <div
+              class=":uno: flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700"
+            >
+              <span>当前知识库：{{ displayName(activeKnowledgeBase) }}</span>
+              <span v-if="searchElapsedMs !== undefined">耗时 {{ searchElapsedMs }}ms</span>
+              <span v-if="searchResults.length">命中 {{ searchResults.length }} 条</span>
+              <span v-if="activeKnowledgeBase?.status?.indexState">
+                索引 {{ statusInfo(activeKnowledgeBase.status?.indexState).text }}
+              </span>
             </div>
             <div
               class=":uno: min-h-[160px] overflow-hidden rounded-lg border border-[#edf0f5] bg-slate-50"
             >
+              <VLoading v-if="searching" />
               <div
-                v-if="searchResults.length === 0"
+                v-else-if="searchResults.length === 0"
                 class=":uno: flex min-h-[160px] flex-col items-center justify-center gap-2 text-xs text-slate-400"
               >
                 <RiSearchLine class=":uno: h-8 w-8 text-slate-300" />
@@ -1251,30 +1732,66 @@ onBeforeUnmount(() => {
                 <div
                   v-for="(item, index) in searchResults"
                   :key="item.id"
-                  class=":uno: grid grid-cols-[28px_minmax(0,1fr)] gap-3 px-3.5 py-3 hover:bg-slate-50"
+                  class=":uno: grid grid-cols-[32px_minmax(0,1fr)] gap-3 px-3.5 py-3 hover:bg-slate-50"
                 >
                   <span
-                    class=":uno: grid h-7 w-7 place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-600"
+                    class=":uno: grid h-8 w-8 place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-600"
                   >
                     {{ index + 1 }}
                   </span>
-                  <div class=":uno: grid min-w-0 gap-1.5">
-                    <div class=":uno: flex items-center justify-between gap-3">
+                  <div class=":uno: grid min-w-0 gap-2">
+                    <div class=":uno: flex items-start justify-between gap-3">
                       <div
-                        class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-gray-900"
+                        class=":uno: min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-gray-900"
                       >
-                        {{ item.title || item.id }}
+                        {{ searchResultTitle(item) }}
                       </div>
-                      <div class=":uno: text-xs font-bold text-blue-600">
-                        {{ ((item.rerankScore ?? item.score ?? 0) * 100).toFixed(1) }}%
+                      <div class=":uno: flex flex-none flex-wrap justify-end gap-1.5">
+                        <span
+                          v-for="score in searchScoreBreakdown(item)"
+                          :key="score.label"
+                          class=":uno: inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
+                        >
+                          <span>{{ score.label }}</span>
+                          <strong class=":uno: font-mono text-blue-600">{{
+                            formatScore(score.value)
+                          }}</strong>
+                        </span>
                       </div>
+                    </div>
+                    <div class=":uno: flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                      <VTag v-if="item.sourceType" size="sm">
+                        {{ sourceTypeText(item.sourceType) }}
+                      </VTag>
+                      <span>{{ searchResultMetaLine(item) || '无来源元信息' }}</span>
                     </div>
                     <div class=":uno: line-clamp-2 text-xs leading-relaxed text-slate-500">
                       {{ stripHtmlAndMarkdown(item.content) }}
                     </div>
-                    <div v-if="item.sourceType">
-                      <VTag size="sm">{{ sourceTypeText(item.sourceType) }}</VTag>
-                    </div>
+                    <details class=":uno: rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
+                      <summary class=":uno: cursor-pointer text-xs font-semibold text-slate-600">
+                        查看命中片段和调试信息
+                      </summary>
+                      <div
+                        class=":uno: mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded bg-white p-2 text-xs leading-relaxed text-slate-700"
+                      >
+                        {{ item.content || '暂无片段内容' }}
+                      </div>
+                      <div
+                        v-if="searchMetadataEntries(item).length"
+                        class=":uno: mt-2 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1 text-[11px] text-slate-500"
+                      >
+                        <template
+                          v-for="entry in searchMetadataEntries(item)"
+                          :key="entry.key"
+                        >
+                          <span class=":uno: font-semibold text-slate-400">{{ entry.key }}</span>
+                          <span class=":uno: min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                            {{ entry.value }}
+                          </span>
+                        </template>
+                      </div>
+                    </details>
                   </div>
                 </div>
               </div>
@@ -1401,7 +1918,7 @@ onBeforeUnmount(() => {
                   </template>
                 </VEntityField>
                 <VEntityField
-                  v-for="category in (document.spec?.categories || []).slice(0, 2)"
+                  v-for="category in visibleDocumentCategories(document)"
                   :key="category"
                   width="6rem"
                 >
@@ -1600,115 +2117,338 @@ onBeforeUnmount(() => {
     </template>
   </VModal>
 
-  <VModal v-model:visible="showImportPostsModal" title="导入知识库" :width="760">
+  <VModal v-model:visible="showImportPostsModal" title="导入知识库" :width="820">
     <div class=":uno: grid gap-4">
+      <div class=":uno: flex flex-wrap gap-2 rounded-lg bg-slate-100 p-1">
+        <button
+          type="button"
+          class=":uno: inline-flex flex-1 items-center justify-center gap-2 rounded-md border-0 px-3 py-2 text-sm font-medium transition-colors"
+          :class="
+            importSourceType === 'POST'
+              ? ':uno: bg-white text-blue-600 shadow-sm'
+              : ':uno: bg-transparent text-slate-500 hover:text-slate-800'
+          "
+          @click="switchImportSourceType('POST')"
+        >
+          <RiArticleLine class=":uno: h-4 w-4" />
+          <span>文章导入</span>
+        </button>
+        <button
+          type="button"
+          class=":uno: inline-flex flex-1 items-center justify-center gap-2 rounded-md border-0 px-3 py-2 text-sm font-medium transition-colors"
+          :class="
+            importSourceType === 'DOCSME'
+              ? ':uno: bg-white text-blue-600 shadow-sm'
+              : ':uno: bg-transparent text-slate-500 hover:text-slate-800'
+          "
+          @click="switchImportSourceType('DOCSME')"
+        >
+          <RiFileTextLine class=":uno: h-4 w-4" />
+          <span>文档导入</span>
+        </button>
+        <button
+          type="button"
+          class=":uno: inline-flex flex-1 items-center justify-center gap-2 rounded-md border-0 px-3 py-2 text-sm font-medium transition-colors"
+          :class="
+            importSourceType === 'TEXT'
+              ? ':uno: bg-white text-blue-600 shadow-sm'
+              : ':uno: bg-transparent text-slate-500 hover:text-slate-800'
+          "
+          @click="switchImportSourceType('TEXT')"
+        >
+          <RiFileTextLine class=":uno: h-4 w-4" />
+          <span>文件导入</span>
+        </button>
+      </div>
+
       <div class=":uno: grid gap-4 rounded-lg border border-[#edf0f5] bg-white p-4">
         <div class=":uno: flex items-center gap-3">
           <div class=":uno: grid h-10 w-10 place-items-center rounded-lg bg-blue-50 text-blue-600">
-            <RiArticleLine class=":uno: h-5 w-5" />
+            <RiArticleLine v-if="importSourceType === 'POST'" class=":uno: h-5 w-5" />
+            <RiFileTextLine v-else class=":uno: h-5 w-5" />
           </div>
           <div>
-            <h4 class=":uno: m-0 text-sm font-bold text-gray-900">导入 Halo 文章</h4>
-            <p class=":uno: m-0 mt-1 text-xs text-slate-500">将已发布的博客文章同步到当前知识库</p>
+            <h4 class=":uno: m-0 text-sm font-bold text-gray-900">
+              {{ importSourceTitle }}
+            </h4>
+            <p class=":uno: m-0 mt-1 text-xs text-slate-500">
+              {{ importSourceDescription }}
+            </p>
           </div>
         </div>
 
         <div
-          class="panel-form-row :uno: grid grid-cols-[minmax(0,1fr)_max-content] items-end gap-2.5 max-[720px]:grid-cols-1"
+          v-if="importSourceType !== 'TEXT'"
+          class="panel-form-row :uno: grid w-full grid-cols-[minmax(0,42rem)_max-content] items-end justify-start gap-2.5 max-[720px]:grid-cols-1"
         >
           <FormKit
             v-model="importKeyword"
             type="text"
             name="importKeyword"
-            label="搜索文章"
-            placeholder="输入标题或文章标识"
+            :label="importSourceType === 'POST' ? '搜索文章' : '搜索文档'"
+            :placeholder="
+              importSourceType === 'POST' ? '输入标题或文章标识' : '输入标题、文档标识或项目名'
+            "
           />
-          <VButton size="sm" :loading="loadingImportablePosts" @click="fetchImportablePosts">
+          <VButton size="sm" :loading="loadingActiveImportables" @click="fetchActiveImportables">
             刷新
           </VButton>
         </div>
 
-        <label class=":uno: inline-flex items-center gap-2 text-[13px] text-slate-700">
-          <VSwitch v-model="rebuildAfterImport" />
-          <span>导入后立即重建索引</span>
-        </label>
-
-        <VLoading v-if="loadingImportablePosts" />
-        <VEmpty v-else-if="importableFilteredPosts.length === 0" title="暂无可导入文章" />
-        <VEntityContainer
-          v-else
-          class="post-list :uno: overflow-hidden rounded-lg border border-[#edf0f5]"
+        <div
+          class=":uno: rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-3 text-amber-950"
         >
-          <VEntity>
-            <template #start>
+          <div class=":uno: flex items-start justify-between gap-3 max-[720px]:flex-col">
+            <div class=":uno: flex min-w-0 gap-2.5">
               <div
-                class=":uno: grid w-[min(38rem,60vw)] min-w-0 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 max-[1080px]:w-[min(100%,60vw)] max-[720px]:w-full"
+                class=":uno: mt-0.5 grid h-8 w-8 flex-none place-items-center rounded-md bg-amber-100 text-amber-700"
               >
-                <VSwitch
-                  :model-value="allVisiblePostsSelected"
-                  @update:model-value="toggleAllVisiblePosts"
-                />
-                <VEntityField title="文章" description="选择需要导入到当前知识库的公开文章" />
+                <RiAlertLine class=":uno: h-4.5 w-4.5" />
               </div>
-            </template>
-            <template #end>
-              <VEntityField>
-                <template #description>
-                  <span
-                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+              <div class=":uno: min-w-0">
+                <p class=":uno: m-0 text-sm font-semibold">导入完成后立即重建索引</p>
+                <p class=":uno: m-0 mt-1 text-xs leading-5 text-amber-800">
+                  会重新向量化当前知识库全部启用条目，可能耗时并消耗 AI
+                  配额；通常建议导入完成后确认内容，再手动重建。
+                </p>
+              </div>
+            </div>
+            <VSwitch v-model="rebuildAfterImport" />
+          </div>
+        </div>
+
+        <RagTextImportFormPanel v-if="importSourceType === 'TEXT'" v-model="textImportForm" />
+
+        <template v-else-if="importSourceType === 'POST'">
+          <VLoading v-if="loadingImportablePosts" />
+          <VEmpty v-else-if="importableFilteredPosts.length === 0" title="暂无可导入文章" />
+          <VEntityContainer
+            v-else
+            class="post-list :uno: max-h-[420px] overflow-auto rounded-lg border border-[#edf0f5]"
+          >
+            <VEntity>
+              <template #start>
+                <div
+                  class=":uno: grid w-[min(38rem,60vw)] min-w-0 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 max-[1080px]:w-[min(100%,60vw)] max-[720px]:w-full"
+                >
+                  <label
+                    class="selection-checkbox :uno: inline-flex h-9 w-9 items-center justify-center"
                   >
-                    已选 {{ selectedPostNames.length }}
-                  </span>
-                </template>
-              </VEntityField>
-            </template>
-          </VEntity>
-          <VEntity v-for="post in importableFilteredPosts" :key="post.postName">
-            <template #start>
-              <div
-                class=":uno: grid w-[min(38rem,60vw)] min-w-0 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 max-[1080px]:w-[min(100%,60vw)] max-[720px]:w-full"
-              >
-                <VSwitch
-                  :model-value="selectedImportableSet.has(post.postName)"
-                  @update:model-value="(checked) => togglePostSelection(post.postName, checked)"
-                />
-                <VEntityField :title="post.title || post.postName">
+                    <input
+                      :checked="allVisiblePostsSelected"
+                      type="checkbox"
+                      aria-label="选择当前页文章"
+                      @change="(event) => toggleAllVisiblePosts(checkboxChecked(event))"
+                    />
+                  </label>
+                  <VEntityField
+                    title="文章"
+                    :description="`当前页 ${pagedImportablePosts.length} / ${importableFilteredPosts.length}`"
+                  />
+                </div>
+              </template>
+              <template #end>
+                <VEntityField>
                   <template #description>
                     <span
                       class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
                     >
-                      {{ post.postName }} · {{ post.chunkCount || 0 }} 分块 ·
-                      {{ formatDate(post.lastImportedAt) }}
+                      已选 {{ selectedPostNames.length }}
                     </span>
                   </template>
                 </VEntityField>
-              </div>
-            </template>
-            <template #end>
-              <VEntityField>
-                <template #description>
-                  <VTag
-                    :class="
-                      post.imported
-                        ? ':uno: bg-emerald-50 text-emerald-700'
-                        : ':uno: bg-slate-100 text-slate-500'
-                    "
+              </template>
+            </VEntity>
+            <VEntity v-for="post in pagedImportablePosts" :key="post.postName">
+              <template #start>
+                <div
+                  class=":uno: grid w-[min(38rem,60vw)] min-w-0 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 max-[1080px]:w-[min(100%,60vw)] max-[720px]:w-full"
+                >
+                  <label
+                    class="selection-checkbox :uno: inline-flex h-9 w-9 items-center justify-center"
                   >
-                    {{ post.imported ? '已导入' : '未导入' }}
-                  </VTag>
-                </template>
-              </VEntityField>
-            </template>
-          </VEntity>
-        </VEntityContainer>
+                    <input
+                      :checked="selectedImportableSet.has(post.postName)"
+                      type="checkbox"
+                      :aria-label="`选择 ${post.title || post.postName}`"
+                      @change="
+                        (event) => togglePostSelection(post.postName, checkboxChecked(event))
+                      "
+                    />
+                  </label>
+                  <VEntityField :title="post.title || post.postName">
+                    <template #description>
+                      <span
+                        class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                      >
+                        {{ post.postName }} · {{ post.chunkCount || 0 }} 分块 ·
+                        {{ formatDate(post.lastImportedAt) }}
+                      </span>
+                    </template>
+                  </VEntityField>
+                </div>
+              </template>
+              <template #end>
+                <VEntityField>
+                  <template #description>
+                    <VTag
+                      :class="
+                        post.imported
+                          ? ':uno: bg-emerald-50 text-emerald-700'
+                          : ':uno: bg-slate-100 text-slate-500'
+                      "
+                    >
+                      {{ post.imported ? '已导入' : '未导入' }}
+                    </VTag>
+                  </template>
+                </VEntityField>
+              </template>
+            </VEntity>
+          </VEntityContainer>
+          <div
+            v-if="importableFilteredPosts.length > importablePageSize"
+            class=":uno: flex justify-end overflow-x-auto"
+          >
+            <VPagination
+              v-model:page="importablePostPage"
+              v-model:size="importablePageSize"
+              page-label="页"
+              size-label="条 / 页"
+              :total-label="`共 ${importableFilteredPosts.length} 篇文章`"
+              :total="importableFilteredPosts.length"
+              :size-options="[10, 20, 50]"
+            />
+          </div>
+        </template>
+
+        <template v-else>
+          <VLoading v-if="loadingImportableDocsmeDocuments" />
+          <VEmpty v-else-if="!docsmeImportAvailable" title="未检测到 Docsme 文档插件" />
+          <VEmpty
+            v-else-if="importableFilteredDocsmeDocuments.length === 0"
+            title="暂无可导入文档"
+          />
+          <VEntityContainer
+            v-else
+            class="post-list :uno: max-h-[420px] overflow-auto rounded-lg border border-[#edf0f5]"
+          >
+            <VEntity>
+              <template #start>
+                <div
+                  class=":uno: grid w-[min(38rem,60vw)] min-w-0 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 max-[1080px]:w-[min(100%,60vw)] max-[720px]:w-full"
+                >
+                  <label
+                    class="selection-checkbox :uno: inline-flex h-9 w-9 items-center justify-center"
+                  >
+                    <input
+                      :checked="allVisibleDocsmeDocumentsSelected"
+                      type="checkbox"
+                      aria-label="选择当前页文档"
+                      @change="(event) => toggleAllVisibleDocsmeDocuments(checkboxChecked(event))"
+                    />
+                  </label>
+                  <VEntityField
+                    title="文档"
+                    :description="`当前页 ${pagedImportableDocsmeDocuments.length} / ${importableFilteredDocsmeDocuments.length}`"
+                  />
+                </div>
+              </template>
+              <template #end>
+                <VEntityField>
+                  <template #description>
+                    <span
+                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                    >
+                      已选 {{ selectedDocsmeDocumentNames.length }}
+                    </span>
+                  </template>
+                </VEntityField>
+              </template>
+            </VEntity>
+            <VEntity v-for="document in pagedImportableDocsmeDocuments" :key="document.docName">
+              <template #start>
+                <div
+                  class=":uno: grid w-[min(38rem,60vw)] min-w-0 grid-cols-[44px_minmax(0,1fr)] items-center gap-3 max-[1080px]:w-[min(100%,60vw)] max-[720px]:w-full"
+                >
+                  <label
+                    class="selection-checkbox :uno: inline-flex h-9 w-9 items-center justify-center"
+                  >
+                    <input
+                      :checked="selectedDocsmeDocumentSet.has(document.docName)"
+                      type="checkbox"
+                      :aria-label="`选择 ${document.title || document.docName}`"
+                      @change="
+                        (event) =>
+                          toggleDocsmeDocumentSelection(document.docName, checkboxChecked(event))
+                      "
+                    />
+                  </label>
+                  <VEntityField :title="document.title || document.docName">
+                    <template #description>
+                      <span
+                        class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                      >
+                        {{ document.projectDisplayName || document.projectName || 'Docsme' }} ·
+                        {{ document.versionSlug || 'default' }} ·
+                        {{ document.chunkCount || 0 }} 分块 ·
+                        {{ formatDate(document.lastImportedAt) }}
+                      </span>
+                    </template>
+                  </VEntityField>
+                </div>
+              </template>
+              <template #end>
+                <VEntityField>
+                  <template #description>
+                    <VTag
+                      :class="
+                        document.imported
+                          ? ':uno: bg-emerald-50 text-emerald-700'
+                          : ':uno: bg-slate-100 text-slate-500'
+                      "
+                    >
+                      {{ document.imported ? '已导入' : '未导入' }}
+                    </VTag>
+                  </template>
+                </VEntityField>
+              </template>
+            </VEntity>
+          </VEntityContainer>
+          <div
+            v-if="importableFilteredDocsmeDocuments.length > importablePageSize"
+            class=":uno: flex justify-end overflow-x-auto"
+          >
+            <VPagination
+              v-model:page="importableDocsmeDocumentPage"
+              v-model:size="importablePageSize"
+              page-label="页"
+              size-label="条 / 页"
+              :total-label="`共 ${importableFilteredDocsmeDocuments.length} 篇文档`"
+              :total="importableFilteredDocsmeDocuments.length"
+              :size-options="[10, 20, 50]"
+            />
+          </div>
+        </template>
       </div>
     </div>
     <template #footer>
       <VSpace>
         <VButton @click="showImportPostsModal = false">取消</VButton>
-        <VButton :loading="importing" @click="importPosts('all')">导入全部</VButton>
-        <VButton type="primary" :loading="importing" @click="importPosts('selected')">
-          导入所选 {{ selectedPostNames.length }}
+        <VButton
+          v-if="importSourceType !== 'TEXT'"
+          :loading="importing"
+          :disabled="selectedImportCount === 0 || importing || activeImportUnavailable"
+          @click="importSelectedActive"
+        >
+          导入所选 {{ selectedImportCount }}
+        </VButton>
+        <VButton
+          type="primary"
+          :loading="importing"
+          :disabled="activeImportPrimaryDisabled"
+          @click="importAllActive"
+        >
+          {{ activeImportAllButtonText }}
         </VButton>
       </VSpace>
     </template>
@@ -1733,8 +2473,19 @@ onBeforeUnmount(() => {
   max-width: none;
 }
 
-.panel-form-row :deep(.formkit-outer) {
+.panel-form-row :deep(.formkit-outer),
+.panel-form-row :deep(.formkit-wrapper),
+.panel-form-row :deep(.formkit-inner) {
   margin-bottom: 0;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.panel-form-row :deep(.formkit-input) {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .form-stack :deep(.formkit-outer),
@@ -1759,6 +2510,14 @@ onBeforeUnmount(() => {
 .post-list :deep(.entity-end) {
   gap: 14px;
   row-gap: 6px;
+}
+
+.selection-checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #2563eb;
 }
 
 @media (max-width: 720px) {

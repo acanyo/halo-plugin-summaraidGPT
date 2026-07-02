@@ -39,6 +39,7 @@ import { renderSelectionPopover } from './renderers/selection-popover';
 import { applyAssistantTheme } from './theme';
 import type {
   RagAssistantConfig,
+  RagAssistantActivity,
   RagAssistantMessage,
   RagConversation,
   RagConversationMessage,
@@ -50,8 +51,12 @@ const MAX_SELECTION_LENGTH = 1600;
 const FLOATING_POSITION_STORAGE_KEY = 'likcc_summaraidgpt_rag_assistant_position';
 const CONVERSATION_ID_STORAGE_KEY = 'likcc_summaraidgpt_rag_conversation_id';
 const VISITOR_ID_STORAGE_KEY = 'likcc_summaraidgpt_rag_visitor_id';
+const PET_PANEL_HEIGHT_STORAGE_KEY = 'likcc_summaraidgpt_rag_panel_height';
 const FLOATING_MARGIN = 16;
 const DRAG_THRESHOLD = 4;
+const PET_PANEL_DEFAULT_HEIGHT = 318;
+const PET_PANEL_MIN_HEIGHT = PET_PANEL_DEFAULT_HEIGHT;
+const PET_PANEL_TOP_GAP = 12;
 
 interface FloatingPosition {
   x: number;
@@ -67,6 +72,13 @@ interface BubbleDragState {
   originY: number;
   lastX: number;
   moved: boolean;
+}
+
+interface PanelResizeState {
+  pointerId: number;
+  target: HTMLElement;
+  startY: number;
+  startHeight: number;
 }
 
 @customElement('summaraid-rag-assistant')
@@ -95,10 +107,10 @@ export class RagAssistantWidget extends LitElement {
   private selectedContext = '';
 
   @state()
-  private petSourcesOpen = false;
+  private messages: RagAssistantMessage[] = [];
 
   @state()
-  private messages: RagAssistantMessage[] = [];
+  private agentActivities: RagAssistantActivity[] = [];
 
   @state()
   private streaming = false;
@@ -144,6 +156,12 @@ export class RagAssistantWidget extends LitElement {
   @state()
   private petSpeechText = '';
 
+  @state()
+  private petPanelHeight = PET_PANEL_DEFAULT_HEIGHT;
+
+  @state()
+  private resizingPetPanel = false;
+
   @query('.pet-stage-output')
   private messagesElement?: HTMLElement;
 
@@ -153,12 +171,16 @@ export class RagAssistantWidget extends LitElement {
   @query('.pet-composer-input')
   private petInputElement?: HTMLTextAreaElement;
 
+  @query('.pet-panel-thread')
+  private petPanelThreadElement?: HTMLElement;
+
   private abortController?: AbortController;
   private agentChatClient?: AgentChatClient;
   private agentHistoryMessages: UIMessage[] = [];
   private conversationId?: string;
   private visitorId = this.loadOrCreateVisitorId();
   private bubbleDragState?: BubbleDragState;
+  private panelResizeState?: PanelResizeState;
   private suppressNextBubbleClick = false;
   private floatingPositionLocked = false;
   private petAnimationTimer = 0;
@@ -185,14 +207,20 @@ export class RagAssistantWidget extends LitElement {
   };
   private readonly handleWindowResize = () => {
     this.clampCurrentFloatingPosition();
+    this.petPanelHeight = this.clampPetPanelHeight(this.petPanelHeight);
   };
   private readonly handleAgentStatus = (event: Event) => {
-    const message = (event as CustomEvent<{ message?: string }>).detail?.message?.trim();
+    const detail = (event as CustomEvent<{
+      message?: string;
+      kind?: RagAssistantActivity['kind'];
+    }>).detail;
+    const message = detail?.message?.trim();
     if (!message) {
       return;
     }
     this.petSpeechText = message;
     this.petSpeechVisible = true;
+    this.appendAgentActivity(message, detail?.kind || 'pending');
   };
   private readonly handleBubblePointerMove = (event: PointerEvent) => {
     const state = this.bubbleDragState;
@@ -249,10 +277,35 @@ export class RagAssistantWidget extends LitElement {
       }, 0);
     }
   };
+  private readonly handlePanelResizePointerMove = (event: PointerEvent) => {
+    const state = this.panelResizeState;
+    if (!state || event.pointerId !== state.pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    const deltaY = event.clientY - state.startY;
+    this.petPanelHeight = this.clampPetPanelHeight(state.startHeight - deltaY);
+  };
+  private readonly handlePanelResizePointerEnd = (event: PointerEvent) => {
+    const state = this.panelResizeState;
+    if (!state || event.pointerId !== state.pointerId) {
+      return;
+    }
+
+    if (state.target.hasPointerCapture(event.pointerId)) {
+      state.target.releasePointerCapture(event.pointerId);
+    }
+    this.unbindPanelResizeListeners();
+    this.panelResizeState = undefined;
+    this.resizingPetPanel = false;
+    this.savePetPanelHeight(this.petPanelHeight);
+  };
 
   connectedCallback(): void {
     super.connectedCallback();
     this.applyTheme();
+    this.petPanelHeight = this.clampPetPanelHeight(this.loadSavedPetPanelHeight());
     this.floatingPositionLocked = this.applySavedFloatingPosition();
     this.bindSelectionListeners();
     window.addEventListener('resize', this.handleWindowResize, { passive: true });
@@ -266,6 +319,7 @@ export class RagAssistantWidget extends LitElement {
     window.removeEventListener('resize', this.handleWindowResize);
     window.removeEventListener('summaraid:agent-status', this.handleAgentStatus);
     this.unbindBubbleDragListeners();
+    this.unbindPanelResizeListeners();
     this.stopPetAnimation();
     this.stopPetSpeechCycle();
     this.abortCurrentRequest();
@@ -279,10 +333,14 @@ export class RagAssistantWidget extends LitElement {
     ) {
       this.syncPetThinkingSpeech();
     }
+    if (changedProperties.has('messages') || changedProperties.has('petPanelOpen')) {
+      this.scrollPetPanelToBottom();
+    }
   }
 
   public openAssistant(question?: string, autoSubmit = false): void {
     this.petPanelOpen = true;
+    this.petPanelHeight = this.clampPetPanelHeight(this.petPanelHeight);
     this.petSpeechVisible = false;
     this.clearSelectionPopup();
 
@@ -318,6 +376,7 @@ export class RagAssistantWidget extends LitElement {
     } else {
       this.clampCurrentFloatingPosition();
     }
+    this.petPanelHeight = this.clampPetPanelHeight(this.petPanelHeight);
     this.floatingPositionReady = true;
     await this.preparePetSprite(config);
   }
@@ -394,20 +453,27 @@ export class RagAssistantWidget extends LitElement {
   private renderPetPanel(): TemplateResult {
     return renderPetPanelTemplate({
       assistantName: this.assistantName,
+      assistantAvatar: this.config.assistantAvatar,
+      avatarFallbackText: this.avatarFallbackText,
       streaming: this.streaming,
+      statusText: this.panelStatusText,
       selectedContext: this.selectedContext,
       selectedContextPreview: this.selectedContextPreview,
-      latestAssistant: this.latestAssistantMessage,
-      latestUser: this.latestUserMessage,
-      petSourcesOpen: this.petSourcesOpen,
+      messages: this.messages,
+      welcomeMessage: this.welcomeMessage,
+      quickQuestions: this.quickQuestions,
       input: this.input,
       petInputPlaceholder: this.petInputPlaceholder,
-      hasConversation: this.hasConversation,
-      truncateText: (value, maxLength) => this.truncateText(value, maxLength),
+      panelStyle: this.petPanelStyle,
+      resizing: this.resizingPetPanel,
       onOpenStage: () => this.openPetStage(),
+      onResizePointerDown: (event) => this.handlePetPanelResizePointerDown(event),
       onNewConversation: () => this.newConversation(),
+      onUsePrompt: (prompt) => this.usePrompt(prompt),
+      onStop: () => this.stopCurrentResponse(),
+      onCopyMessage: (message) => this.copyMessage(message),
+      onRetryMessage: (message) => this.retryMessage(message),
       onClearSelectedContext: () => this.clearSelectedContext(),
-      onTogglePetSources: () => this.togglePetSources(),
       onSubmit: (event) => this.handleSubmit(event),
       onInput: (event) => this.handleInput(event),
       onKeydown: (event) => this.handleInputKeydown(event),
@@ -422,8 +488,10 @@ export class RagAssistantWidget extends LitElement {
       assistantAvatar: this.config.assistantAvatar,
       avatarFallbackText: this.avatarFallbackText,
       messages: this.messages,
+      statusText: this.panelStatusText,
       welcomeMessage: this.welcomeMessage,
       welcomeTime: this.welcomeTime,
+      quickQuestions: this.quickQuestions,
       input: this.input,
       streaming: this.streaming,
       hasSources: this.hasLatestSources,
@@ -432,7 +500,10 @@ export class RagAssistantWidget extends LitElement {
       onClose: () => this.close(),
       onNewConversation: () => this.newConversation(),
       onExpandLatestSources: () => this.expandLatestSources(),
-      onUsePrompt: (prompt) => this.useStagePrompt(prompt),
+      onUsePrompt: (prompt) => this.usePrompt(prompt),
+      onStop: () => this.stopCurrentResponse(),
+      onCopyMessage: (message) => this.copyMessage(message),
+      onRetryMessage: (message) => this.retryMessage(message),
       onSubmit: (event) => this.handleSubmit(event),
       onInput: (event) => this.handleInput(event),
       onKeydown: (event) => this.handleInputKeydown(event),
@@ -524,6 +595,7 @@ export class RagAssistantWidget extends LitElement {
     this.petPanelOpen = !this.petPanelOpen;
     this.petSpeechVisible = false;
     if (this.petPanelOpen) {
+      this.petPanelHeight = this.clampPetPanelHeight(this.petPanelHeight);
       void this.updateComplete.then(() => this.focusPetInput());
     }
   }
@@ -537,6 +609,49 @@ export class RagAssistantWidget extends LitElement {
     target.removeEventListener('pointermove', this.handleBubblePointerMove);
     target.removeEventListener('pointerup', this.handleBubblePointerEnd);
     target.removeEventListener('pointercancel', this.handleBubblePointerEnd);
+  }
+
+  private handlePetPanelResizePointerDown(event: PointerEvent): void {
+    if (!event.isPrimary || event.button !== 0) {
+      return;
+    }
+
+    const target = event.currentTarget;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const panel = target.closest('.pet-panel');
+    if (!(panel instanceof HTMLElement)) {
+      return;
+    }
+
+    const rect = panel.getBoundingClientRect();
+    this.panelResizeState = {
+      pointerId: event.pointerId,
+      target,
+      startY: event.clientY,
+      startHeight: rect.height || this.petPanelHeight,
+    };
+
+    this.resizingPetPanel = true;
+    event.preventDefault();
+    event.stopPropagation();
+    target.setPointerCapture(event.pointerId);
+    target.addEventListener('pointermove', this.handlePanelResizePointerMove);
+    target.addEventListener('pointerup', this.handlePanelResizePointerEnd);
+    target.addEventListener('pointercancel', this.handlePanelResizePointerEnd);
+  }
+
+  private unbindPanelResizeListeners(): void {
+    const target = this.panelResizeState?.target;
+    if (!target) {
+      return;
+    }
+
+    target.removeEventListener('pointermove', this.handlePanelResizePointerMove);
+    target.removeEventListener('pointerup', this.handlePanelResizePointerEnd);
+    target.removeEventListener('pointercancel', this.handlePanelResizePointerEnd);
   }
 
   private applySavedFloatingPosition(): boolean {
@@ -611,6 +726,21 @@ export class RagAssistantWidget extends LitElement {
     };
   }
 
+  private clampPetPanelHeight(height: number): number {
+    const value = Number.isFinite(height) ? height : PET_PANEL_DEFAULT_HEIGHT;
+    return this.clamp(value, PET_PANEL_MIN_HEIGHT, this.maxPetPanelHeight());
+  }
+
+  private maxPetPanelHeight(): number {
+    const bubbleTop = this.floatingPosition?.y ?? this.defaultFloatingPosition(this.config).y;
+    const panelBottom = bubbleTop - PET_PANEL_TOP_GAP;
+    const viewportMax = window.innerHeight - FLOATING_MARGIN * 2;
+    return Math.max(
+      PET_PANEL_MIN_HEIGHT,
+      Math.min(viewportMax, panelBottom - FLOATING_MARGIN),
+    );
+  }
+
   private setFloatingPosition(position: FloatingPosition, persist: boolean): void {
     this.floatingPosition = position;
     this.position = position.x + this.bubbleWidth / 2 < window.innerWidth / 2 ? 'left' : 'right';
@@ -618,6 +748,7 @@ export class RagAssistantWidget extends LitElement {
     this.style.top = `${Math.round(position.y)}px`;
     this.style.right = 'auto';
     this.style.bottom = 'auto';
+    this.petPanelHeight = this.clampPetPanelHeight(this.petPanelHeight);
 
     if (persist) {
       this.saveFloatingPosition(position);
@@ -822,6 +953,27 @@ export class RagAssistantWidget extends LitElement {
     }
   }
 
+  private loadSavedPetPanelHeight(): number {
+    try {
+      const rawValue = window.localStorage.getItem(PET_PANEL_HEIGHT_STORAGE_KEY);
+      const height = rawValue ? Number(rawValue) : PET_PANEL_DEFAULT_HEIGHT;
+      return Number.isFinite(height) ? height : PET_PANEL_DEFAULT_HEIGHT;
+    } catch {
+      return PET_PANEL_DEFAULT_HEIGHT;
+    }
+  }
+
+  private savePetPanelHeight(height: number): void {
+    try {
+      window.localStorage.setItem(
+        PET_PANEL_HEIGHT_STORAGE_KEY,
+        String(Math.round(this.clampPetPanelHeight(height))),
+      );
+    } catch {
+      // localStorage may be unavailable in strict privacy modes.
+    }
+  }
+
   private async submitQuestion(rawQuestion: string): Promise<void> {
     const question = rawQuestion.trim();
     if (!question || this.streaming) {
@@ -838,9 +990,10 @@ export class RagAssistantWidget extends LitElement {
     const assistantMessageId = createMessageId();
     this.input = '';
     this.selectedContext = '';
-    this.petSourcesOpen = false;
     this.petPanelOpen = true;
     this.streaming = true;
+    this.agentActivities = [];
+    this.appendAgentActivity(this.useAgentChat ? '正在准备站点工具' : '正在检索知识库', 'pending');
     this.abortController = new AbortController();
 
     this.messages = [
@@ -880,6 +1033,7 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private async askAgentStream(question: string, assistantMessageId: string): Promise<void> {
+    this.appendAgentActivity('正在调用 Agent', 'pending');
     const client = new AgentChatClient();
     this.agentChatClient = client;
     const conversationId = this.ensureConversationId();
@@ -911,9 +1065,10 @@ export class RagAssistantWidget extends LitElement {
     }
     const assistantMessageId = createMessageId();
     this.petPanelOpen = true;
-    this.petSourcesOpen = false;
     this.streaming = true;
     this.abortController = new AbortController();
+    this.agentActivities = [];
+    this.appendAgentActivity('页面已打开，正在继续回答', 'pending');
     this.messages = [
       ...this.messages,
       createMessage('assistant', '', {
@@ -973,7 +1128,13 @@ export class RagAssistantWidget extends LitElement {
       },
       {
         onConversationId: (conversationId) => this.persistConversationId(conversationId),
-        onSources: (sources) => this.receiveSources(assistantMessageId, sources),
+        onSources: (sources) => {
+          this.appendAgentActivity(
+            sources.length ? `知识库命中 ${sources.length} 个来源` : '知识库没有命中来源',
+            sources.length ? 'success' : 'warning',
+          );
+          this.receiveSources(assistantMessageId, sources);
+        },
         onDelta: (delta) => this.appendAssistantDelta(assistantMessageId, delta),
         onError: (error) => this.failAssistantMessage(assistantMessageId, error),
         onDone: () => this.finishAssistantMessage(assistantMessageId),
@@ -983,10 +1144,38 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private receiveSources(messageId: string, sources: RagSourceReference[]): void {
+    if (!sources.length) {
+      return;
+    }
     this.updateMessage(messageId, (message) => ({
       ...message,
       sources,
     }));
+    this.appendAgentActivity(`已关联 ${sources.length} 个资源`, 'success');
+  }
+
+  private appendAgentActivity(
+    message: string,
+    kind: RagAssistantActivity['kind'] = 'pending',
+  ): void {
+    const value = message.trim();
+    if (!value) {
+      return;
+    }
+    const latest = this.agentActivities[this.agentActivities.length - 1];
+    if (latest?.message === value && latest.kind === kind) {
+      return;
+    }
+    this.agentActivities = [
+      ...this.agentActivities,
+      {
+        id: createMessageId(),
+        message: value,
+        kind,
+        time: formatTime(),
+      },
+    ].slice(-8);
+    void this.updateComplete.then(() => this.scrollPetPanelToBottom());
   }
 
   private async loadStoredConversation(): Promise<void> {
@@ -1185,9 +1374,9 @@ export class RagAssistantWidget extends LitElement {
     this.clearConversationId();
     this.agentHistoryMessages = [];
     this.messages = [];
+    this.agentActivities = [];
     this.input = '';
     this.selectedContext = '';
-    this.petSourcesOpen = false;
     this.streaming = false;
     this.petPanelOpen = true;
     void this.updateComplete.then(() => this.focusCurrentInput());
@@ -1246,7 +1435,6 @@ export class RagAssistantWidget extends LitElement {
   private openPetStage(): void {
     this.open = true;
     this.petPanelOpen = false;
-    this.petSourcesOpen = false;
     void this.updateComplete.then(() => {
       this.scrollToBottom();
       this.focusInput();
@@ -1256,10 +1444,6 @@ export class RagAssistantWidget extends LitElement {
   private clearSelectedContext(): void {
     this.selectedContext = '';
     void this.updateComplete.then(() => this.focusPetInput());
-  }
-
-  private togglePetSources(): void {
-    this.petSourcesOpen = !this.petSourcesOpen;
   }
 
   private expandLatestSources(): void {
@@ -1274,11 +1458,11 @@ export class RagAssistantWidget extends LitElement {
     void this.updateComplete.then(() => this.scrollToBottom());
   }
 
-  private useStagePrompt(prompt: string): void {
+  private usePrompt(prompt: string): void {
     if (prompt) {
       this.input = prompt;
     }
-    void this.updateComplete.then(() => this.focusInput());
+    void this.updateComplete.then(() => this.focusCurrentInput());
   }
 
   private scrollToBottom(): void {
@@ -1289,6 +1473,15 @@ export class RagAssistantWidget extends LitElement {
     this.messagesElement.scrollTop = this.messagesElement.scrollHeight;
   }
 
+  private scrollPetPanelToBottom(): void {
+    void this.updateComplete.then(() => {
+      if (!this.petPanelThreadElement) {
+        return;
+      }
+      this.petPanelThreadElement.scrollTop = this.petPanelThreadElement.scrollHeight;
+    });
+  }
+
   private abortCurrentRequest(): void {
     this.agentChatClient?.stop();
     this.agentChatClient = undefined;
@@ -1297,6 +1490,68 @@ export class RagAssistantWidget extends LitElement {
     }
 
     this.abortController.abort();
+  }
+
+  private stopCurrentResponse(): void {
+    if (!this.streaming) {
+      return;
+    }
+    const streamingMessage = [...this.messages]
+      .reverse()
+      .find((message) => message.role === 'assistant' && message.streaming);
+    if (streamingMessage) {
+      this.updateMessage(streamingMessage.id, (message) => ({
+        ...message,
+        content: message.content || '已停止生成。',
+        streaming: false,
+      }));
+    }
+    this.appendAgentActivity('已停止生成', 'warning');
+    this.streaming = false;
+    this.abortCurrentRequest();
+  }
+
+  private async copyMessage(message: RagAssistantMessage): Promise<void> {
+    const content = message.content.trim();
+    if (!content) {
+      return;
+    }
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API is unavailable');
+      }
+      await navigator.clipboard.writeText(content);
+      this.appendAgentActivity('已复制到剪贴板', 'success');
+    } catch {
+      this.appendAgentActivity('复制失败，请手动选择文本', 'error');
+    }
+  }
+
+  private retryMessage(message: RagAssistantMessage): void {
+    if (this.streaming) {
+      return;
+    }
+    const question = message.role === 'user'
+      ? message.content
+      : this.previousUserQuestion(message.id);
+    if (!question.trim()) {
+      return;
+    }
+    void this.submitQuestion(question);
+  }
+
+  private previousUserQuestion(messageId: string): string {
+    const index = this.messages.findIndex((message) => message.id === messageId);
+    if (index <= 0) {
+      return '';
+    }
+    for (let i = index - 1; i >= 0; i -= 1) {
+      const message = this.messages[i];
+      if (message.role === 'user' && message.content.trim()) {
+        return message.content;
+      }
+    }
+    return '';
   }
 
   private clamp(value: number, min: number, max: number): number {
@@ -1325,12 +1580,8 @@ export class RagAssistantWidget extends LitElement {
     return this.truncateText(this.selectedContext, 120);
   }
 
-  private get hasConversation(): boolean {
-    return this.messages.length > 0;
-  }
-
-  private get latestAssistantMessage(): RagAssistantMessage | undefined {
-    return [...this.messages].reverse().find((message) => message.role === 'assistant');
+  private get petPanelStyle(): string {
+    return `--rag-pet-panel-height:${Math.round(this.clampPetPanelHeight(this.petPanelHeight))}px`;
   }
 
   private get latestAssistantMessageWithSources(): RagAssistantMessage | undefined {
@@ -1343,12 +1594,16 @@ export class RagAssistantWidget extends LitElement {
     return Boolean(this.latestAssistantMessageWithSources);
   }
 
-  private get useAgentChat(): boolean {
-    return this.config.agent?.enabled !== false;
+  private get panelStatusText(): string {
+    const latest = this.agentActivities[this.agentActivities.length - 1]?.message;
+    if (this.streaming && latest) {
+      return latest;
+    }
+    return this.streaming ? '正在找答案' : '想问我什么？';
   }
 
-  private get latestUserMessage(): RagAssistantMessage | undefined {
-    return [...this.messages].reverse().find((message) => message.role === 'user');
+  private get useAgentChat(): boolean {
+    return this.config.agent?.enabled !== false;
   }
 
   private get avatarFallbackText(): string {
@@ -1405,6 +1660,11 @@ export class RagAssistantWidget extends LitElement {
     return messages.length ? messages : DEFAULT_RAG_PET_SPEECH_MESSAGES;
   }
 
+  private get quickQuestions(): string[] {
+    const questions = this.config.quickQuestions || [];
+    return questions.filter((question) => question.trim()).slice(0, 8);
+  }
+
   private getCurrentPetSpeech(): string {
     return this.petSpeechText;
   }
@@ -1437,7 +1697,8 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private get welcomeMessage(): string {
-    return `您好！我是 ${this.assistantName}\n我会基于站点知识库检索并回答，尽量给出可追溯来源\n请问有什么想查的？`;
+    return (this.config.welcomeMessage || DEFAULT_RAG_ASSISTANT_CONFIG.welcomeMessage)
+      .replace('{assistantName}', this.assistantName);
   }
 }
 

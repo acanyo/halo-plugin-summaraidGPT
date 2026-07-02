@@ -3,6 +3,8 @@ import type { AgentRuntimeConfig } from './agent/types';
 export interface RagAssistantConfig {
   assistantAvatar?: string;
   assistantName: string;
+  welcomeMessage: string;
+  quickQuestions: string[];
   styleConfig: RagAssistantStyleConfig;
   buttonPosition: 'left' | 'right';
   horizontalOffset: number;
@@ -21,7 +23,7 @@ export interface RagAssistantPetConfig {
 }
 
 export interface RagAssistantStyleConfig {
-  stylePreset: 'default' | 'graphite' | 'ocean' | 'forest' | 'rose' | 'custom';
+  stylePreset: 'default' | 'graphite' | 'ocean' | 'azure' | 'forest' | 'rose' | 'custom';
   primaryColor: string;
   secondaryColor: string;
   surfaceColor: string;
@@ -95,6 +97,13 @@ export interface RagAssistantMessage {
   sources?: RagSourceReference[];
   streaming?: boolean;
   error?: boolean;
+}
+
+export interface RagAssistantActivity {
+  id: string;
+  message: string;
+  kind: 'pending' | 'success' | 'warning' | 'error';
+  time: string;
 }
 
 export interface SelectionPopupState {

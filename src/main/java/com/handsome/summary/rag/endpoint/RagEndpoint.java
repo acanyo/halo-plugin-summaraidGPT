@@ -12,6 +12,7 @@ import com.handsome.summary.rag.model.RagIndexSummary;
 import com.handsome.summary.rag.model.RagSearchResult;
 import com.handsome.summary.rag.extension.RagDocument;
 import com.handsome.summary.rag.extension.RagKnowledgeBase;
+import com.handsome.summary.rag.service.DocsmeDocumentSourceService;
 import com.handsome.summary.rag.service.RagContentService;
 import com.handsome.summary.rag.service.RagConversationService;
 import com.handsome.summary.rag.service.RagDocumentImportService;
@@ -56,6 +57,7 @@ public class RagEndpoint implements CustomEndpoint {
 
     private final AiRequestSecurityService aiRequestSecurityService;
     private final ReactiveExtensionClient client;
+    private final DocsmeDocumentSourceService docsmeDocumentSourceService;
     private final RagContentService ragContentService;
     private final RagConversationService ragConversationService;
     private final RagDocumentImportService ragDocumentImportService;
@@ -68,8 +70,16 @@ public class RagEndpoint implements CustomEndpoint {
                                      Boolean rebuildAfterImport) {
     }
 
+    public record ImportDocsmeDocumentsRequest(String knowledgeBase, List<String> docNames,
+                                               Boolean rebuildAfterImport) {
+    }
+
     public record ImportPostsResponse(String knowledgeBase, int imported,
                                       RagIndexSummary summary, RagIndexTask task) {
+    }
+
+    public record ImportDocsmeDocumentsResponse(String knowledgeBase, int imported,
+                                                RagIndexSummary summary, RagIndexTask task) {
     }
 
     public record RebuildRequest(String knowledgeBase) {
@@ -139,10 +149,30 @@ public class RagEndpoint implements CustomEndpoint {
     public record ImportablePostResponse(List<ImportablePost> items) {
     }
 
+    public record ImportableDocsmeDocumentResponse(List<ImportableDocsmeDocument> items,
+                                                   boolean docsmeAvailable) {
+    }
+
     public record ImportablePost(
         String postName,
         String title,
         String url,
+        boolean imported,
+        String documentName,
+        Instant lastImportedAt,
+        Integer chunkCount
+    ) {
+    }
+
+    public record ImportableDocsmeDocument(
+        String docName,
+        String docTreeName,
+        String title,
+        String url,
+        String projectName,
+        String projectDisplayName,
+        String versionName,
+        String versionSlug,
         boolean imported,
         String documentName,
         Instant lastImportedAt,
@@ -157,6 +187,7 @@ public class RagEndpoint implements CustomEndpoint {
         int disabledDocuments,
         int postDocuments,
         int manualDocuments,
+        int docsmeDocuments,
         int chunkCount,
         int staleDocuments,
         boolean needsRebuild
@@ -224,6 +255,12 @@ public class RagEndpoint implements CustomEndpoint {
                     .description("List published public posts that can be imported into RAG.")
                     .response(responseBuilder().implementation(ImportablePostResponse.class))
             )
+            .GET("ragImportableDocsmeDocuments", this::listImportableDocsmeDocuments,
+                builder -> builder.operationId("ListRagImportableDocsmeDocuments")
+                    .tag(tag)
+                    .description("List published Docsme documents that can be imported into RAG.")
+                    .response(responseBuilder().implementation(ImportableDocsmeDocumentResponse.class))
+            )
             .POST("ragDocuments", this::saveDocument,
                 builder -> builder.operationId("SaveRagDocument")
                     .tag(tag)
@@ -257,6 +294,12 @@ public class RagEndpoint implements CustomEndpoint {
                     .tag(tag)
                     .description("Import published public posts into the RAG document store.")
                     .response(responseBuilder().implementation(ImportPostsResponse.class))
+            )
+            .POST("ragImportDocsmeDocuments", this::importDocsmeDocuments,
+                builder -> builder.operationId("RagImportDocsmeDocuments")
+                    .tag(tag)
+                    .description("Import published Docsme documents into the RAG document store.")
+                    .response(responseBuilder().implementation(ImportDocsmeDocumentsResponse.class))
             )
             .POST("ragRebuild", this::rebuild,
                 builder -> builder.operationId("RagRebuild")
@@ -391,6 +434,9 @@ public class RagEndpoint implements CustomEndpoint {
                 var manualDocuments = (int) documents.stream()
                     .filter(document -> hasSourceType(document, "MANUAL"))
                     .count();
+                var docsmeDocuments = (int) documents.stream()
+                    .filter(document -> hasSourceType(document, "DOCSME"))
+                    .count();
                 var chunkCount = documents.stream()
                     .map(RagDocument::getStatus)
                     .map(status -> status == null || status.getChunkCount() == null
@@ -401,7 +447,7 @@ public class RagEndpoint implements CustomEndpoint {
                     .count();
                 return new RagStatsResponse(knowledgeBase, documents.size(), enabledDocuments,
                     documents.size() - enabledDocuments, postDocuments, manualDocuments,
-                    chunkCount, staleDocuments, staleDocuments > 0);
+                    docsmeDocuments, chunkCount, staleDocuments, staleDocuments > 0);
             })
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
@@ -422,6 +468,28 @@ public class RagEndpoint implements CustomEndpoint {
                     .map(post -> toImportablePost(knowledgeBase, post, documentsByPostName))
                     .toList();
                 return new ImportablePostResponse(items);
+            })
+            .flatMap(this::ok)
+            .onErrorResume(this::errorResponse);
+    }
+
+    private Mono<ServerResponse> listImportableDocsmeDocuments(ServerRequest request) {
+        var knowledgeBase = normalizeKnowledgeBase(request.queryParam("knowledgeBase").orElse(null));
+        var keyword = request.queryParam("keyword").orElse(null);
+        return Mono.zip(
+                docsmeDocumentSourceService.isAvailable(),
+                docsmeDocumentSourceService.listPublished(keyword).collectList(),
+                listDocumentsByKnowledgeBase(knowledgeBase)
+                    .filter(document -> hasSourceType(document, "DOCSME"))
+                    .collectMap(document -> document.getSpec().getSourceName())
+            )
+            .map(tuple -> {
+                var documentsByDocName = tuple.getT3();
+                var items = tuple.getT2().stream()
+                    .map(document -> toImportableDocsmeDocument(knowledgeBase, document,
+                        documentsByDocName))
+                    .toList();
+                return new ImportableDocsmeDocumentResponse(items, tuple.getT1());
             })
             .flatMap(this::ok)
             .onErrorResume(this::errorResponse);
@@ -525,6 +593,28 @@ public class RagEndpoint implements CustomEndpoint {
                         }
                         return Mono.just(new ImportPostsResponse(knowledgeBase, imported, null,
                             null));
+                    });
+            })
+            .flatMap(this::ok)
+            .onErrorResume(this::errorResponse);
+    }
+
+    private Mono<ServerResponse> importDocsmeDocuments(ServerRequest request) {
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(ImportDocsmeDocumentsRequest.class)
+                .defaultIfEmpty(new ImportDocsmeDocumentsRequest(null, List.of(), false)))
+            .flatMap(body -> {
+                var knowledgeBase = normalizeKnowledgeBase(body.knowledgeBase());
+                return ragDocumentImportService.importPublishedDocsmeDocuments(knowledgeBase,
+                        body.docNames())
+                    .flatMap(imported -> {
+                        if (enabled(body.rebuildAfterImport(), false)) {
+                            return ragIndexTaskService.startFullRebuild(knowledgeBase)
+                                .map(task -> new ImportDocsmeDocumentsResponse(knowledgeBase,
+                                    imported, null, task));
+                        }
+                        return Mono.just(new ImportDocsmeDocumentsResponse(knowledgeBase, imported,
+                            null, null));
                     });
             })
             .flatMap(this::ok)
@@ -706,7 +796,7 @@ public class RagEndpoint implements CustomEndpoint {
         spec.setDescription(body.description());
         spec.setEnabled(body.enabled() == null || body.enabled());
         spec.setSourceTypes(body.sourceTypes() == null || body.sourceTypes().isEmpty()
-            ? List.of("POST", "MANUAL")
+            ? List.of("POST", "MANUAL", "DOCSME")
             : body.sourceTypes());
         return spec;
     }
@@ -807,6 +897,28 @@ public class RagEndpoint implements CustomEndpoint {
             post.getStatus() == null ? null : post.getStatus().getPermalink(),
             document != null,
             document == null ? documentName(knowledgeBase, "POST", postName)
+                : document.getMetadata().getName(),
+            status == null ? null : status.getLastImportedAt(),
+            status == null ? null : status.getChunkCount()
+        );
+    }
+
+    private ImportableDocsmeDocument toImportableDocsmeDocument(String knowledgeBase,
+        DocsmeDocumentSourceService.DocsmeDocument source,
+        Map<String, RagDocument> documentsByDocName) {
+        var document = documentsByDocName.get(source.docName());
+        var status = document == null ? null : document.getStatus();
+        return new ImportableDocsmeDocument(
+            source.docName(),
+            source.docTreeName(),
+            source.title(),
+            source.url(),
+            source.projectName(),
+            source.projectDisplayName(),
+            source.versionName(),
+            source.versionSlug(),
+            document != null,
+            document == null ? documentName(knowledgeBase, "DOCSME", source.docName())
                 : document.getMetadata().getName(),
             status == null ? null : status.getLastImportedAt(),
             status == null ? null : status.getChunkCount()

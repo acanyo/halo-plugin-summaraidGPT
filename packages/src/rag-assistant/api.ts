@@ -16,8 +16,18 @@ import { DEFAULT_RAG_ASSISTANT_STYLE, normalizeAssistantStyle } from './theme';
 export const RAG_API_BASE = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1';
 const DEFAULT_FLOATING_OFFSET = 24;
 const MAX_FLOATING_OFFSET = 800;
+const MAX_WELCOME_MESSAGE_CHARS = 260;
+const MAX_QUICK_QUESTION_CHARS = 80;
 const DEFAULT_ASSISTANT_NAME = '智阅助手';
 const DEFAULT_ASSISTANT_AVATAR = '/plugins/summaraidGPT/assets/static/icon.svg';
+const DEFAULT_WELCOME_MESSAGE =
+  '你好，我是 {assistantName}。\n我可以帮你检索站内知识库、总结当前页，也可以带你打开相关页面。';
+const DEFAULT_QUICK_QUESTIONS = [
+  '关于博主是谁？',
+  '最近更新了什么？',
+  '帮我总结当前页',
+  '有哪些值得先读的内容？',
+];
 const DEFAULT_PET_JSON_URL = '/plugins/summaraidGPT/assets/static/pets/default-ikun/pet.json';
 const DEFAULT_PET_SPRITESHEET_URL =
   '/plugins/summaraidGPT/assets/static/pets/default-ikun/spritesheet.webp';
@@ -32,6 +42,8 @@ const DEFAULT_RAG_ASSISTANT_PET: NonNullable<RagAssistantConfig['pet']> = {
 export const DEFAULT_RAG_ASSISTANT_CONFIG: RagAssistantConfig = {
   assistantAvatar: DEFAULT_ASSISTANT_AVATAR,
   assistantName: DEFAULT_ASSISTANT_NAME,
+  welcomeMessage: DEFAULT_WELCOME_MESSAGE.replace('{assistantName}', DEFAULT_ASSISTANT_NAME),
+  quickQuestions: DEFAULT_QUICK_QUESTIONS,
   styleConfig: DEFAULT_RAG_ASSISTANT_STYLE,
   buttonPosition: 'right',
   horizontalOffset: DEFAULT_FLOATING_OFFSET,
@@ -158,12 +170,16 @@ function normalizeConfig(config: Partial<RagAssistantConfig>): RagAssistantConfi
     buttonPosition,
     assistantAvatar: normalizeAvatarUrl(config.assistantAvatar),
     assistantName: normalizeAssistantName(config.assistantName),
+    welcomeMessage: normalizeWelcomeMessage(config.welcomeMessage, config.assistantName),
+    quickQuestions:
+      normalizeStringList(config.quickQuestions, 8, MAX_QUICK_QUESTION_CHARS)
+      || DEFAULT_QUICK_QUESTIONS,
     styleConfig: normalizeAssistantStyle(config.styleConfig),
     horizontalOffset: normalizeFloatingOffset(config.horizontalOffset),
     verticalOffset: normalizeFloatingOffset(config.verticalOffset),
     petSize: normalizePetSize(config.petSize),
     petSpeechMessages:
-      normalizeSpeechMessages(config.petSpeechMessages) || DEFAULT_RAG_PET_SPEECH_MESSAGES,
+      normalizeStringList(config.petSpeechMessages, 12) || DEFAULT_RAG_PET_SPEECH_MESSAGES,
     pet: normalizePetConfig(config.pet) || DEFAULT_RAG_ASSISTANT_PET,
     agent: normalizeAgentRuntimeConfig(config.agent),
   };
@@ -187,15 +203,33 @@ function normalizePetConfig(
   };
 }
 
-function normalizeSpeechMessages(messages?: string[]): string[] | undefined {
+function normalizeStringList(
+  messages?: string[],
+  maxItems = 12,
+  maxItemLength = 120,
+): string[] | undefined {
   if (!Array.isArray(messages)) {
     return undefined;
   }
   const normalized = messages
     .map((message) => `${message || ''}`.trim())
     .filter(Boolean)
-    .slice(0, 12);
+    .map((message) => message.slice(0, maxItemLength))
+    .slice(0, maxItems);
   return normalized.length ? normalized : undefined;
+}
+
+function normalizeWelcomeMessage(message: string | undefined, assistantName: string | undefined): string {
+  const normalized = normalizeTextBlock(message, MAX_WELCOME_MESSAGE_CHARS) || DEFAULT_WELCOME_MESSAGE;
+  return normalized.replace('{assistantName}', normalizeAssistantName(assistantName));
+}
+
+function normalizeTextBlock(value: string | undefined, maxLength: number): string | undefined {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return undefined;
+  }
+  return normalized.length > maxLength ? normalized.slice(0, maxLength) : normalized;
 }
 
 function normalizeAvatarUrl(avatarUrl?: string): string | undefined {

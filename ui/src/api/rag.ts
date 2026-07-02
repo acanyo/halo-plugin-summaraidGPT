@@ -59,6 +59,7 @@ export interface RagStats {
   disabledDocuments: number
   postDocuments: number
   manualDocuments: number
+  docsmeDocuments?: number
   chunkCount: number
   staleDocuments: number
   needsRebuild: boolean
@@ -72,6 +73,26 @@ export interface RagImportablePost {
   documentName?: string
   lastImportedAt?: string
   chunkCount?: number
+}
+
+export interface RagImportableDocsmeDocument {
+  docName: string
+  docTreeName?: string
+  title?: string
+  url?: string
+  projectName?: string
+  projectDisplayName?: string
+  versionName?: string
+  versionSlug?: string
+  imported: boolean
+  documentName?: string
+  lastImportedAt?: string
+  chunkCount?: number
+}
+
+export interface RagImportableDocsmeDocumentResponse {
+  items: RagImportableDocsmeDocument[]
+  docsmeAvailable: boolean
 }
 
 export interface RagSearchResult {
@@ -269,6 +290,17 @@ export const ragApi = {
     return data.items || []
   },
 
+  async listImportableDocsmeDocuments(params: { knowledgeBase: string; keyword?: string }) {
+    const { data } = await axiosInstance.get<RagImportableDocsmeDocumentResponse>(
+      `${API_PREFIX}/ragImportableDocsmeDocuments`,
+      { params },
+    )
+    return {
+      items: data.items || [],
+      docsmeAvailable: data.docsmeAvailable,
+    }
+  },
+
   async saveDocument(payload: SaveDocumentRequest) {
     const { data } = await axiosInstance.post<RagDocument>(`${API_PREFIX}/ragDocuments`, payload)
     return data
@@ -308,6 +340,18 @@ export const ragApi = {
     const { data } = await axiosInstance.post<RagImportResponse>(
       `${API_PREFIX}/ragImportPosts`,
       { knowledgeBase, postNames, rebuildAfterImport: options?.rebuildAfterImport },
+    )
+    return data
+  },
+
+  async importDocsmeDocuments(
+    knowledgeBase: string,
+    docNames: string[] = [],
+    options?: { rebuildAfterImport?: boolean },
+  ) {
+    const { data } = await axiosInstance.post<RagImportResponse>(
+      `${API_PREFIX}/ragImportDocsmeDocuments`,
+      { knowledgeBase, docNames, rebuildAfterImport: options?.rebuildAfterImport },
     )
     return data
   },

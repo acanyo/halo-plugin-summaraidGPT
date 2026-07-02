@@ -51,6 +51,8 @@ public class ConversationEndpoint implements CustomEndpoint {
     private static final int MAX_FLOATING_OFFSET = 800;
     private static final int MIN_PET_SIZE = 48;
     private static final int MAX_PET_SIZE = 160;
+    private static final int MAX_WELCOME_MESSAGE_CHARS = 260;
+    private static final int MAX_QUICK_QUESTION_CHARS = 80;
 
     private final AiFoundationAiService aiFoundationAiService;
     private final AiRequestSecurityService aiRequestSecurityService;
@@ -62,6 +64,8 @@ public class ConversationEndpoint implements CustomEndpoint {
     public record DialogConfig(
         String assistantAvatar,
         String assistantName,
+        String welcomeMessage,
+        List<String> quickQuestions,
         AssistantStyleConfig styleConfig,
         String buttonPosition,
         Integer horizontalOffset,
@@ -314,18 +318,25 @@ public class ConversationEndpoint implements CustomEndpoint {
             .flatMap(tuple -> petCompanionService.getActive()
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
-                .map(activePet -> new DialogConfig(
-                    normalizeAvatarUrl(tuple.getT1().getAssistantAvatar()),
-                    normalizeAssistantName(tuple.getT1().getAssistantName()),
-                    normalizeStyleConfig(tuple.getT1().getStyleConfig()),
-                    normalizeButtonPosition(tuple.getT1().getButtonPosition()),
-                    normalizeFloatingOffset(tuple.getT1().getHorizontalOffset()),
-                    normalizeFloatingOffset(tuple.getT1().getVerticalOffset()),
-                    normalizePetSize(tuple.getT1().getPetSize()),
-                    normalizePetSpeechMessages(tuple.getT1().getPetSpeechMessages()),
-                    activePet.map(this::toPetConfig).orElseGet(this::defaultPetConfig),
-                    tuple.getT2()
-                )))
+                .map(activePet -> {
+                    var assistantConfig = tuple.getT1();
+                    var assistantName = normalizeAssistantName(assistantConfig.getAssistantName());
+                    return new DialogConfig(
+                        normalizeAvatarUrl(assistantConfig.getAssistantAvatar()),
+                        assistantName,
+                        normalizeWelcomeMessage(assistantConfig.getWelcomeMessage(),
+                            assistantName),
+                        normalizeQuickQuestions(assistantConfig.getQuickQuestions()),
+                        normalizeStyleConfig(assistantConfig.getStyleConfig()),
+                        normalizeButtonPosition(assistantConfig.getButtonPosition()),
+                        normalizeFloatingOffset(assistantConfig.getHorizontalOffset()),
+                        normalizeFloatingOffset(assistantConfig.getVerticalOffset()),
+                        normalizePetSize(assistantConfig.getPetSize()),
+                        normalizePetSpeechMessages(assistantConfig.getPetSpeechMessages()),
+                        activePet.map(this::toPetConfig).orElseGet(this::defaultPetConfig),
+                        tuple.getT2()
+                    );
+                }))
             .flatMap(dialogConfig -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(dialogConfig))
@@ -335,6 +346,10 @@ public class ConversationEndpoint implements CustomEndpoint {
                 DialogConfig defaultConfig = new DialogConfig(
                     SettingConfigGetter.AssistantConfig.DEFAULT_ASSISTANT_AVATAR,
                     DEFAULT_ASSISTANT_NAME,
+                    normalizeWelcomeMessage(new SettingConfigGetter.AssistantConfig()
+                        .getWelcomeMessage(), DEFAULT_ASSISTANT_NAME),
+                    normalizeQuickQuestions(new SettingConfigGetter.AssistantConfig()
+                        .getQuickQuestions()),
                     defaultStyleConfig(),
                     DEFAULT_BUTTON_POSITION,
                     DEFAULT_FLOATING_OFFSET,
@@ -384,6 +399,34 @@ public class ConversationEndpoint implements CustomEndpoint {
             return normalized;
         }
         return new SettingConfigGetter.AssistantConfig().getPetSpeechMessages();
+    }
+
+    private String normalizeWelcomeMessage(String welcomeMessage, String assistantName) {
+        var fallback = new SettingConfigGetter.AssistantConfig().getWelcomeMessage();
+        var value = StringUtils.hasText(welcomeMessage) ? welcomeMessage.strip() : fallback.strip();
+        return limitText(value, MAX_WELCOME_MESSAGE_CHARS)
+            .replace("{assistantName}", normalizeAssistantName(assistantName));
+    }
+
+    private List<String> normalizeQuickQuestions(List<String> questions) {
+        var normalized = questions == null ? List.<String>of() : questions.stream()
+            .filter(StringUtils::hasText)
+            .map(String::strip)
+            .map(question -> limitText(question, MAX_QUICK_QUESTION_CHARS))
+            .distinct()
+            .limit(8)
+            .toList();
+        if (!normalized.isEmpty()) {
+            return normalized;
+        }
+        return new SettingConfigGetter.AssistantConfig().getQuickQuestions();
+    }
+
+    private String limitText(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private Integer normalizePetSize(Integer petSize) {
@@ -447,7 +490,7 @@ public class ConversationEndpoint implements CustomEndpoint {
             return DEFAULT_STYLE_PRESET;
         }
         return switch (stylePreset.strip()) {
-            case "graphite", "ocean", "forest", "rose", "custom" -> stylePreset.strip();
+            case "graphite", "ocean", "azure", "forest", "rose", "custom" -> stylePreset.strip();
             default -> DEFAULT_STYLE_PRESET;
         };
     }
@@ -458,6 +501,8 @@ public class ConversationEndpoint implements CustomEndpoint {
                 "#f7f2e8");
             case "ocean" -> new AssistantStylePalette("#1f7a8c", "#d9f0f3", "#fbfeff",
                 "#142326");
+            case "azure" -> new AssistantStylePalette("#3b82f6", "#dbeafe", "#f8fafc",
+                "#0f172a");
             case "forest" -> new AssistantStylePalette("#2f7d50", "#dceedd", "#fbfdf8",
                 "#18251b");
             case "rose" -> new AssistantStylePalette("#b85c7a", "#f8dfe8", "#fffafc",

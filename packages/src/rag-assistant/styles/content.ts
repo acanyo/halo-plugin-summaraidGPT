@@ -25,7 +25,9 @@ export const contentStyles = css`
   .markdown-body h1,
   .markdown-body h2,
   .markdown-body h3,
-  .markdown-body h4 {
+  .markdown-body h4,
+  .markdown-body h5,
+  .markdown-body h6 {
     margin: 10px 0 6px;
     color: var(--rag-text);
     font-size: 14px;
@@ -49,6 +51,13 @@ export const contentStyles = css`
 
   .markdown-body em {
     color: color-mix(in srgb, var(--rag-text) 88%, var(--rag-gold-strong));
+  }
+
+  .markdown-body hr {
+    height: 1px;
+    margin: 12px 0;
+    border: 0;
+    background: color-mix(in srgb, var(--rag-line) 76%, transparent);
   }
 
   .markdown-body code {
@@ -83,6 +92,27 @@ export const contentStyles = css`
     border-radius: 0 12px 12px 0;
     background: color-mix(in srgb, var(--rag-secondary-soft) 64%, transparent);
     color: color-mix(in srgb, var(--rag-text) 72%, var(--rag-muted));
+  }
+
+  .markdown-body table {
+    display: block;
+    width: 100%;
+    margin: 8px 0 10px;
+    overflow-x: auto;
+    border-collapse: collapse;
+  }
+
+  .markdown-body th,
+  .markdown-body td {
+    padding: 6px 8px;
+    border: 1px solid color-mix(in srgb, var(--rag-line) 72%, transparent);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .markdown-body th {
+    background: color-mix(in srgb, var(--rag-secondary-soft) 58%, transparent);
+    font-weight: 820;
   }
 
   .markdown-body a {
@@ -135,7 +165,7 @@ export const contentStyles = css`
   .pet-source-row {
     display: grid;
     grid-template-columns: 22px minmax(0, 1fr) 16px;
-    align-items: center;
+    align-items: start;
     gap: 7px;
     min-height: 32px;
     padding: 5px 7px;
@@ -163,8 +193,15 @@ export const contentStyles = css`
   .pet-source-icon {
     width: 22px;
     height: 22px;
+    margin-top: 1px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--rag-gold-soft) 34%, transparent);
+  }
+
+  .pet-source-main {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
   }
 
   .pet-source-title {
@@ -173,6 +210,16 @@ export const contentStyles = css`
     font-size: 12px;
     font-weight: 720;
     line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pet-source-meta {
+    overflow: hidden;
+    color: color-mix(in srgb, var(--rag-muted) 82%, transparent);
+    font-size: 10.5px;
+    font-weight: 650;
+    line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
   }

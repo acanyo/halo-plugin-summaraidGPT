@@ -18,6 +18,12 @@ import run.halo.aifoundation.tool.ToolDefinition;
 @Component
 @RequiredArgsConstructor
 public class AgentToolService {
+    private static final String RESPONSE_FORMAT_PROMPT = "\n\n【回复格式】\n"
+        + "- 默认使用 Markdown 格式回复，普通聊天也可以只写自然文本。\n"
+        + "- 除非回复很短，否则每句话单独成行；不要把多句话连续挤在同一段里。\n"
+        + "- 需要分点说明时优先使用 Markdown 列表，每个列表项单独成行，列表前后保留空行。\n"
+        + "- 多个列表、段落或不同主题之间使用空行分隔。\n"
+        + "- 不要输出 HTML 标签。";
 
     private final HaloAgentPresetToolService haloPresetToolService;
     private final RagAgentToolService ragAgentToolService;
@@ -43,13 +49,18 @@ public class AgentToolService {
     public String appendCapabilityPrompt(String systemMessage, AgentToolSet toolSet) {
         var prompt = systemMessage == null ? "" : systemMessage;
         if (toolSet == null || !toolSet.agentEnabled() || toolSet.tools().isEmpty()) {
-            return prompt + "\n\n【Agent 能力边界】\n"
+            return prompt + RESPONSE_FORMAT_PROMPT + "\n\n【Agent 能力边界】\n"
                 + "当前站点未向访客开放 Agent 操作能力。你可以正常聊天，但不能承诺打开页面、提交内容或控制站点功能。";
         }
-        return prompt + "\n\n【Agent 能力】\n"
+        return prompt + RESPONSE_FORMAT_PROMPT + "\n\n【Agent 能力】\n"
             + "- 你可以在工具可用时协助访客执行已授权的站点操作。\n"
             + "- 只能调用当前已声明的工具；不要承诺未声明或未授权的能力。\n"
-            + "- 用户要查站点内容、关于博主、页面位置、分类标签或资料来源时，优先使用站内搜索、页面列表或 RAG 检索工具。\n"
+            + "- Agent 是操作和检索编排层，RAG 是资料来源之一；需要站内依据时，让 Halo 公开内容检索、RAG 检索和详情读取配合工作。\n"
+            + "- 用户要查站点内容、关于博主、页面位置、分类标签、导入文档、知识库资料或某篇文章时，优先使用站内搜索、页面列表或 RAG 检索工具。\n"
+            + "- 当用户只是问通用概念或公开常识，且没有表达“本站、站内、知识库、某篇文章、打开/跳转”等站点意图时，可以直接回答；不要为了凑来源强行检索弱相关资源。\n"
+            + "- 检索到候选资源后，只选择和问题强相关的文章、页面或文档读取详情；再把站内正文、RAG 片段和你的推理合并成一份最终回答。\n"
+            + "- 不要在工具返回前输出实质性答案；工具用完后只输出一份整合后的最终回答，不要先给通用回答再追加一段知识库回答。\n"
+            + "- 工具返回的资源会由前台展示为关联资源，正文只保留必要引用和结论，不要重复罗列完整来源清单，也不要引用弱相关候选。\n"
             + "- 用户只输入短页面名或站点入口名，例如“关于博主”“关于”“友链”“留言”“归档”，也视为导航意图；应先使用页面列表或站内搜索找到强匹配页面，再调用打开资源工具。\n"
             + "- 如果工具返回了可信资源，并且用户表达了“带我去、打开、跳转、看看页面”或只输入页面名/入口名，应调用打开资源工具，不要只停留在文字说明。\n"
             + "- 执行评论、表单填写、页面定位等依赖当前页面结构的操作前，应先读取当前页面上下文；如果页面不具备对应能力，应如实说明。\n"
@@ -62,7 +73,7 @@ public class AgentToolService {
         if (builtIn.haloContentSearch()) {
             tools.add(ToolDefinition.builder()
                 .name("search_halo_resources")
-                .description("使用 Halo 自身全文搜索引擎搜索公开内容资源，适合查找文章、页面或其他已接入搜索索引的公开内容。用户询问关于博主、关于本站、某篇文章或某个页面位置时，应优先尝试。用户只输入“关于博主”“关于”“友链”“留言”“归档”等短页面名时，应搜索或配合 get_pages 找到强匹配页面，并继续调用 open_halo_resource 打开。")
+                .description("使用 Halo 自身全文搜索引擎搜索公开内容资源，适合查找本站文章、页面或其他已接入搜索索引的公开内容。用户询问关于博主、关于本站、某篇文章、站内资料、页面位置，或问题可能对应站内文章时使用；泛百科问题没有站点意图时不要强行调用。找到强匹配资源后，通常继续调用 get_halo_resource_detail 读取详情；用户只输入“关于博主”“关于”“友链”“留言”“归档”等短页面名时，应搜索或配合 get_pages 找到强匹配页面，并继续调用 open_halo_resource 打开。")
                 .inputSchema(JsonSchema.object()
                     .property("keyword", JsonSchema.string().description("搜索关键词"))
                     .property("limit", JsonSchema.integer().description("返回数量，1 到 20"))
@@ -75,7 +86,7 @@ public class AgentToolService {
                 .build());
             tools.add(ToolDefinition.builder()
                 .name("get_halo_resource_detail")
-                .description("读取已查询到的公开 Halo 资源的有限详情，用于总结或介绍资源内容。")
+                .description("读取已查询到的公开 Halo 资源详情，用于把站内文章或页面内容纳入最终回答。只读取和用户问题强相关的候选资源，不要为了罗列来源读取弱相关资源。")
                 .inputSchema(JsonSchema.object()
                     .property("resourceId", JsonSchema.string().description("可信资源 ID"))
                     .required("resourceId")
@@ -156,7 +167,7 @@ public class AgentToolService {
         }
         tools.add(ToolDefinition.builder()
             .name("search_rag_resources")
-            .description("检索站点 RAG 知识库，适合查询站点资料、导入文档、文章片段、业务说明和需要可追溯来源的问题。")
+            .description("检索站点 RAG 知识库，适合查询站点资料、导入文档、文章片段、业务说明和需要可追溯来源的问题。它是 Agent 的资料工具，应与 Halo 站内搜索配合使用来形成一份最终回答；泛百科问题没有站点或知识库意图时不要强行调用。")
             .inputSchema(JsonSchema.object()
                 .property("keyword", JsonSchema.string().description("检索关键词或用户问题"))
                 .property("knowledgeBase", JsonSchema.string().description("可选知识库 metadata.name"))
@@ -168,7 +179,7 @@ public class AgentToolService {
             .build());
         tools.add(ToolDefinition.builder()
             .name("get_rag_resource_detail")
-            .description("读取已检索到的 RAG 文档有限详情，用于进一步回答或总结资料。")
+            .description("读取已检索到的 RAG 文档详情，用于把知识库资料纳入最终回答。只读取和用户问题强相关的文档，不要把弱相关候选塞进答案。")
             .inputSchema(JsonSchema.object()
                 .property("resourceId", JsonSchema.string().description("可信 RAG 资源 ID"))
                 .required("resourceId")

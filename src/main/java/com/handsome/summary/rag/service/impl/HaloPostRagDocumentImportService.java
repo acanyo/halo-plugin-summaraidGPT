@@ -3,10 +3,12 @@ package com.handsome.summary.rag.service.impl;
 import static run.halo.app.extension.index.query.Queries.equal;
 
 import com.handsome.summary.rag.extension.RagDocument;
+import com.handsome.summary.rag.service.DocsmeDocumentSourceService;
 import com.handsome.summary.rag.service.RagContentService;
 import com.handsome.summary.rag.service.RagDocumentImportService;
 import com.handsome.summary.rag.service.RagIndexService;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,8 +30,10 @@ import run.halo.app.extension.ReactiveExtensionClient;
 public class HaloPostRagDocumentImportService implements RagDocumentImportService {
 
     private static final String SOURCE_TYPE_POST = "POST";
+    private static final String SOURCE_TYPE_DOCSME = "DOCSME";
 
     private final ReactiveExtensionClient client;
+    private final DocsmeDocumentSourceService docsmeDocumentSourceService;
     private final PostContentService postContentService;
     private final RagContentService ragContentService;
     private final RagIndexService ragIndexService;
@@ -45,6 +49,17 @@ public class HaloPostRagDocumentImportService implements RagDocumentImportServic
         return ragIndexService.ensureKnowledgeBase(kbName)
             .thenMany(posts)
             .flatMap(post -> toRagDocument(kbName, post))
+            .flatMap(this::upsert)
+            .count()
+            .map(Long::intValue);
+    }
+
+    @Override
+    public Mono<Integer> importPublishedDocsmeDocuments(String knowledgeBase, List<String> docNames) {
+        var kbName = normalizeKnowledgeBase(knowledgeBase);
+        return ragIndexService.ensureKnowledgeBase(kbName)
+            .thenMany(docsmeDocumentSourceService.listPublishedByNames(docNames))
+            .map(document -> toRagDocument(kbName, document))
             .flatMap(this::upsert)
             .count()
             .map(Long::intValue);
@@ -95,6 +110,33 @@ public class HaloPostRagDocumentImportService implements RagDocumentImportServic
             });
     }
 
+    private RagDocument toRagDocument(String knowledgeBase,
+        DocsmeDocumentSourceService.DocsmeDocument source) {
+        var normalizedContent = ragContentService.normalize(source.content());
+        var document = new RagDocument();
+        var metadata = new Metadata();
+        metadata.setName(documentName(knowledgeBase, SOURCE_TYPE_DOCSME, source.docName()));
+        document.setMetadata(metadata);
+
+        var spec = new RagDocument.Spec();
+        spec.setKnowledgeBase(knowledgeBase);
+        spec.setSourceType(SOURCE_TYPE_DOCSME);
+        spec.setSourceName(source.docName());
+        spec.setTitle(source.title());
+        spec.setUrl(source.url());
+        spec.setContent(normalizedContent);
+        spec.setContentHash(ragContentService.hash(normalizedContent));
+        spec.setEnabled(StringUtils.hasText(normalizedContent));
+        spec.setTags(nonBlankList("Docsme", source.versionSlug()));
+        spec.setCategories(nonBlankList(source.projectDisplayName()));
+        document.setSpec(spec);
+
+        var status = new RagDocument.Status();
+        status.setLastImportedAt(Instant.now());
+        document.setStatus(status);
+        return document;
+    }
+
     private String contentText(ContentWrapper wrapper) {
         if (wrapper == null) {
             return "";
@@ -123,6 +165,14 @@ public class HaloPostRagDocumentImportService implements RagDocumentImportServic
     private String documentName(String knowledgeBase, String sourceType, String sourceName) {
         var hash = ragContentService.hash(knowledgeBase + ":" + sourceType + ":" + sourceName);
         return "ragdoc-" + hash.substring(0, 24);
+    }
+
+    private List<String> nonBlankList(String... values) {
+        return Arrays.stream(values == null ? new String[0] : values)
+            .filter(StringUtils::hasText)
+            .map(String::strip)
+            .distinct()
+            .toList();
     }
 
     private String normalizeKnowledgeBase(String knowledgeBase) {
