@@ -35,21 +35,26 @@ declare global {
     SummaraidGPTAI?: {
       registerTool: (name: string, executor: RegisteredExecutor) => void;
     };
+    Live2DAI?: {
+      registerTool: (name: string, executor: RegisteredExecutor) => void;
+    };
   }
 }
 
-function ensureGlobalRegistry(): void {
-  if (window.SummaraidGPTAI) {
+function registerTool(name: string, executor: RegisteredExecutor): void {
+  if (!/^[a-z][a-z0-9_]{2,63}$/.test(name)) {
     return;
   }
-  window.SummaraidGPTAI = {
-    registerTool(name, executor) {
-      if (!/^[a-z][a-z0-9_]{2,63}$/.test(name)) {
-        return;
-      }
-      registeredExecutors.set(name, executor);
-    },
-  };
+  registeredExecutors.set(name, executor);
+}
+
+function ensureGlobalRegistry(): void {
+  if (!window.SummaraidGPTAI) {
+    window.SummaraidGPTAI = { registerTool };
+  }
+  if (!window.Live2DAI) {
+    window.Live2DAI = { registerTool };
+  }
 }
 
 ensureGlobalRegistry();

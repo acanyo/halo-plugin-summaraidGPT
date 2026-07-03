@@ -80,6 +80,10 @@ v4 将插件从内容生成工具升级为完整的站点 AI 助手：
 - Halo `>= 2.25.0`
 - AI 能力需要安装并启用 Halo AI Foundation 插件
 
+## 配置文档
+
+插件设置已按配置分类拆分为独立 Markdown 文档，详见 [配置文档索引](docs/configuration/README.md)。
+
 ## 演示站
 
 | 网站名称 | 说明 | 演示地址 |

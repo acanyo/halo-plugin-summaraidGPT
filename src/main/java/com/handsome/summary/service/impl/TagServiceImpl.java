@@ -108,27 +108,33 @@ public class TagServiceImpl implements TagService {
                     log.info("开始调用 AI Foundation 生成标签，提示词长度: {}, 已有标签数: {}",
                         prompt.length(), existingTagNames.size());
                     
-                    String raw = aiFoundationAiService.generateText(prompt, aiConfig);
-                    log.info("AI返回原始响应: {}", raw);
-                    
-                    if (raw == null || raw.isBlank()) {
-                        return Mono.just(TagGenerationResult.empty());
-                    }
-                    
-                    List<String> tagNames = parseTagsFromRaw(raw, limit);
-                    log.info("解析后的标签: {}", tagNames);
-                    
-                    // 构建带来源信息的标签列表
-                    List<TagInfo> tagInfoList = tagNames.stream()
-                        .map(name -> new TagInfo(name, existingTagNames.contains(name)))
-                        .toList();
-                    
-                    int existingCount = (int) tagInfoList.stream().filter(TagInfo::isExisting).count();
-                    int newCount = tagInfoList.size() - existingCount;
-                    
-                    log.info("标签生成结果: 总数={}, 已有={}, 新增={}", tagInfoList.size(), existingCount, newCount);
-                    
-                    return Mono.just(new TagGenerationResult(tagInfoList, tagInfoList.size(), existingCount, newCount));
+                    return aiFoundationAiService.generateText(prompt, aiConfig)
+                        .map(raw -> {
+                            log.info("AI返回原始响应: {}", raw);
+
+                            if (raw == null || raw.isBlank()) {
+                                return TagGenerationResult.empty();
+                            }
+
+                            List<String> tagNames = parseTagsFromRaw(raw, limit);
+                            log.info("解析后的标签: {}", tagNames);
+
+                            // 构建带来源信息的标签列表
+                            List<TagInfo> tagInfoList = tagNames.stream()
+                                .map(name -> new TagInfo(name, existingTagNames.contains(name)))
+                                .toList();
+
+                            int existingCount = (int) tagInfoList.stream()
+                                .filter(TagInfo::isExisting)
+                                .count();
+                            int newCount = tagInfoList.size() - existingCount;
+
+                            log.info("标签生成结果: 总数={}, 已有={}, 新增={}",
+                                tagInfoList.size(), existingCount, newCount);
+
+                            return new TagGenerationResult(tagInfoList, tagInfoList.size(),
+                                existingCount, newCount);
+                        });
                 })
                 .onErrorResume(e -> {
                     log.error("生成标签失败: {}", e.getMessage(), e);

@@ -40,12 +40,12 @@ public class AgentChatTurnRecorder {
 
     public AgentChatTurn start(String modelName, String knowledgeBase, String conversationId,
         String visitorId, String userAgent, UIMessageChatRequest<Void> chatRequest,
-        boolean recordUserMessage) {
+        boolean recordUserMessage, String traceId) {
         var turn = new AgentChatTurn(modelName, knowledgeBase, conversationId, visitorId,
             userAgent, latestUserText(chatRequest), inputStats(chatRequest), recordUserMessage,
             chatRequest == null || chatRequest.trigger() == null
                 ? ""
-                : chatRequest.trigger().value(),
+                : chatRequest.trigger().value(), traceId,
             chatRequest == null ? 0 : chatRequest.messages().size());
         ingestMessageSources(turn, chatRequest);
         return turn;
@@ -251,6 +251,7 @@ public class AgentChatTurnRecorder {
         private final AiFoundationCallLog.TextStats inputStats;
         private final boolean recordUserMessage;
         private final String trigger;
+        private final String traceId;
         private final int uiMessageCount;
         private final Instant startedAt = Instant.now();
         private final long startNanos = AiFoundationCallLog.startNanos();
@@ -267,7 +268,7 @@ public class AgentChatTurnRecorder {
         AgentChatTurn(String modelName, String knowledgeBase, String conversationId,
             String visitorId, String userAgent, String question,
             AiFoundationCallLog.TextStats inputStats, boolean recordUserMessage,
-            String trigger, int uiMessageCount) {
+            String trigger, String traceId, int uiMessageCount) {
             this.modelName = modelName;
             this.knowledgeBase = knowledgeBase;
             this.conversationId = conversationId;
@@ -277,6 +278,7 @@ public class AgentChatTurnRecorder {
             this.inputStats = inputStats;
             this.recordUserMessage = recordUserMessage;
             this.trigger = trigger;
+            this.traceId = traceId;
             this.uiMessageCount = uiMessageCount;
         }
 
@@ -288,6 +290,7 @@ public class AgentChatTurnRecorder {
 
         Map<String, String> metadata() {
             var metadata = new LinkedHashMap<String, String>();
+            put(metadata, "traceId", traceId);
             put(metadata, "conversationId", conversationId);
             put(metadata, "trigger", trigger);
             put(metadata, "uiMessageCount", String.valueOf(uiMessageCount));

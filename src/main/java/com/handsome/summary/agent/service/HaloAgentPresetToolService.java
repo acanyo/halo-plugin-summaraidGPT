@@ -174,13 +174,16 @@ public class HaloAgentPresetToolService {
 
     public Mono<Object> getPages(Map<String, Object> input) {
         var limit = limit(input, 20, 1, 100);
+        var keyword = stringInput(input, "keyword");
         return extensionClient.list(SinglePage.class, this::isPublicPage,
                 Comparator.comparing(page -> page.getSpec().getTitle(),
                     Comparator.nullsLast(String::compareToIgnoreCase)))
+            .filter(page -> matchesPage(page, keyword))
             .take(limit)
             .map(this::fromPage)
             .collectList()
-            .map(resources -> Map.of("ok", true, "resources", resources));
+            .map(resources -> Map.of("ok", true, "keyword", defaultString(keyword),
+                "resources", resources));
     }
 
     public Mono<Object> fetchAllowedUrl(Map<String, Object> input, AgentSettings settings) {
@@ -422,6 +425,21 @@ public class HaloAgentPresetToolService {
             || Post.VisibleEnum.PUBLIC.equals(page.getSpec().getVisible()));
     }
 
+    private boolean matchesPage(SinglePage page, String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return true;
+        }
+        var normalizedKeyword = normalizeSearchText(keyword);
+        return containsSearchText(page.getSpec().getTitle(), normalizedKeyword)
+            || containsSearchText(page.getMetadata().getName(), normalizedKeyword)
+            || containsSearchText(page.getStatusOrDefault().getPermalink(), normalizedKeyword)
+            || containsSearchText(page.getStatusOrDefault().getExcerpt(), normalizedKeyword)
+            || Optional.ofNullable(page.getSpec().getExcerpt())
+            .map(Post.Excerpt::getRaw)
+            .map(excerpt -> containsSearchText(excerpt, normalizedKeyword))
+            .orElse(false);
+    }
+
     private Instant postTime(Post post) {
         return Optional.ofNullable(post.getSpec().getPublishTime())
             .orElse(post.getMetadata().getCreationTimestamp());
@@ -430,6 +448,17 @@ public class HaloAgentPresetToolService {
     private boolean contains(List<String> values, String value) {
         return !StringUtils.hasText(value)
             || values != null && values.stream().anyMatch(item -> Objects.equals(item, value));
+    }
+
+    private boolean containsSearchText(String value, String normalizedKeyword) {
+        return StringUtils.hasText(value)
+            && normalizeSearchText(value).contains(normalizedKeyword);
+    }
+
+    private String normalizeSearchText(String value) {
+        return defaultString(value)
+            .replaceAll("[\\s。！？?!,.，、_-]+", "")
+            .toLowerCase(Locale.ROOT);
     }
 
     private int limit(Map<String, Object> input, int defaultValue, int min, int max) {

@@ -48,6 +48,7 @@ export interface AgentChatOptions {
   conversationId?: string;
   visitorId?: string;
   recordUserMessage?: boolean;
+  ragEnabledForAgent?: boolean;
   afterNavigationDisplayMode?: AgentAfterNavigationDisplayMode;
   signal?: AbortSignal;
 }
@@ -186,6 +187,7 @@ export class AgentChatClient {
           conversationId: options.conversationId,
           visitorId: options.visitorId,
           recordUserMessage: options.recordUserMessage !== false,
+          ragEnabledForAgent: options.ragEnabledForAgent === true,
         },
         prepareSendMessagesRequest: (request) => {
           for (const key of automaticContinuationKeys(
@@ -197,7 +199,10 @@ export class AgentChatClient {
           return {};
         },
       }),
-      onError: (error) => callbacks.onError?.(error.message),
+      onError: (error) => {
+        console.error('[summaraidGPT] Agent chat stream failed', error);
+        callbacks.onError?.(error.message);
+      },
       onToolCall: (part) => {
         if (part.state === 'input-available') {
           return executeToolCall(part);
@@ -289,6 +294,9 @@ export class AgentChatClient {
         throw this.chat.error;
       }
       return this.chat.messages;
+    } catch (error) {
+      console.error('[summaraidGPT] Agent chat request failed', error);
+      throw error;
     } finally {
       options.signal?.removeEventListener('abort', abortHandler);
       unsubscribe();
@@ -433,10 +441,19 @@ function normalizeSourceText(text: string | undefined): string {
 }
 
 function messageText(message: UIMessage): string {
-  return message.parts
+  return sanitizeAssistantProtocolText(message.parts
     .filter((part): part is Extract<typeof part, { type: 'text' }> => part.type === 'text')
     .map((part) => part.text)
-    .join('');
+    .join(''));
+}
+
+function sanitizeAssistantProtocolText(text: string): string {
+  return text
+    .replace(/<\|tool_calls_section_begin\|>[\s\S]*?(?:<\|tool_calls_section_end\|>|$)/g, '')
+    .replace(/<\|tool_call_begin\|>[\s\S]*?(?:<\|tool_call_end\|>|$)/g, '')
+    .replace(/<\|tool_call_argument_begin\|>[\s\S]*?(?:<\|tool_call_end\|>|$)/g, '')
+    .replace(/<\|tool_[^>\s]*(?:\|>)?/g, '')
+    .trimEnd();
 }
 
 function visibleAssistantText(messages: UIMessage[]): string | undefined {

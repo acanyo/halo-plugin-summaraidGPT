@@ -153,7 +153,7 @@ public class ArticleSummaryServiceImpl implements ArticleSummaryService {
                 
                 log.info("开始生成摘要，AI服务: AI Foundation, 文章: {}", post.getMetadata().getName());
                 
-                return Mono.fromCallable(() -> aiFoundationAiService.generateText(prompt, aiConfig));
+                return aiFoundationAiService.generateText(prompt, aiConfig);
             });
     }
 

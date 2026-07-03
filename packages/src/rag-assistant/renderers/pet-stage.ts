@@ -26,6 +26,7 @@ export interface PetStageRenderOptions {
   welcomeTime: string;
   quickQuestions: string[];
   input: string;
+  inputPlaceholder: string;
   streaming: boolean;
   hasSources: boolean;
   isSourceReferencesOpen: (messageId: string) => boolean;
@@ -230,7 +231,7 @@ function renderComposer(options: PetStageRenderOptions): TemplateResult {
           class="conversation-input input"
           rows="1"
           .value=${options.input}
-          placeholder=${RAG_INPUT_PLACEHOLDER}
+          placeholder=${options.inputPlaceholder || RAG_INPUT_PLACEHOLDER}
           ?disabled=${options.streaming}
           @input=${options.onInput}
           @keydown=${options.onKeydown}

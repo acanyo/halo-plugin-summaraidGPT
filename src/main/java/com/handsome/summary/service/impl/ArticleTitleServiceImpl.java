@@ -39,7 +39,7 @@ public class ArticleTitleServiceImpl implements ArticleTitleService {
                                                SettingConfigGetter.AiConfigResult aiConfig) {
         String prompt = buildTitlePrompt(request, aiConfig.getSystemPrompt());
         
-        return Mono.fromCallable(() -> aiFoundationAiService.generateText(prompt, aiConfig))
+        return aiFoundationAiService.generateText(prompt, aiConfig)
             .<TitleResponse>handle((response, sink) -> {
                 if (!StringUtils.hasText(response)) {
                     sink.error(new RuntimeException("AI标题生成失败: 返回内容为空"));

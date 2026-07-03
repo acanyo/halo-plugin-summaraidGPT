@@ -46,7 +46,7 @@ public class ArticleGenerateServiceImpl implements ArticleGenerateService {
                                                  SettingConfigGetter.AiConfigResult aiConfig) {
         String prompt = buildGeneratePrompt(request, aiConfig.getSystemPrompt());
         
-        return Mono.fromCallable(() -> aiFoundationAiService.generateText(prompt, aiConfig))
+        return aiFoundationAiService.generateText(prompt, aiConfig)
             .<GenerateResponse>handle((response, sink) -> {
                 if (!StringUtils.hasText(response)) {
                     sink.error(new RuntimeException("AI生成失败: 返回内容为空"));

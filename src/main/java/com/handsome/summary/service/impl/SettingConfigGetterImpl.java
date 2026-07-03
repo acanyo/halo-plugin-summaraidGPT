@@ -105,6 +105,9 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
             case "summary" -> basicConfig.getSummaryModelName();
             case "tags" -> basicConfig.getTagModelName();
             case "conversation", "assistant" -> basicConfig.getAssistantModelName();
+            case "agent" -> StringUtils.hasText(basicConfig.getAgentModelName())
+                ? basicConfig.getAgentModelName()
+                : basicConfig.getAssistantModelName();
             case "polish" -> basicConfig.getPolishModelName();
             case "generate" -> basicConfig.getGenerateModelName();
             case "title" -> basicConfig.getTitleModelName();
@@ -118,6 +121,7 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
             case "summary" -> roleConfig.getSummarySystemPrompt();
             case "tags" -> roleConfig.getTagGenerationPrompt();
             case "conversation", "assistant" -> roleConfig.getConversationSystemPrompt();
+            case "agent" -> roleConfig.getAgentSystemPrompt();
             case "polish" -> roleConfig.getPolishSystemPrompt();
             case "generate" -> roleConfig.getGenerateSystemPrompt();
             case "title" -> roleConfig.getTitleSystemPrompt();

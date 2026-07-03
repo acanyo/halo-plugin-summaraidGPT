@@ -67,6 +67,6 @@ tasks.named('generatePluginComponentsIdx') {
 
 halo {
     debug = true
-//    suspend = true
+    suspend = true
     version = '2.25.0'
 }

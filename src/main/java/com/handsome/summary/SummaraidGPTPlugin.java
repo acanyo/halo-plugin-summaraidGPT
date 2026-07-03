@@ -7,6 +7,7 @@ import com.handsome.summary.rag.extension.RagConversation;
 import com.handsome.summary.rag.extension.RagDocument;
 import com.handsome.summary.rag.extension.RagIndexTask;
 import com.handsome.summary.rag.extension.RagKnowledgeBase;
+import com.handsome.summary.rag.service.impl.DefaultRagIndexTaskService;
 import com.handsome.summary.service.AiRequestSecurityService;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -30,21 +31,26 @@ import run.halo.app.plugin.PluginContext;
 public class SummaraidGPTPlugin extends BasePlugin {
     private final SchemeManager schemeManager;
     private final AiRequestSecurityService aiRequestSecurityService;
+    private final DefaultRagIndexTaskService ragIndexTaskService;
 
     public SummaraidGPTPlugin(PluginContext pluginContext, SchemeManager schemeManager,
-        AiRequestSecurityService aiRequestSecurityService) {
+        AiRequestSecurityService aiRequestSecurityService,
+        DefaultRagIndexTaskService ragIndexTaskService) {
         super(pluginContext);
         this.schemeManager = schemeManager;
         this.aiRequestSecurityService = aiRequestSecurityService;
+        this.ragIndexTaskService = ragIndexTaskService;
     }
 
     @Override
     public void start() {
         registerScheme();
+        ragIndexTaskService.resumeRunningTasks();
     }
 
     @Override
     public void stop() {
+        ragIndexTaskService.disposeRunningTasks();
         aiRequestSecurityService.dispose();
         unregisterScheme();
     }
@@ -158,32 +164,18 @@ public class SummaraidGPTPlugin extends BasePlugin {
 
     private void unregisterScheme() {
         Scheme tokenScheme = schemeManager.get(Summary.class);
-        if (tokenScheme != null) {
-            schemeManager.unregister(tokenScheme);
-        }
+        schemeManager.unregister(tokenScheme);
         Scheme ragKnowledgeBaseScheme = schemeManager.get(RagKnowledgeBase.class);
-        if (ragKnowledgeBaseScheme != null) {
-            schemeManager.unregister(ragKnowledgeBaseScheme);
-        }
+        schemeManager.unregister(ragKnowledgeBaseScheme);
         Scheme ragDocumentScheme = schemeManager.get(RagDocument.class);
-        if (ragDocumentScheme != null) {
-            schemeManager.unregister(ragDocumentScheme);
-        }
+        schemeManager.unregister(ragDocumentScheme);
         Scheme ragIndexTaskScheme = schemeManager.get(RagIndexTask.class);
-        if (ragIndexTaskScheme != null) {
-            schemeManager.unregister(ragIndexTaskScheme);
-        }
+        schemeManager.unregister(ragIndexTaskScheme);
         Scheme ragConversationScheme = schemeManager.get(RagConversation.class);
-        if (ragConversationScheme != null) {
-            schemeManager.unregister(ragConversationScheme);
-        }
+        schemeManager.unregister(ragConversationScheme);
         Scheme aiCallLogScheme = schemeManager.get(AiCallLog.class);
-        if (aiCallLogScheme != null) {
-            schemeManager.unregister(aiCallLogScheme);
-        }
+        schemeManager.unregister(aiCallLogScheme);
         Scheme petCompanionScheme = schemeManager.get(PetCompanion.class);
-        if (petCompanionScheme != null) {
-            schemeManager.unregister(petCompanionScheme);
-        }
+        schemeManager.unregister(petCompanionScheme);
     }
 }

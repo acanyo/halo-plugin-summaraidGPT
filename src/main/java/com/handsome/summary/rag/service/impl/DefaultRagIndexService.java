@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -78,7 +79,12 @@ public class DefaultRagIndexService implements RagIndexService {
                         .flatMap(documents -> buildAndStore(kb, documents, basicConfig,
                             ragConfig, startedAt, progress)));
             })
-            .onErrorResume(error -> markError(kbName, error).then(Mono.error(error)));
+            .onErrorResume(error -> {
+                if (isCancellation(error)) {
+                    return Mono.error(error);
+                }
+                return markError(kbName, error).then(Mono.error(error));
+            });
     }
 
     @Override
@@ -283,6 +289,9 @@ public class DefaultRagIndexService implements RagIndexService {
         var heartbeat = Flux.interval(EMBEDDING_HEARTBEAT_INTERVAL)
             .concatMap(ignored -> progressListener.update(progress, message)
                 .onErrorResume(error -> {
+                    if (isCancellation(error)) {
+                        return Mono.error(error);
+                    }
                     log.warn("Failed to update RAG embedding heartbeat", error);
                     return Mono.empty();
                 }))
@@ -645,6 +654,17 @@ public class DefaultRagIndexService implements RagIndexService {
             return error == null ? "Unknown error" : error.toString();
         }
         return current.getMessage();
+    }
+
+    private boolean isCancellation(Throwable error) {
+        var current = error;
+        while (current != null) {
+            if (current instanceof CancellationException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private String normalizeKnowledgeBase(String knowledgeBase) {

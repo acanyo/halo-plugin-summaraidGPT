@@ -48,6 +48,8 @@ public class RagIndexTask extends AbstractExtension {
         private String message;
         private RagIndexSummary summary;
         private String errorMessage;
+        private Integer attempt = 1;
+        private Integer maxAttempts = 3;
         private Instant startedAt;
         private Instant lastUpdatedAt;
         private Instant completedAt;

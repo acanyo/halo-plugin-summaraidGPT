@@ -16,8 +16,8 @@ function printBanner(): void {
     return;
   }
 
-  console.log('%c智阅GPT-RAG 智能助手', 'color: #1f1f1f; font-size: 16px; font-weight: bold;');
-  console.log('%c基于知识库检索增强生成的 Halo 智能助手', 'color: #8a6f38; font-size: 12px;');
+  console.log('%c智阅GPT-前台智能助手', 'color: #1f1f1f; font-size: 16px; font-weight: bold;');
+  console.log('%c支持宠物陪伴、知识库问答和 Agent 工具调用', 'color: #8a6f38; font-size: 12px;');
   window.likcc_summaraidGPT_ragAssistantLoaded = true;
 }
 

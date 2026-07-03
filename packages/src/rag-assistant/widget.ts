@@ -454,7 +454,7 @@ export class RagAssistantWidget extends LitElement {
           @click=${this.handleBubbleClick}
           @mouseenter=${this.handlePetMouseEnter}
           @mouseleave=${this.handlePetMouseLeave}
-          aria-label="打开 RAG 智能助手"
+          aria-label=${this.isPetOnlyMode ? '互动宠物' : '打开智能助手'}
         >
           ${speech
             ? html`<span class=${this.petSpeechVisible ? 'pet-speech visible' : 'pet-speech'}>${speech}</span>`
@@ -508,6 +508,7 @@ export class RagAssistantWidget extends LitElement {
       welcomeTime: this.welcomeTime,
       quickQuestions: this.quickQuestions,
       input: this.input,
+      inputPlaceholder: this.petInputPlaceholder,
       streaming: this.streaming,
       hasSources: this.hasLatestSources,
       isSourceReferencesOpen: (messageId) => this.isSourceReferencesOpen(messageId),
@@ -534,6 +535,7 @@ export class RagAssistantWidget extends LitElement {
     return renderSelectionPopover(
       this.selectionPopup,
       () => this.askWithSelection(),
+      this.selectionActionLabel,
     );
   }
 
@@ -1015,6 +1017,10 @@ export class RagAssistantWidget extends LitElement {
       this.showLoginRequiredMessage();
       return;
     }
+    if (!this.canUseSelectedChatMode) {
+      this.showChatModeUnavailableMessage();
+      return;
+    }
 
     const selectedContext = this.selectedContext.trim();
     const requestQuestion = selectedContext
@@ -1029,7 +1035,7 @@ export class RagAssistantWidget extends LitElement {
     this.petPanelOpen = true;
     this.streaming = true;
     this.agentActivities = [];
-    this.appendAgentActivity(this.useAgentChat ? '正在准备站点工具' : '正在检索知识库', 'pending');
+    this.appendAgentActivity(this.useAgentChat ? '正在准备 Agent' : '正在检索知识库', 'pending');
     this.abortController = new AbortController();
 
     this.messages = [
@@ -1056,7 +1062,7 @@ export class RagAssistantWidget extends LitElement {
       if (this.abortController.signal.aborted) {
         return;
       }
-      const message = error instanceof Error ? error.message : 'RAG 问答失败';
+      const message = error instanceof Error ? error.message : '智能助手回答失败';
       this.failAssistantMessage(assistantMessageId, `抱歉，暂时无法回答，请稍后重试。${message ? `（${message}）` : ''}`);
     } finally {
       this.finishAssistantMessage(assistantMessageId);
@@ -1073,26 +1079,47 @@ export class RagAssistantWidget extends LitElement {
     const client = new AgentChatClient();
     this.agentChatClient = client;
     const conversationId = this.ensureConversationId();
-    const messages = await client.sendMessage(
-      question,
-      {
-        agent: this.config.agent,
-        historyMessages: this.agentHistoryMessages,
-        conversationId,
-        visitorId: this.visitorId,
-        afterNavigationDisplayMode: this.open ? 'stage' : 'panel',
-        signal: this.abortController?.signal,
-      },
-      {
-        onText: (text) => this.setAssistantContent(assistantMessageId, text),
-        onSources: (sources) => this.receiveSources(assistantMessageId, sources),
-        onError: (error) => this.failAssistantMessage(assistantMessageId, error),
-        onFinish: (historyMessages) => {
-          this.agentHistoryMessages = historyMessages;
+    try {
+      const messages = await client.sendMessage(
+        question,
+        {
+          agent: this.config.agent,
+          historyMessages: this.agentHistoryMessages,
+          conversationId,
+          visitorId: this.visitorId,
+          ragEnabledForAgent: this.shouldAttachRagToAgent,
+          afterNavigationDisplayMode: this.open ? 'stage' : 'panel',
+          signal: this.abortController?.signal,
         },
-      },
-    );
-    this.agentHistoryMessages = messages;
+        {
+          onText: (text) => this.setAssistantContent(assistantMessageId, text),
+          onSources: (sources) => this.receiveSources(assistantMessageId, sources),
+          onError: (error) => {
+            if (this.isAgentToolCallStreamProtocolError(error)) {
+              this.appendAgentActivity('当前模型的工具调用流格式不兼容', 'warning');
+              return;
+            }
+            this.failAssistantMessage(assistantMessageId, error);
+          },
+          onFinish: (historyMessages) => {
+            this.agentHistoryMessages = historyMessages;
+          },
+        },
+      );
+      this.agentHistoryMessages = messages;
+    } catch (error) {
+      if (!this.isAgentToolCallStreamProtocolError(error)) {
+        throw error;
+      }
+      client.stop();
+      this.agentChatClient = undefined;
+      if (!this.canFallbackToRagChat) {
+        throw new Error('当前模型的工具调用流格式不兼容，无法继续使用 Agent 模式');
+      }
+      this.resetAssistantMessageForFallback(assistantMessageId);
+      this.appendAgentActivity('已切换为知识库问答模式', 'warning');
+      await this.askRagStream(question, assistantMessageId);
+    }
   }
 
   private async resumeAgentAfterNavigation(resume: AgentAfterNavigationResume): Promise<void> {
@@ -1126,13 +1153,20 @@ export class RagAssistantWidget extends LitElement {
           conversationId: this.ensureConversationId(),
           visitorId: this.visitorId,
           recordUserMessage: false,
+          ragEnabledForAgent: this.shouldAttachRagToAgent,
           afterNavigationDisplayMode: this.open ? 'stage' : 'panel',
           signal: this.abortController.signal,
         },
         {
           onText: (text) => this.setAssistantContent(assistantMessageId, text),
           onSources: (sources) => this.receiveSources(assistantMessageId, sources),
-          onError: (error) => this.failAssistantMessage(assistantMessageId, error),
+          onError: (error) => {
+            if (this.isAgentToolCallStreamProtocolError(error)) {
+              this.appendAgentActivity('当前模型的工具调用流格式不兼容', 'warning');
+              return;
+            }
+            this.failAssistantMessage(assistantMessageId, error);
+          },
           onFinish: (historyMessages) => {
             this.agentHistoryMessages = historyMessages;
           },
@@ -1141,6 +1175,21 @@ export class RagAssistantWidget extends LitElement {
       this.agentHistoryMessages = messages;
     } catch (error) {
       if (!this.abortController.signal.aborted) {
+        if (this.isAgentToolCallStreamProtocolError(error)) {
+          client.stop();
+          this.agentChatClient = undefined;
+          if (!this.canFallbackToRagChat) {
+            this.failAssistantMessage(
+              assistantMessageId,
+              '当前模型的工具调用流格式不兼容，无法继续使用 Agent 模式',
+            );
+            return;
+          }
+          this.resetAssistantMessageForFallback(assistantMessageId);
+          this.appendAgentActivity('已切换为知识库问答模式', 'warning');
+          await this.askRagStream(resume.message, assistantMessageId);
+          return;
+        }
         const message = error instanceof Error ? error.message : 'Agent 恢复回答失败';
         this.failAssistantMessage(assistantMessageId, message);
       }
@@ -1155,6 +1204,9 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private async askRagStream(question: string, assistantMessageId: string): Promise<void> {
+    if (!this.useRagChat) {
+      throw new Error('当前模式没有启用 RAG 知识库问答');
+    }
     await askRagStream(
       {
         question,
@@ -1370,12 +1422,48 @@ export class RagAssistantWidget extends LitElement {
     this.streaming = false;
   }
 
+  private resetAssistantMessageForFallback(messageId: string): void {
+    this.updateMessage(messageId, (message) => ({
+      ...message,
+      content: '',
+      error: false,
+      streaming: true,
+      sources: undefined,
+    }));
+  }
+
+  private isAgentToolCallStreamProtocolError(error: unknown): boolean {
+    const message = typeof error === 'string'
+      ? error
+      : error instanceof Error
+        ? error.message
+        : String(error ?? '');
+    return /tool-call stream part toolCallId must not be blank|toolCallId must not be blank/i
+      .test(message);
+  }
+
   private showLoginRequiredMessage(): void {
-    const content = '请登录后再使用 RAG 智能助手。';
+    const content = '请登录后再使用智能助手。';
     const lastMessage = this.messages[this.messages.length - 1];
     this.petPanelOpen = true;
     this.petSpeechVisible = false;
     this.appendAgentActivity('请登录后再使用智能助手', 'warning');
+    if (lastMessage?.role === 'assistant' && lastMessage.content === content) {
+      return;
+    }
+    this.messages = [
+      ...this.messages,
+      createMessage('assistant', content, { error: true }),
+    ];
+    void this.updateComplete.then(() => this.scrollPetPanelToBottom());
+  }
+
+  private showChatModeUnavailableMessage(): void {
+    const content = this.chatModeUnavailableMessage;
+    const lastMessage = this.messages[this.messages.length - 1];
+    this.petPanelOpen = true;
+    this.petSpeechVisible = false;
+    this.appendAgentActivity(content, 'warning');
     if (lastMessage?.role === 'assistant' && lastMessage.content === content) {
       return;
     }
@@ -1642,15 +1730,47 @@ export class RagAssistantWidget extends LitElement {
     return this.config.displayMode === 'petOnly';
   }
 
+  private get isRagAgentMode(): boolean {
+    return this.config.displayMode === 'ragAgent';
+  }
+
+  private get isRagOnlyMode(): boolean {
+    return this.config.displayMode === 'rag';
+  }
+
+  private get isAgentOnlyMode(): boolean {
+    return this.config.displayMode === 'agent';
+  }
+
   private get canUseAssistantChat(): boolean {
     return this.config.access.allowAnonymous || this.config.access.authenticated;
+  }
+
+  private get canUseSelectedChatMode(): boolean {
+    return this.useAgentChat || this.useRagChat;
+  }
+
+  private get canFallbackToRagChat(): boolean {
+    return this.isRagAgentMode && this.useRagChat;
   }
 
   private get petInputPlaceholder(): string {
     if (!this.canUseAssistantChat) {
       return '请登录后使用智能助手';
     }
-    return this.selectedContext ? '想问这段内容什么？' : RAG_INPUT_PLACEHOLDER;
+    if (!this.canUseSelectedChatMode) {
+      return this.chatModeUnavailableMessage;
+    }
+    if (this.selectedContext) {
+      return '想问这段内容什么？';
+    }
+    if (this.isAgentOnlyMode) {
+      return '请输入要让助手处理的问题...';
+    }
+    if (this.isRagAgentMode) {
+      return '请输入问题，助手会按需使用站点工具或知识库...';
+    }
+    return RAG_INPUT_PLACEHOLDER;
   }
 
   private get selectedContextPreview(): string {
@@ -1680,7 +1800,48 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private get useAgentChat(): boolean {
-    return this.config.agent?.enabled !== false;
+    return (this.isRagAgentMode || this.isAgentOnlyMode)
+      && this.config.agent?.enabled !== false
+      && this.config.access.agentAllowed !== false;
+  }
+
+  private get useRagChat(): boolean {
+    return (this.isRagAgentMode || this.isRagOnlyMode) && this.config.ragEnabled !== false;
+  }
+
+  private get shouldAttachRagToAgent(): boolean {
+    return this.isRagAgentMode && this.config.ragEnabled !== false;
+  }
+
+  private get chatModeUnavailableMessage(): string {
+    if (this.isPetOnlyMode) {
+      return '当前为纯宠物模式，不提供问答面板。';
+    }
+    if (this.isRagOnlyMode && this.config.ragEnabled === false) {
+      return '当前为 RAG 模式，但 RAG 知识库未启用。';
+    }
+    if (this.isAgentOnlyMode) {
+      if (this.config.agent?.enabled === false) {
+        return '当前为 Agent 模式，但 Agent 能力未启用。';
+      }
+      if (this.config.access.agentAllowed === false) {
+        return '当前访问模式未开放 Agent。';
+      }
+    }
+    if (this.isRagAgentMode) {
+      if (this.config.agent?.enabled === false && this.config.ragEnabled === false) {
+        return '当前为知识库问答 + Agent 模式，但知识库问答和 Agent 都未启用。';
+      }
+      if (this.config.agent?.enabled !== false && this.config.access.agentAllowed === false
+        && this.config.ragEnabled === false) {
+        return '当前访问模式未开放 Agent，且知识库问答未启用。';
+      }
+    }
+    return '当前前台显示模式暂不可用，请联系站长检查配置。';
+  }
+
+  private get selectionActionLabel(): string {
+    return this.isRagOnlyMode ? '问知识库' : '问助手';
   }
 
   private get avatarFallbackText(): string {

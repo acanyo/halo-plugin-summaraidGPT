@@ -310,6 +310,18 @@ public class RagEndpoint implements CustomEndpoint {
                     .description("Start a RAG index rebuild task.")
                     .response(responseBuilder().implementation(RebuildTaskResponse.class))
             )
+            .POST("ragForceRebuild", this::forceRebuild,
+                builder -> builder.operationId("RagForceRebuild")
+                    .tag(tag)
+                    .description("Force stop the current RAG index task and start a full rebuild.")
+                    .response(responseBuilder().implementation(RebuildTaskResponse.class))
+            )
+            .POST("ragStopIndexTask", this::stopIndexTask,
+                builder -> builder.operationId("RagStopIndexTask")
+                    .tag(tag)
+                    .description("Force stop the current RAG index task.")
+                    .response(responseBuilder().implementation(RebuildTaskResponse.class))
+            )
             .POST("ragIndexDocuments", this::indexDocuments,
                 builder -> builder.operationId("RagIndexDocuments")
                     .tag(tag)
@@ -639,6 +651,34 @@ public class RagEndpoint implements CustomEndpoint {
             .flatMap(body -> {
                 var knowledgeBase = normalizeKnowledgeBase(body.knowledgeBase());
                 return ragIndexTaskService.startFullRebuild(knowledgeBase)
+                    .map(task -> new RebuildTaskResponse(knowledgeBase, task));
+            })
+            .flatMap(this::ok)
+            .onErrorResume(this::errorResponse);
+    }
+
+    private Mono<ServerResponse> forceRebuild(ServerRequest request) {
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(RebuildRequest.class)
+                .defaultIfEmpty(new RebuildRequest(null)))
+            .flatMap(body -> {
+                var knowledgeBase = normalizeKnowledgeBase(body.knowledgeBase());
+                return ragIndexTaskService.forceFullRebuild(knowledgeBase)
+                    .map(task -> new RebuildTaskResponse(knowledgeBase, task));
+            })
+            .flatMap(this::ok)
+            .onErrorResume(this::errorResponse);
+    }
+
+    private Mono<ServerResponse> stopIndexTask(ServerRequest request) {
+        return aiRequestSecurityService.secure(request)
+            .then(request.bodyToMono(RebuildRequest.class)
+                .defaultIfEmpty(new RebuildRequest(null)))
+            .flatMap(body -> {
+                var knowledgeBase = normalizeKnowledgeBase(body.knowledgeBase());
+                return ragIndexTaskService.forceStop(knowledgeBase)
+                    .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No running RAG index task")))
                     .map(task -> new RebuildTaskResponse(knowledgeBase, task));
             })
             .flatMap(this::ok)

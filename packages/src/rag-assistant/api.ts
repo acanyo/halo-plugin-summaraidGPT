@@ -42,7 +42,8 @@ const DEFAULT_RAG_ASSISTANT_PET: NonNullable<RagAssistantConfig['pet']> = {
 export const DEFAULT_RAG_ASSISTANT_CONFIG: RagAssistantConfig = {
   assistantAvatar: DEFAULT_ASSISTANT_AVATAR,
   assistantName: DEFAULT_ASSISTANT_NAME,
-  displayMode: 'assistant',
+  displayMode: 'ragAgent',
+  ragEnabled: true,
   welcomeMessage: DEFAULT_WELCOME_MESSAGE.replace('{assistantName}', DEFAULT_ASSISTANT_NAME),
   quickQuestions: DEFAULT_QUICK_QUESTIONS,
   styleConfig: DEFAULT_RAG_ASSISTANT_STYLE,
@@ -178,6 +179,7 @@ function normalizeConfig(config: Partial<RagAssistantConfig>): RagAssistantConfi
     assistantAvatar: normalizeAvatarUrl(config.assistantAvatar),
     assistantName: normalizeAssistantName(config.assistantName),
     displayMode: normalizeDisplayMode(config.displayMode),
+    ragEnabled: config.ragEnabled !== false,
     welcomeMessage: normalizeWelcomeMessage(config.welcomeMessage, config.assistantName),
     quickQuestions:
       normalizeStringList(config.quickQuestions, 8, MAX_QUICK_QUESTION_CHARS)
@@ -295,7 +297,13 @@ function normalizeAssistantName(name?: string): string {
 }
 
 function normalizeDisplayMode(mode?: string): RagAssistantConfig['displayMode'] {
-  return mode === 'petOnly' ? 'petOnly' : 'assistant';
+  if (mode === 'assistant' || mode === 'ragAgent') {
+    return 'ragAgent';
+  }
+  if (mode === 'rag' || mode === 'agent' || mode === 'petOnly') {
+    return mode;
+  }
+  return 'ragAgent';
 }
 
 function parseSseFrame(frame: string): string | undefined {

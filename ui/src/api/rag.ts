@@ -364,6 +364,22 @@ export const ragApi = {
     return data
   },
 
+  async forceRebuild(knowledgeBase: string) {
+    const { data } = await axiosInstance.post<RagRebuildTaskResponse>(
+      `${API_PREFIX}/ragForceRebuild`,
+      { knowledgeBase },
+    )
+    return data
+  },
+
+  async stopIndexTask(knowledgeBase: string) {
+    const { data } = await axiosInstance.post<RagRebuildTaskResponse>(
+      `${API_PREFIX}/ragStopIndexTask`,
+      { knowledgeBase },
+    )
+    return data
+  },
+
   async indexDocuments(knowledgeBase: string, documentNames: string[]) {
     const { data } = await axiosInstance.post<RagRebuildTaskResponse>(
       `${API_PREFIX}/ragIndexDocuments`,

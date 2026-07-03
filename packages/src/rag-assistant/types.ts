@@ -3,7 +3,8 @@ import type { AgentRuntimeConfig } from './agent/types';
 export interface RagAssistantConfig {
   assistantAvatar?: string;
   assistantName: string;
-  displayMode: 'assistant' | 'petOnly';
+  displayMode: 'ragAgent' | 'rag' | 'agent' | 'petOnly';
+  ragEnabled: boolean;
   welcomeMessage: string;
   quickQuestions: string[];
   styleConfig: RagAssistantStyleConfig;

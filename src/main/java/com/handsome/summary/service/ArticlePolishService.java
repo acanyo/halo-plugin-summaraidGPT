@@ -75,10 +75,10 @@ public class ArticlePolishService {
      * 执行润色操作
      */
     private Mono<String> performPolish(String content, SettingConfigGetter.AiConfigResult aiConfig) {
-        return Mono.fromCallable(() -> {
+        return Mono.defer(() -> {
             String prompt = buildPolishPrompt(content, aiConfig);
-            String response = aiFoundationAiService.generateText(prompt, aiConfig);
-            return extractPolishedContent(response);
+            return aiFoundationAiService.generateText(prompt, aiConfig)
+                .map(this::extractPolishedContent);
         })
         .doOnSubscribe(subscription -> log.info("开始润色文章片段，AI服务: AI Foundation"))
         .onErrorMap(Exception.class, ex -> 

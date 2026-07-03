@@ -35,6 +35,11 @@ public class AgentToolService {
 
     public AgentToolSet buildTools(AgentSettings settings, boolean authenticated,
         boolean agentAllowed) {
+        return buildTools(settings, authenticated, agentAllowed, true);
+    }
+
+    public AgentToolSet buildTools(AgentSettings settings, boolean authenticated,
+        boolean agentAllowed, boolean ragAvailable) {
         if (!agentAllowed) {
             return AgentToolSet.disabled();
         }
@@ -46,7 +51,7 @@ public class AgentToolService {
         List<ToolDefinition> tools = new ArrayList<>();
         addBuiltInBrowserTools(tools, resolvedSettings);
         addHaloPresetTools(tools, resolvedSettings);
-        addRagTools(tools, resolvedSettings);
+        addRagTools(tools, resolvedSettings, ragAvailable);
         normalizer.normalizeCustomTools(resolvedSettings).stream()
             .filter(tool -> isAllowed(tool.requiredAuth(), authenticated))
             .map(this::toBrowserToolDefinition)
@@ -60,20 +65,38 @@ public class AgentToolService {
             return prompt + RESPONSE_FORMAT_PROMPT + "\n\n【Agent 能力边界】\n"
                 + "当前站点未向访客开放 Agent 操作能力。你可以正常聊天，但不能承诺打开页面、提交内容或控制站点功能。";
         }
-        return prompt + RESPONSE_FORMAT_PROMPT + "\n\n【Agent 能力】\n"
-            + "- 你可以在工具可用时协助访客执行已授权的站点操作。\n"
-            + "- 只能调用当前已声明的工具；不要承诺未声明或未授权的能力。\n"
-            + "- Agent 是操作和检索编排层，RAG 是资料来源之一；需要站内依据时，让 Halo 公开内容检索、RAG 检索和详情读取配合工作。\n"
-            + "- 用户要查站点内容、关于博主、页面位置、分类标签、导入文档、知识库资料或某篇文章时，优先使用站内搜索、页面列表或 RAG 检索工具。\n"
-            + "- 当用户只是问通用概念或公开常识，且没有表达“本站、站内、知识库、某篇文章、打开/跳转”等站点意图时，可以直接回答；不要为了凑来源强行检索弱相关资源。\n"
-            + "- 检索到候选资源后，只选择和问题强相关的文章、页面或文档读取详情；再把站内正文、RAG 片段和你的推理合并成一份最终回答。\n"
-            + "- 不要在工具返回前输出实质性答案；工具用完后只输出一份整合后的最终回答，不要先给通用回答再追加一段知识库回答。\n"
-            + "- 工具返回的资源会由前台展示为关联资源，正文只保留必要引用和结论，不要重复罗列完整来源清单，也不要引用弱相关候选。\n"
-            + "- 用户只输入短页面名或站点入口名，例如“关于博主”“关于”“友链”“留言”“归档”，也视为导航意图；应先使用页面列表或站内搜索找到强匹配页面，再调用打开资源工具。\n"
-            + "- 如果工具返回了可信资源，并且用户表达了“带我去、打开、跳转、看看页面”或只输入页面名/入口名，应调用打开资源工具，不要只停留在文字说明。\n"
-            + "- 执行评论、表单填写、页面定位等依赖当前页面结构的操作前，应先读取当前页面上下文；如果页面不具备对应能力，应如实说明。\n"
-            + "- 需要访客确认的操作必须等待确认，不能声称已经完成。\n"
-            + "- 导航、搜索、评论和外部读取都应以工具结果为准。";
+        var hasRagTools = hasTool(toolSet, "search_rag_resources");
+        var hasHaloTools = hasTool(toolSet, "search_halo_resources");
+        var builder = new StringBuilder(prompt)
+            .append(RESPONSE_FORMAT_PROMPT)
+            .append("\n\n【Agent 能力】\n")
+            .append("- 你可以在工具可用时协助访客执行已授权的站点操作。\n")
+            .append("- 只能调用当前已声明的工具；不要承诺未声明或未授权的能力。\n");
+        if (hasRagTools && hasHaloTools) {
+            builder.append("- Agent 是操作和检索编排层，RAG 是资料来源之一；需要站内依据时，让 Halo 公开内容检索、RAG 检索和详情读取配合工作。\n")
+                .append("- 用户要查站点内容、关于博主、页面位置、分类标签、导入文档、知识库资料或某篇文章时，优先使用站内搜索、页面列表或 RAG 检索工具。\n");
+        } else if (hasRagTools) {
+            builder.append("- 站点已开放 RAG 知识库检索；用户要查知识库资料、导入文档或站点资料时，优先使用 RAG 检索工具。\n");
+        } else if (hasHaloTools) {
+            builder.append("- 当前站点未开放 RAG 知识库检索；需要站内依据时，优先使用 Halo 公开内容搜索、页面列表和资源详情工具。\n");
+        } else {
+            builder.append("- 当前站点未开放站内搜索或 RAG 检索工具；你可以正常聊天，但不要声称能检索知识库或读取站内资料。\n");
+        }
+        builder.append("- 当用户只是问通用概念或公开常识，且没有表达“本站、站内、知识库、某篇文章、打开/跳转”等站点意图时，可以直接回答；不要为了凑来源强行检索弱相关资源。\n");
+        if (hasRagTools) {
+            builder.append("- 检索到候选资源后，只选择和问题强相关的文章、页面或文档读取详情；再把站内正文、RAG 片段和你的推理合并成一份最终回答。\n");
+        } else if (hasHaloTools) {
+            builder.append("- 检索到候选资源后，只选择和问题强相关的文章或页面读取详情；再把站内正文和你的推理合并成一份最终回答。\n");
+        }
+        return builder
+            .append("- 不要在工具返回前输出实质性答案；工具用完后只输出一份整合后的最终回答，不要先给通用回答再追加一段知识库回答。\n")
+            .append("- 工具返回的资源会由前台展示为关联资源，正文只保留必要引用和结论，不要重复罗列完整来源清单，也不要引用弱相关候选。\n")
+            .append("- 用户只输入短页面名或站点入口名，例如“关于博主”“关于”“友链”“留言”“归档”，也视为导航意图；应先使用页面列表或站内搜索找到强匹配页面，再调用打开资源工具。\n")
+            .append("- 如果工具返回了可信资源，并且用户表达了“带我去、打开、跳转、看看页面”或只输入页面名/入口名，应调用打开资源工具，不要只停留在文字说明。\n")
+            .append("- 执行评论、表单填写、页面定位等依赖当前页面结构的操作前，应先读取当前页面上下文；如果页面不具备对应能力，应如实说明。\n")
+            .append("- 需要访客确认的操作必须等待确认，不能声称已经完成。\n")
+            .append("- 导航、搜索、评论和外部读取都应以工具结果为准。")
+            .toString();
     }
 
     private void addHaloPresetTools(List<ToolDefinition> tools, AgentSettings settings) {
@@ -150,6 +173,8 @@ public class AgentToolService {
                 .name("get_pages")
                 .description("查看站点公开独立页面列表，适合查找“关于”“关于博主”“友链”“留言”“归档”等页面。用户只输入短页面名时，应优先使用该工具找强匹配页面，并继续调用 open_halo_resource 打开。")
                 .inputSchema(JsonSchema.object()
+                    .property("keyword", JsonSchema.string()
+                        .description("可选页面关键词，例如 友链、关于、留言"))
                     .property("limit", JsonSchema.integer().description("返回数量，1 到 100"))
                     .build())
                 .executor(context -> haloPresetToolService.getPages(context.getInput()))
@@ -169,8 +194,9 @@ public class AgentToolService {
         }
     }
 
-    private void addRagTools(List<ToolDefinition> tools, AgentSettings settings) {
-        if (!settings.builtIn().ragContentSearch()) {
+    private void addRagTools(List<ToolDefinition> tools, AgentSettings settings,
+        boolean ragAvailable) {
+        if (!ragAvailable || !settings.builtIn().ragContentSearch()) {
             return;
         }
         tools.add(ToolDefinition.builder()
@@ -276,6 +302,10 @@ public class AgentToolService {
 
     private boolean isAllowed(AgentToolAuth requiredAuth, boolean authenticated) {
         return requiredAuth != AgentToolAuth.AUTHENTICATED || authenticated;
+    }
+
+    private boolean hasTool(AgentToolSet toolSet, String name) {
+        return toolSet.tools().stream().anyMatch(tool -> name.equals(tool.getName()));
     }
 
     public static Map<String, Object> emptyObjectSchema() {

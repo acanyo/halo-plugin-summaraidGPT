@@ -46,32 +46,32 @@ public class DefaultAiFoundationAiService implements AiFoundationAiService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public String generateText(String prompt, SettingConfigGetter.AiConfigResult config) {
-        try {
+    public Mono<String> generateText(String prompt, SettingConfigGetter.AiConfigResult config) {
+        return Mono.defer(() -> {
             var request = GenerateTextRequest.builder()
                 .messages(List.of(ModelMessage.user(defaultString(prompt))))
                 .build();
             return requestText("text-generate", modelName(config), request);
-        } catch (Exception e) {
+        }).onErrorMap(e -> {
             log.error("AI Foundation generation failed", e);
-            throw new IllegalStateException(AI_SERVICE_NAME + " 生成异常：" + errorMessage(e), e);
-        }
+            return new IllegalStateException(AI_SERVICE_NAME + " 生成异常：" + errorMessage(e), e);
+        });
     }
 
     @Override
-    public String chat(String conversationHistory, String systemPrompt,
+    public Mono<String> chat(String conversationHistory, String systemPrompt,
         SettingConfigGetter.AiConfigResult config) {
-        try {
+        return Mono.defer(() -> {
             var conversation = parseConversationHistory(conversationHistory, systemPrompt);
             var request = GenerateTextRequest.builder()
                 .system(conversation.systemPrompt())
                 .messages(conversation.messages())
                 .build();
             return requestText("chat-generate", modelName(config), request);
-        } catch (Exception e) {
+        }).onErrorMap(e -> {
             log.error("AI Foundation multi-turn chat failed", e);
-            throw new IllegalStateException(AI_SERVICE_NAME + " 多轮对话异常：" + errorMessage(e), e);
-        }
+            return new IllegalStateException(AI_SERVICE_NAME + " 多轮对话异常：" + errorMessage(e), e);
+        });
     }
 
     @Override
@@ -136,7 +136,7 @@ public class DefaultAiFoundationAiService implements AiFoundationAiService {
         }
     }
 
-    private String requestText(String operation, String modelName, GenerateTextRequest request) {
+    private Mono<String> requestText(String operation, String modelName, GenerateTextRequest request) {
         var logModelName = AiFoundationCallLog.modelName(modelName);
         var stats = AiFoundationCallLog.generateRequestStats(request);
         var startedAt = Instant.now();
@@ -164,8 +164,7 @@ public class DefaultAiFoundationAiService implements AiFoundationAiService {
                 AiFoundationCallLog.rootErrorType(error),
                 AiFoundationCallLog.rootErrorMessage(error), error))
             .doOnError(error -> recordGenerateCall(operation, logModelName, stats, startedAt,
-                AiFoundationCallLog.elapsedMillis(startNanos), 0, 0L, error))
-            .block();
+                AiFoundationCallLog.elapsedMillis(startNanos), 0, 0L, error));
     }
 
     private Mono<AiModelService> aiModelService() {

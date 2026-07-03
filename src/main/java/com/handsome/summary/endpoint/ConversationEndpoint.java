@@ -42,7 +42,11 @@ public class ConversationEndpoint implements CustomEndpoint {
 
     private static final String AI_FOUNDATION_SERVICE = "aiFoundation";
     private static final String DEFAULT_ASSISTANT_NAME = "智阅助手";
-    private static final String DEFAULT_DISPLAY_MODE = "assistant";
+    private static final String DEFAULT_DISPLAY_MODE = "ragAgent";
+    private static final String LEGACY_ASSISTANT_DISPLAY_MODE = "assistant";
+    private static final String RAG_AGENT_DISPLAY_MODE = "ragAgent";
+    private static final String RAG_DISPLAY_MODE = "rag";
+    private static final String AGENT_DISPLAY_MODE = "agent";
     private static final String PET_ONLY_DISPLAY_MODE = "petOnly";
     private static final String DEFAULT_BUTTON_POSITION = "right";
     private static final String DEFAULT_STYLE_PRESET = "default";
@@ -71,6 +75,7 @@ public class ConversationEndpoint implements CustomEndpoint {
         String assistantAvatar,
         String assistantName,
         String displayMode,
+        Boolean ragEnabled,
         String welcomeMessage,
         List<String> quickQuestions,
         AssistantStyleConfig styleConfig,
@@ -206,27 +211,29 @@ public class ConversationEndpoint implements CustomEndpoint {
                 request.conversationHistory() != null ? request.conversationHistory().length() : 0);
 
         return settingConfigGetter.getAiConfigForFunction("conversation")
-        .map(aiConfig -> {
-            try {
+            .flatMap(aiConfig -> {
                 // 验证对话历史
-                if (request.conversationHistory() == null || request.conversationHistory().trim().isEmpty()) {
-                    return ApiResponse.error("对话历史不能为空");
+                if (request.conversationHistory() == null
+                    || request.conversationHistory().trim().isEmpty()) {
+                    return Mono.just(ApiResponse.error("对话历史不能为空"));
                 }
 
                 log.debug("使用AI服务: {}", AI_FOUNDATION_SERVICE);
 
                 // 调用AI服务进行多轮对话
                 String systemPrompt = aiConfig.getSystemPrompt();
-                String aiResponse = aiFoundationAiService.chat(request.conversationHistory(), systemPrompt, aiConfig);
-
-                log.info("多轮对话成功完成: AI服务={}", AI_FOUNDATION_SERVICE);
-                return ApiResponse.success("多轮对话成功", aiResponse, AI_FOUNDATION_SERVICE);
-
-            } catch (Exception e) {
-                log.error("多轮对话处理异常", e);
-                return ApiResponse.error("多轮对话处理异常: " + e.getMessage());
-            }
-        });
+                return aiFoundationAiService.chat(request.conversationHistory(), systemPrompt,
+                        aiConfig)
+                    .map(aiResponse -> {
+                        log.info("多轮对话成功完成: AI服务={}", AI_FOUNDATION_SERVICE);
+                        return ApiResponse.success("多轮对话成功", aiResponse,
+                            AI_FOUNDATION_SERVICE);
+                    })
+                    .onErrorResume(e -> {
+                        log.error("多轮对话处理异常", e);
+                        return Mono.just(ApiResponse.error("多轮对话处理异常: " + e.getMessage()));
+                    });
+            });
     }
 
     /**
@@ -333,6 +340,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                 settingConfigGetter.getAssistantConfig(),
                 settingConfigGetter.getAgentSettings(),
                 settingConfigGetter.getAiSecurityConfig(),
+                settingConfigGetter.getRagConfig(),
                 isAuthenticated(request)
             )
             .flatMap(tuple -> petCompanionService.getActive()
@@ -341,6 +349,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                 .map(activePet -> {
                     var assistantConfig = tuple.getT1();
                     var securityConfig = tuple.getT3();
+                    var ragConfig = tuple.getT4();
                     var accessMode = aiRequestSecurityService.resolveAccessMode(securityConfig);
                     var assistantName = normalizeAssistantName(assistantConfig.getAssistantName());
                     var displayMode = normalizeDisplayMode(assistantConfig.getDisplayMode());
@@ -348,6 +357,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                         normalizeAvatarUrl(assistantConfig.getAssistantAvatar()),
                         assistantName,
                         displayMode,
+                        !Boolean.FALSE.equals(ragConfig.getEnableRag()),
                         normalizeWelcomeMessage(assistantConfig.getWelcomeMessage(),
                             assistantName),
                         normalizeQuickQuestions(assistantConfig.getQuickQuestions()),
@@ -359,7 +369,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                         resolvePetSpeechMessages(assistantConfig, displayMode),
                         activePet.map(pet -> toPetConfig(pet, assistantConfig))
                             .orElseGet(this::defaultPetConfig),
-                        toAccessConfig(accessMode, tuple.getT4()),
+                        toAccessConfig(accessMode, tuple.getT5()),
                         tuple.getT2()
                     );
                 }))
@@ -374,6 +384,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                     SettingConfigGetter.AssistantConfig.DEFAULT_ASSISTANT_AVATAR,
                     DEFAULT_ASSISTANT_NAME,
                     DEFAULT_DISPLAY_MODE,
+                    true,
                     normalizeWelcomeMessage(fallbackAssistantConfig.getWelcomeMessage(),
                         DEFAULT_ASSISTANT_NAME),
                     normalizeQuickQuestions(fallbackAssistantConfig.getQuickQuestions()),
@@ -488,7 +499,16 @@ public class ConversationEndpoint implements CustomEndpoint {
     }
 
     private String normalizeDisplayMode(String displayMode) {
-        return PET_ONLY_DISPLAY_MODE.equals(displayMode) ? PET_ONLY_DISPLAY_MODE : DEFAULT_DISPLAY_MODE;
+        if (!StringUtils.hasText(displayMode)) {
+            return DEFAULT_DISPLAY_MODE;
+        }
+        return switch (displayMode.strip()) {
+            case LEGACY_ASSISTANT_DISPLAY_MODE, RAG_AGENT_DISPLAY_MODE -> RAG_AGENT_DISPLAY_MODE;
+            case RAG_DISPLAY_MODE -> RAG_DISPLAY_MODE;
+            case AGENT_DISPLAY_MODE -> AGENT_DISPLAY_MODE;
+            case PET_ONLY_DISPLAY_MODE -> PET_ONLY_DISPLAY_MODE;
+            default -> DEFAULT_DISPLAY_MODE;
+        };
     }
 
     private AccessConfig toAccessConfig(AgentAccessMode accessMode, boolean authenticated) {

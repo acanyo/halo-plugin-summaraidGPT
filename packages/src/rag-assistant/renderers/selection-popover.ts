@@ -5,6 +5,7 @@ import type { SelectionPopupState } from '../types';
 export function renderSelectionPopover(
   selectionPopup: SelectionPopupState,
   onAskWithSelection: () => void,
+  label = '问助手',
 ): TemplateResult | typeof nothing {
   if (!selectionPopup.visible) {
     return nothing;
@@ -16,7 +17,7 @@ export function renderSelectionPopover(
       style=${`left:${selectionPopup.x}px;top:${selectionPopup.y}px`}
     >
       <button type="button" @click=${onAskWithSelection}>
-        ${questionAnswerIcon()} 问知识库
+        ${questionAnswerIcon()} ${label}
       </button>
     </div>
   `;

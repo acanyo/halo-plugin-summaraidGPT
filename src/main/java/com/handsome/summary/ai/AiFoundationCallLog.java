@@ -1,5 +1,6 @@
 package com.handsome.summary.ai;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.util.StringUtils;
@@ -92,6 +93,25 @@ public final class AiFoundationCallLog {
     public static String rootErrorType(Throwable error) {
         var root = rootCause(error);
         return root == null ? "Unknown" : root.getClass().getSimpleName();
+    }
+
+    public static String errorChain(Throwable error) {
+        if (error == null) {
+            return "Unknown";
+        }
+        var chain = new ArrayList<String>();
+        var current = error;
+        while (current != null) {
+            var message = StringUtils.hasText(current.getMessage())
+                ? current.getMessage()
+                : current.toString();
+            chain.add(current.getClass().getName() + ": " + message);
+            if (current.getCause() == current) {
+                break;
+            }
+            current = current.getCause();
+        }
+        return String.join(" <- ", chain);
     }
 
     public static int safeLength(String text) {

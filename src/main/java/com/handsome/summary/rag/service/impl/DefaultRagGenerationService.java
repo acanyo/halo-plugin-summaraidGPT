@@ -6,16 +6,18 @@ import com.handsome.summary.rag.model.RagConversationMessage;
 import com.handsome.summary.rag.service.RagAiService;
 import com.handsome.summary.rag.service.RagGenerationService;
 import com.handsome.summary.rag.service.RagSearchService;
+import com.handsome.summary.service.SettingConfigGetter;
 import java.util.ArrayList;
 import java.util.List;
-import com.handsome.summary.service.SettingConfigGetter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class DefaultRagGenerationService implements RagGenerationService {
 
@@ -58,7 +60,11 @@ public class DefaultRagGenerationService implements RagGenerationService {
                         normalizedMaxContextCharacters(tuple.getT2().getMaxContextCharacters())),
                     Flux.just(RagChatStreamEvent.done())
                 )))
-            .onErrorResume(error -> Flux.just(RagChatStreamEvent.error(error.getMessage())));
+            .onErrorResume(error -> {
+                log.error("RAG generation stream failed: knowledgeBase={}, limit={}",
+                    knowledgeBase, limit, error);
+                return Flux.just(RagChatStreamEvent.error(error.getMessage()));
+            });
     }
 
     private int normalizedMaxContextCharacters(Integer value) {

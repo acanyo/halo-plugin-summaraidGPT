@@ -31,6 +31,7 @@ import RiCloseLine from '~icons/ri/close-line'
 import RiFileTextLine from '~icons/ri/file-text-line'
 import RiQuestionAnswerLine from '~icons/ri/question-answer-line'
 import RiSearchLine from '~icons/ri/search-line'
+import RiStopCircleLine from '~icons/ri/stop-circle-line'
 import RiUploadLine from '~icons/ri/upload-line'
 import RagTextImportFormPanel from '@/components/rag/RagTextImportFormPanel.vue'
 import { createRagTextImportForm, type RagTextImportFile } from '@/components/rag/text-import'
@@ -56,6 +57,8 @@ const loadingImportablePosts = ref(false)
 const loadingImportableDocsmeDocuments = ref(false)
 const importing = ref(false)
 const rebuildingIndex = ref(false)
+const forceStoppingIndex = ref(false)
+const forceRebuildingIndex = ref(false)
 const searching = ref(false)
 const asking = ref(false)
 const mutatingDocument = ref(false)
@@ -291,7 +294,9 @@ const latestTaskRunning = computed(() => {
   return phase === 'QUEUED' || phase === 'RUNNING'
 })
 
-const canRebuildIndex = computed(() => !latestTaskRunning.value && !rebuildingIndex.value)
+const canRebuildIndex = computed(
+  () => !latestTaskRunning.value && !rebuildingIndex.value && !forceRebuildingIndex.value,
+)
 
 const needsRebuild = computed(() => localNeedsRebuild.value || stats.value?.needsRebuild === true)
 
@@ -936,6 +941,53 @@ const rebuildIndex = () => {
   })
 }
 
+const forceStopIndexTask = () => {
+  Dialog.warning({
+    title: '强制停止索引任务',
+    description: '当前索引任务会被标记为已取消，已完成的旧索引仍会保留。停止后可以重新发起索引。',
+    confirmText: '强制停止',
+    cancelText: '取消',
+    onConfirm: async () => {
+      forceStoppingIndex.value = true
+      try {
+        const result = await ragApi.stopIndexTask(activeKnowledgeBaseName.value)
+        latestTask.value = result.task
+        closeTaskSubscription()
+        Toast.success('索引任务已强制停止')
+        await refreshAll()
+      } catch (error) {
+        Toast.error('强制停止索引任务失败')
+      } finally {
+        forceStoppingIndex.value = false
+      }
+    },
+  })
+}
+
+const forceRebuildIndex = () => {
+  Dialog.warning({
+    title: '确认强制重新索引',
+    description:
+      '会先强制停止当前索引任务，再立即重新创建全量索引任务。适合任务卡住或旧任务无法自然结束时使用。',
+    confirmText: '强制重新索引',
+    cancelText: '取消',
+    onConfirm: async () => {
+      forceRebuildingIndex.value = true
+      try {
+        const result = await ragApi.forceRebuild(activeKnowledgeBaseName.value)
+        latestTask.value = result.task
+        subscribeIndexTask(result.task)
+        Toast.success('已强制启动新的索引任务')
+        await refreshAll()
+      } catch (error) {
+        Toast.error('强制重新索引失败')
+      } finally {
+        forceRebuildingIndex.value = false
+      }
+    },
+  })
+}
+
 const runSearch = async () => {
   if (!searchQuery.value.trim()) {
     searchResults.value = []
@@ -1043,6 +1095,9 @@ const subscribeIndexTask = (task: RagIndexTask) => {
       } else if (updatedTask.status?.phase === 'FAILED') {
         localNeedsRebuild.value = true
         Toast.error(formatIndexError(updatedTask.status?.errorMessage))
+      } else if (updatedTask.status?.phase === 'CANCELED') {
+        localNeedsRebuild.value = true
+        Toast.info(updatedTask.status?.message || '索引任务已取消')
       }
       await refreshAll()
     },
@@ -1664,7 +1719,39 @@ onBeforeUnmount(() => {
         >
           <div class=":uno: flex items-center justify-between gap-3 text-xs text-blue-700">
             <span>{{ latestTask.status?.message || '索引任务执行中' }}</span>
-            <strong>{{ latestTask.status?.progress ?? 0 }}%</strong>
+            <div class=":uno: flex flex-none items-center gap-2">
+              <strong>{{ latestTask.status?.progress ?? 0 }}%</strong>
+              <VSpace
+                v-if="canManageRag"
+                v-permission="[RAG_MANAGE_PERMISSION]"
+                class=":uno: flex-wrap justify-end"
+              >
+                <VButton
+                  size="sm"
+                  type="secondary"
+                  :loading="forceStoppingIndex"
+                  :disabled="forceRebuildingIndex"
+                  @click="forceStopIndexTask"
+                >
+                  <template #icon>
+                    <RiStopCircleLine class="h-full w-full" />
+                  </template>
+                  强制停止
+                </VButton>
+                <VButton
+                  size="sm"
+                  type="danger"
+                  :loading="forceRebuildingIndex"
+                  :disabled="forceStoppingIndex"
+                  @click="forceRebuildIndex"
+                >
+                  <template #icon>
+                    <IconRefreshLine class="h-full w-full" />
+                  </template>
+                  强制重新索引
+                </VButton>
+              </VSpace>
+            </div>
           </div>
           <div class=":uno: h-1.5 overflow-hidden rounded-full bg-blue-100">
             <span

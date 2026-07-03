@@ -68,7 +68,7 @@ public class SummaryHeadProcessor implements TemplateHeadProcessor {
         }
         
         if (isAssistantEnabled) {
-            // RAG 智能助手资源，样式已内置在 Lit 组件中
+            // 前台智能助手资源，样式已内置在 Lit 组件中
             scriptBuilder.append("<script src=\"/plugins/summaraidGPT/assets/static/RagAssistant.js?version=")
                         .append(version).append("\"></script>\n");
         }

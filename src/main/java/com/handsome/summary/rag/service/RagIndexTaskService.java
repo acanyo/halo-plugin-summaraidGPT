@@ -9,6 +9,10 @@ public interface RagIndexTaskService {
 
     Mono<RagIndexTask> startFullRebuild(String knowledgeBase);
 
+    Mono<RagIndexTask> forceFullRebuild(String knowledgeBase);
+
+    Mono<RagIndexTask> forceStop(String knowledgeBase);
+
     Mono<RagIndexTask> startDocumentRebuild(String knowledgeBase, List<String> documentNames);
 
     Mono<RagIndexTask> get(String name);
