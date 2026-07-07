@@ -3,6 +3,8 @@ package com.handsome.summary;
 import com.handsome.summary.extension.Summary;
 import com.handsome.summary.ai.extension.AiCallLog;
 import com.handsome.summary.pet.extension.PetCompanion;
+import com.handsome.summary.reading.extension.ArticleReading;
+import com.handsome.summary.reading.extension.ArticleReadingInteraction;
 import com.handsome.summary.rag.extension.RagConversation;
 import com.handsome.summary.rag.extension.RagDocument;
 import com.handsome.summary.rag.extension.RagIndexTask;
@@ -68,6 +70,37 @@ public class SummaraidGPTPlugin extends BasePlugin {
             indexSpecs.add(IndexSpecs.<Summary, String>single("summarySpec.postSummary", String.class)
                 .indexFunc(summary -> Optional.ofNullable(summary.getSummarySpec())
                     .map(Summary.SummarySpec::getPostSummary)
+                    .orElse(null)));
+        });
+        schemeManager.register(ArticleReading.class, indexSpecs -> {
+            indexSpecs.add(IndexSpecs.<ArticleReading, String>single("spec.postMetadataName", String.class)
+                .indexFunc(reading -> Optional.ofNullable(reading.getSpec())
+                    .map(ArticleReading.Spec::getPostMetadataName)
+                    .orElse(null)));
+            indexSpecs.add(IndexSpecs.<ArticleReading, String>single("spec.contentHash", String.class)
+                .indexFunc(reading -> Optional.ofNullable(reading.getSpec())
+                    .map(ArticleReading.Spec::getContentHash)
+                    .orElse(null)));
+            indexSpecs.add(IndexSpecs.<ArticleReading, Long>single("spec.generatedAt", Long.class)
+                .indexFunc(reading -> Optional.ofNullable(reading.getSpec())
+                    .map(ArticleReading.Spec::getGeneratedAt)
+                    .map(java.time.Instant::toEpochMilli)
+                    .orElse(0L)));
+        });
+        schemeManager.register(ArticleReadingInteraction.class, indexSpecs -> {
+            indexSpecs.add(IndexSpecs.<ArticleReadingInteraction, String>single(
+                    "spec.postMetadataName", String.class)
+                .indexFunc(interaction -> Optional.ofNullable(interaction.getSpec())
+                    .map(ArticleReadingInteraction.Spec::getPostMetadataName)
+                    .orElse(null)));
+            indexSpecs.add(IndexSpecs.<ArticleReadingInteraction, String>single("spec.nodeId", String.class)
+                .indexFunc(interaction -> Optional.ofNullable(interaction.getSpec())
+                    .map(ArticleReadingInteraction.Spec::getNodeId)
+                    .orElse(null)));
+            indexSpecs.add(IndexSpecs.<ArticleReadingInteraction, String>single(
+                    "spec.interactionType", String.class)
+                .indexFunc(interaction -> Optional.ofNullable(interaction.getSpec())
+                    .map(ArticleReadingInteraction.Spec::getInteractionType)
                     .orElse(null)));
         });
         schemeManager.register(RagKnowledgeBase.class, indexSpecs -> {
@@ -165,6 +198,10 @@ public class SummaraidGPTPlugin extends BasePlugin {
     private void unregisterScheme() {
         Scheme tokenScheme = schemeManager.get(Summary.class);
         schemeManager.unregister(tokenScheme);
+        Scheme articleReadingScheme = schemeManager.get(ArticleReading.class);
+        schemeManager.unregister(articleReadingScheme);
+        Scheme articleReadingInteractionScheme = schemeManager.get(ArticleReadingInteraction.class);
+        schemeManager.unregister(articleReadingInteractionScheme);
         Scheme ragKnowledgeBaseScheme = schemeManager.get(RagKnowledgeBase.class);
         schemeManager.unregister(ragKnowledgeBaseScheme);
         Scheme ragDocumentScheme = schemeManager.get(RagDocument.class);

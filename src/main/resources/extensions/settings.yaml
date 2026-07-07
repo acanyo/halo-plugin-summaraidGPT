@@ -325,6 +325,11 @@ spec:
                 任务：基于文章正文提炼摘要，优先覆盖主题、关键结论、重要事实和读者收益。
                 输出：使用中文，控制在 150-220 字；不要输出标题、列表编号、免责声明或额外解释。
                 边界：只能依据正文内容总结，不补充正文之外的事实。`,
+                    articleReadingSystemPrompt: `角色：你是中文文章洞察图谱结构化助手。
+                关键词：图结构、TL、DL、原文依据、少编造。
+                任务：基于文章原文生成一张可交互洞察图谱，只把主题结构和细节深挖表示为节点与边；跳回原文、提问、收藏、点赞属于前端浮层按钮，不属于图节点。
+                输出：使用中文，节点标题短而清楚，summary 承载内容，payload.items 承载要点、清单或问题。
+                边界：只能依据原文，不补充原文之外的事实；原文依据必须取自原文短句。`,
                     tagGenerationPrompt: `角色：你是站点内容的标签规划助手。
                 关键词：主题词、实体词、场景词、SEO、短标签、可复用。
                 任务：根据文章内容生成能准确表达主题的中文标签，优先选择文章中的核心概念、产品名、技术名、人群或场景。
@@ -416,6 +421,19 @@ spec:
             输出：使用中文，控制在 150-220 字；不要输出标题、列表编号、免责声明或额外解释。
             边界：只能依据正文内容总结，不补充正文之外的事实。
           help: "用于文章摘要生成。"
+        - $formkit: textarea
+          name: articleReadingSystemPrompt
+          id: articleReadingSystemPrompt
+          key: articleReadingSystemPrompt
+          label: 洞察图谱角色
+          placeholder: "请输入洞察图谱生成的模型人设"
+          value: |
+            角色：你是中文文章洞察图谱结构化助手。
+            关键词：图结构、TL、DL、原文依据、少编造。
+            任务：基于文章原文生成一张可交互洞察图谱，只把主题结构和细节深挖表示为节点与边；跳回原文、提问、收藏、点赞属于前端浮层按钮，不属于图节点。
+            输出：使用中文，节点标题短而清楚，summary 承载内容，payload.items 承载要点、清单或问题。
+            边界：只能依据原文，不补充原文之外的事实；原文依据必须取自原文短句。
+          help: "用于文章页洞察图谱生成；JSON 输出约束由插件自动附加。"
         - $formkit: textarea
           label: 标签生成角色
           name: tagGenerationPrompt
@@ -681,6 +699,32 @@ spec:
           key: typewriter
           value: true
           help: "是否启用打字机效果"
+
+    - group: articleReading
+      label: 洞察图谱设置
+      formSchema:
+        - $formkit: switch
+          label: 启用洞察图谱
+          name: enable
+          id: articleReadingEnable
+          key: articleReadingEnable
+          value: true
+          help: "开启后会为文章生成并保存洞察图谱结构。"
+        - $formkit: switch
+          label: 在文章页显示洞察图谱
+          name: enableUiInjection
+          id: articleReadingEnableUiInjection
+          key: articleReadingEnableUiInjection
+          value: true
+          help: "关闭后不在文章页注入图谱 UI，但仍可在控制台生成和预览。"
+        - $formkit: switch
+          label: 访问文章时自动生成
+          name: autoGenerate
+          id: articleReadingAutoGenerate
+          key: articleReadingAutoGenerate
+          value: true
+          help: "开启后访问文章页时会在后台生成洞察图谱；关闭后只通过控制台手动图谱生成。"
+
     - group: style
       label: 摘要框样式设置
       formSchema:

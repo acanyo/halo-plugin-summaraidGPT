@@ -11,6 +11,9 @@ rules:
     resources: ["updateContent","dialogConfig","summaryConfig"]
     verbs: ["update", "create", "get", "list"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["articleReadings","articleReadingInteractions"]
+    verbs: ["get", "list", "create"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragSearch","ragAsk","ragAskStream","ragAgentChat"]
     verbs: ["create"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
@@ -27,7 +30,7 @@ metadata:
     rbac.authorization.halo.run/module: "智阅AI助手"
     rbac.authorization.halo.run/display-name: "查看智阅 AI 助手"
     rbac.authorization.halo.run/ui-permissions: |
-      ["plugin:summaraidGPT:rag:view","plugin:summaraidGPT:ai-call-logs:view","plugin:summaraidGPT:pets:view"]
+      ["plugin:summaraidGPT:rag:view","plugin:summaraidGPT:ai-call-logs:view","plugin:summaraidGPT:pets:view","plugin:summaraidGPT:article-reading:view"]
 rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragKnowledgeBases","ragDocuments"]
@@ -40,6 +43,9 @@ rules:
     verbs: ["get", "list"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["aiCallLogs"]
+    verbs: ["get", "list"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["articleReadings"]
     verbs: ["get", "list"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["petCompanions"]
@@ -57,7 +63,7 @@ metadata:
     rbac.authorization.halo.run/module: "智阅AI助手"
     rbac.authorization.halo.run/display-name: "管理智阅 AI 助手"
     rbac.authorization.halo.run/ui-permissions: |
-      ["plugin:summaraidGPT:rag:manage","plugin:summaraidGPT:ai-call-logs:manage","plugin:summaraidGPT:pets:manage"]
+      ["plugin:summaraidGPT:rag:manage","plugin:summaraidGPT:ai-call-logs:manage","plugin:summaraidGPT:pets:manage","plugin:summaraidGPT:article-reading:manage"]
 rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragKnowledgeBases","ragDocuments","ragDocuments/status"]
@@ -74,6 +80,9 @@ rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["aiCallLogs"]
     verbs: ["delete"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["articleReadings"]
+    verbs: ["get", "list", "create"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["petCompanions","petCompanions/active","petCompanions/status"]
     verbs: ["get", "list", "create", "update", "delete"]

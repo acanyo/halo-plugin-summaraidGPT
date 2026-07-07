@@ -1,11 +1,13 @@
 import type { ListedPost } from '@halo-dev/api-client'
 import { Dialog, Toast, VDropdownDivider, VDropdownItem } from '@halo-dev/components'
 import { definePlugin } from '@halo-dev/ui-shared'
-import axios, { AxiosError } from 'axios'
+import { AxiosError } from 'axios'
 import { markRaw, type Ref } from 'vue'
 import SynchronousAiSummary from '@/views/SynchronousAiSummary.vue'
 import ArticlePolish from '@/extensions/ArticlePolish'
 import ArticleGenerate from '@/extensions/ArticleGenerate'
+import { articleReadingApi } from '@/api/article-reading'
+import { hasUiPermission } from '@/utils/permissions'
 import RiBrainLine from '~icons/ri/brain-line'
 import RiBearSmileLine from '~icons/ri/bear-smile-line'
 import RiFileList3Line from '~icons/ri/file-list-3-line'
@@ -14,6 +16,25 @@ import 'uno.css'
 
 export default definePlugin({
   routes: [
+    {
+      parentName: 'Root',
+      route: {
+        path: '/summaraidgpt/article-readings',
+        name: 'SummaraidGptArticleReadings',
+        component: () => import('@/views/ArticleReadingGraphView.vue'),
+        meta: {
+          title: '洞察图谱',
+          searchable: true,
+          permissions: ['plugin:summaraidGPT:article-reading:view'],
+          menu: {
+            name: '洞察图谱',
+            group: '智阅 AI 助手',
+            icon: markRaw(RiBrainLine),
+            priority: 44,
+          },
+        },
+      },
+    },
     {
       parentName: 'Root',
       route: {
@@ -96,50 +117,43 @@ export default definePlugin({
       return [ArticlePolish, ArticleGenerate]
     },
     'post:list-item:operation:create': (post: Ref<ListedPost>) => {
+      const canManageArticleReading = hasUiPermission('plugin:summaraidGPT:article-reading:manage')
       return [
         {
           priority: 21,
           component: markRaw(VDropdownDivider),
+          visible: canManageArticleReading,
         },
         {
           priority: 22,
           component: markRaw(VDropdownItem),
-          label: '智阅GPT-同步',
-          visible: true,
-          children: [
-            {
-              priority: 0,
-              component: markRaw(VDropdownItem),
-              label: '同步摘要内容',
-              visible: true,
-              action: () => {
-                const item = post.value
-                if (!item) return
-                Dialog.warning({
-                  title: '同步摘要内容',
-                  description: '同步此文章内容会重新发布AI，此操作数据无法逆转！',
-                  onConfirm: async () => {
-                    try {
-                      await axios.post(
-                        `/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/summaries`,
-                        item.post,
-                        {
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                        },
-                      )
-                      Toast.success('同步AI完成')
-                    } catch (error) {
-                      if (error instanceof AxiosError) {
-                        Toast.error(error.response?.data.detail || '同步失败，请重试')
-                      }
-                    }
-                  },
-                })
+          label: '图谱生成',
+          visible: canManageArticleReading,
+          action: () => {
+            const item = post.value
+            const postName = item?.post.metadata.name
+            if (!postName) return
+            Dialog.warning({
+              title: '图谱生成',
+              description: '将重新生成洞察图谱，只包含 TL 主题节点和 DL 深挖节点。',
+              onConfirm: async () => {
+                try {
+                  await articleReadingApi.generate(postName, true)
+                  Toast.success('洞察图谱已生成')
+                } catch (error) {
+                  if (error instanceof AxiosError) {
+                    Toast.error(error.response?.data.detail || '生成失败，请重试')
+                    return
+                  }
+                  if (error instanceof Error) {
+                    Toast.error(error.message || '生成失败，请重试')
+                    return
+                  }
+                  Toast.error('生成失败，请重试')
+                }
               },
-            },
-          ],
+            })
+          },
         },
       ]
     },

@@ -27,6 +27,12 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     }
 
     @Override
+    public Mono<ArticleReadingConfig> getArticleReadingConfig() {
+        return settingFetcher.fetch(ArticleReadingConfig.GROUP, ArticleReadingConfig.class)
+            .defaultIfEmpty(new ArticleReadingConfig());
+    }
+
+    @Override
     public Mono<StyleConfig> getStyleConfig() {
         return settingFetcher.fetch(StyleConfig.GROUP, StyleConfig.class)
             .defaultIfEmpty(new StyleConfig());
@@ -102,7 +108,7 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
 
     private String getModelNameForFunction(BasicConfig basicConfig, String functionType) {
         return switch (normalizeFunctionType(functionType)) {
-            case "summary" -> basicConfig.getSummaryModelName();
+            case "summary", "articlereading", "reading" -> basicConfig.getSummaryModelName();
             case "tags" -> basicConfig.getTagModelName();
             case "conversation", "assistant" -> basicConfig.getAssistantModelName();
             case "agent" -> StringUtils.hasText(basicConfig.getAgentModelName())
@@ -119,6 +125,7 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     private String rolePrompt(RoleConfig roleConfig, String functionType) {
         return switch (normalizeFunctionType(functionType)) {
             case "summary" -> roleConfig.getSummarySystemPrompt();
+            case "articlereading", "reading" -> roleConfig.getArticleReadingSystemPrompt();
             case "tags" -> roleConfig.getTagGenerationPrompt();
             case "conversation", "assistant" -> roleConfig.getConversationSystemPrompt();
             case "agent" -> roleConfig.getAgentSystemPrompt();

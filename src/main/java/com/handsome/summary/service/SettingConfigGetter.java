@@ -9,6 +9,7 @@ import java.util.List;
 public interface SettingConfigGetter {
     Mono<BasicConfig> getBasicConfig();
     Mono<SummaryConfig> getSummaryConfig();
+    Mono<ArticleReadingConfig> getArticleReadingConfig();
     Mono<StyleConfig> getStyleConfig();
     Mono<RoleConfig> getRoleConfig();
     Mono<GenerationConfig> getGenerationConfig();
@@ -128,6 +129,15 @@ public interface SettingConfigGetter {
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
+    class ArticleReadingConfig {
+        public static final String GROUP = "articleReading";
+        private Boolean enable = true;
+        private Boolean enableUiInjection = true;
+        private Boolean autoGenerate = true;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
     class StyleConfig {
         public static final String GROUP = "style";
         private String uiStyle;
@@ -159,6 +169,13 @@ public interface SettingConfigGetter {
             任务：基于文章正文提炼摘要，优先覆盖主题、关键结论、重要事实和读者收益。
             输出：使用中文，控制在 150-220 字；不要输出标题、列表编号、免责声明或额外解释。
             边界：只能依据正文内容总结，不补充正文之外的事实。
+            """;
+        private String articleReadingSystemPrompt = """
+            角色：你是中文文章洞察图谱结构化助手。
+            关键词：图结构、TL、DL、原文依据、少编造。
+            任务：基于文章原文生成一张可交互洞察图谱，只把主题结构和细节深挖表示为节点与边；跳回原文、提问、收藏、点赞属于前端浮层按钮，不属于图节点。
+            输出：使用中文，节点标题短而清楚，summary 承载内容，payload.items 承载要点、清单或问题。
+            边界：只能依据原文，不补充原文之外的事实；原文依据必须取自原文短句。
             """;
         private String tagGenerationPrompt = """
             角色：你是站点内容的标签规划助手。

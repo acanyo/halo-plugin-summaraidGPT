@@ -36,17 +36,25 @@ public class SummaryHeadProcessor implements TemplateHeadProcessor {
     private Mono<Void> checkConfigAndInsertScripts(IModel iModel, IModelFactory modelFactory) {
         return Mono.zip(
             settingConfigGetter.getSummaryConfig(),
-            settingConfigGetter.getAssistantConfig()
+            settingConfigGetter.getAssistantConfig(),
+            settingConfigGetter.getArticleReadingConfig()
         ).flatMap(tuple -> {
             SettingConfigGetter.SummaryConfig summaryConfig = tuple.getT1();
             SettingConfigGetter.AssistantConfig assistantConfig = tuple.getT2();
-            // 检查摘要功能和助手功能是否启用
+            SettingConfigGetter.ArticleReadingConfig articleReadingConfig = tuple.getT3();
+            // 检查摘要、洞察图谱和助手功能是否启用
             boolean isSummaryEnabled = summaryConfig.getEnable() != null && summaryConfig.getEnable();
             boolean isAssistantEnabled = assistantConfig.getEnableAssistant() != null && assistantConfig.getEnableAssistant();
-            if (!isSummaryEnabled && !isAssistantEnabled) {
+            boolean isArticleReadingEnabled = articleReadingConfig.getEnable() == null
+                || articleReadingConfig.getEnable();
+            boolean isArticleReadingUiEnabled = isArticleReadingEnabled
+                && (articleReadingConfig.getEnableUiInjection() == null
+                || articleReadingConfig.getEnableUiInjection());
+            boolean needsArticleSummaryAssets = isSummaryEnabled || isArticleReadingUiEnabled;
+            if (!needsArticleSummaryAssets && !isAssistantEnabled) {
                 return Mono.empty();
             }
-            return insertScripts(iModel, modelFactory, isSummaryEnabled, isAssistantEnabled);
+            return insertScripts(iModel, modelFactory, needsArticleSummaryAssets, isAssistantEnabled);
         }).onErrorResume(error -> Mono.empty());
     }
 
@@ -54,15 +62,15 @@ public class SummaryHeadProcessor implements TemplateHeadProcessor {
      * 向页面插入所需的 CSS、JS 脚本和动态初始化代码
      */
     private Mono<Void> insertScripts(IModel iModel, IModelFactory modelFactory, 
-                                   boolean isSummaryEnabled, boolean isAssistantEnabled) {
+                                   boolean needsArticleSummaryAssets, boolean isAssistantEnabled) {
         // 获取插件版本号
         String version = pluginWrapper.getDescriptor().getVersion();
         StringBuilder scriptBuilder = new StringBuilder();
         scriptBuilder.append("<!-- plugin-summaraidGPT start -->\n");
         
         // 根据启用的功能选择性注入资源
-        if (isSummaryEnabled) {
-            // 摘要功能相关资源，样式已内置在 Lit 组件中
+        if (needsArticleSummaryAssets) {
+            // 摘要和洞察图谱共用 ArticleSummary 入口，样式已内置在 Lit 组件中
             scriptBuilder.append("<script src=\"/plugins/summaraidGPT/assets/static/ArticleSummary.js?version=")
                         .append(version).append("\"></script>\n");
         }

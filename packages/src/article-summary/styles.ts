@@ -159,7 +159,7 @@ export const articleSummaryStyles = css`
     color: var(--likcc-summaraid-fixed-text);
     font-size: var(--likcc-summaraid-fixed-content-size);
     line-height: var(--likcc-summaraid-fixed-content-line);
-    letter-spacing: -0.012em;
+    letter-spacing: 0;
     word-break: break-word;
   }
 
@@ -193,7 +193,7 @@ export const articleSummaryStyles = css`
   .likcc-summaraidGPT-simple-content {
     font-size: calc(var(--likcc-summaraid-fixed-content-size) + 0.16rem);
     line-height: calc(var(--likcc-summaraid-fixed-content-line) + 0.08);
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     text-wrap: pretty;
   }
 

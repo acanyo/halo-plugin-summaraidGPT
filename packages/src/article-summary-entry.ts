@@ -1,20 +1,22 @@
 import './article-summary/widget';
+import './article-reading/widget';
 import {
   fetchSummaryConfig,
   fetchSummaryContent,
   type SummaryWidgetConfig,
 } from './article-summary/shared';
 import type { ArticleSummaryWidget } from './article-summary/widget';
+import type { ArticleReadingWidget } from './article-reading/widget';
 
 declare global {
   interface Window {
     likcc_summaraidGPT_scriptLoaded?: boolean;
     likcc_summaraidGPT_initSummaryBox?: (
       userConfig?: Partial<SummaryWidgetConfig>,
-    ) => Promise<ArticleSummaryWidget[]>;
+    ) => Promise<(ArticleSummaryWidget | ArticleReadingWidget)[]>;
     likcc_summaraidGPT_reinit?: (
       userConfig?: Partial<SummaryWidgetConfig>,
-    ) => Promise<ArticleSummaryWidget[]>;
+    ) => Promise<(ArticleSummaryWidget | ArticleReadingWidget)[]>;
     swup?: {
       hooks?: {
         on: (event: string, handler: () => void) => void;
@@ -26,6 +28,8 @@ declare global {
 const SUMMARY_WIDGET_SELECTOR = 'ai-summaraidGPT';
 const SUMMARY_DATA_SELECTOR = 'ai-summaraidGPT-data';
 const SUMMARY_COMPONENT_TAG = 'likcc-article-summary';
+const READING_WIDGET_SELECTOR = 'ai-summaraidGPT-reading';
+const READING_COMPONENT_TAG = 'likcc-article-reading';
 const PROCESSED_DATA_ATTR = 'data-summary-lit-mounted';
 const PROCESSED_SILENT_ATTR = 'data-summary-silent-processed';
 let initTimer: number | undefined;
@@ -61,29 +65,53 @@ function applyConfig(
   element.theme = config.theme || {};
 }
 
+function applyReadingConfig(
+  element: ArticleReadingWidget,
+  config: Partial<SummaryWidgetConfig>,
+  source: Element,
+): void {
+  element.postName = source.getAttribute('name') || '';
+  element.darkSelector = config.darkSelector || '';
+}
+
 async function mountSummaryWidgets(
   userConfig: Partial<SummaryWidgetConfig> = {},
-): Promise<ArticleSummaryWidget[]> {
+): Promise<(ArticleSummaryWidget | ArticleReadingWidget)[]> {
   const widgets = Array.from(
     document.querySelectorAll<HTMLElement>(
       `${SUMMARY_WIDGET_SELECTOR}:not([${PROCESSED_DATA_ATTR}="true"])`,
     ),
   );
+  const readingWidgets = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      `${READING_WIDGET_SELECTOR}:not([${PROCESSED_DATA_ATTR}="true"])`,
+    ),
+  );
 
-  if (widgets.length === 0) {
+  if (widgets.length === 0 && readingWidgets.length === 0) {
     return [];
   }
 
   const apiConfig = await fetchSummaryConfig();
   const config = { ...apiConfig, ...userConfig };
 
-  return widgets.map((widget) => {
+  const summaries = widgets.map((widget) => {
     const summary = document.createElement(SUMMARY_COMPONENT_TAG) as ArticleSummaryWidget;
     applyConfig(summary, config, widget);
     widget.setAttribute(PROCESSED_DATA_ATTR, 'true');
     widget.replaceWith(summary);
     return summary;
   });
+
+  const readings = readingWidgets.map((widget) => {
+    const reading = document.createElement(READING_COMPONENT_TAG) as ArticleReadingWidget;
+    applyReadingConfig(reading, config, widget);
+    widget.setAttribute(PROCESSED_DATA_ATTR, 'true');
+    widget.replaceWith(reading);
+    return reading;
+  });
+
+  return [...summaries, ...readings];
 }
 
 async function fetchSummaryContentSilent(): Promise<void> {
@@ -113,10 +141,11 @@ async function fetchSummaryContentSilent(): Promise<void> {
 
 async function autoInitSummaryBox(): Promise<void> {
   const widgets = document.querySelectorAll(SUMMARY_WIDGET_SELECTOR);
+  const readingWidgets = document.querySelectorAll(READING_WIDGET_SELECTOR);
   const dataWidgets = document.querySelectorAll(SUMMARY_DATA_SELECTOR);
   const mountedSummary = document.querySelector(SUMMARY_COMPONENT_TAG);
 
-  if (widgets.length > 0) {
+  if (widgets.length > 0 || readingWidgets.length > 0) {
     await mountSummaryWidgets();
     return;
   }
@@ -151,8 +180,10 @@ function shouldHandleMutation(mutation: MutationRecord): boolean {
     return (
       node.matches(SUMMARY_WIDGET_SELECTOR) ||
       node.matches(SUMMARY_DATA_SELECTOR) ||
+      node.matches(READING_WIDGET_SELECTOR) ||
       node.querySelector(SUMMARY_WIDGET_SELECTOR) !== null ||
-      node.querySelector(SUMMARY_DATA_SELECTOR) !== null
+      node.querySelector(SUMMARY_DATA_SELECTOR) !== null ||
+      node.querySelector(READING_WIDGET_SELECTOR) !== null
     );
   });
 }
