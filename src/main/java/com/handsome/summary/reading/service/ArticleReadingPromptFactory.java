@@ -14,38 +14,22 @@ public class ArticleReadingPromptFactory {
             %s
 
             请基于文章原文生成洞察图谱（Article Insight Graph）。后端和前端都以图为唯一数据结构，不要输出摘要列表、TL 列表、DL 卡片结构或多 Tab 结构。
-            最终图必须严格等价于这个脑图层级：
-            root((文章标题))
-              背景
-                问题来源
-                现状
-              核心观点
-                关键判断
-                作者主张
-              论据
-                数据或事实
-                案例一
-              结论
-                建议
-                延伸问题
+            TL 分支由你根据文章类型自行决定，不要强行套用议论文结构；有的文章可能是教程、清单、资讯、故事、产品说明、观点文、复盘或杂记。
+            你可以从这些方向出发，但不要被它们限制：背景、主题对象、主要内容、核心观点、步骤流程、案例故事、概念解释、原文证据、风险问题、时间线、人物角色、产品工具、方法清单、读者行动、结尾判断、可追问问题。
 
             严格要求：
             1. 只能依据原文，不补充原文之外的事实。
             2. 只输出一个合法 JSON 对象，不要 Markdown 代码块，不要解释。
             3. 根节点 root 是文章标题。
             4. nodes 只允许 kind 为 tl、dl；不要生成 overview、action 或 用户互动 节点。
-            5. tl 节点必须且只能包含：背景、核心观点、论据、结论。
-            6. dl 节点必须且只能包含：问题来源、现状、关键判断、作者主张、数据或事实、案例一、建议、延伸问题。
+            5. 生成 3-6 个 tl 节点，每个 tl 下生成 1-4 个 dl 节点；分支标题要贴合文章实际，不要固定为“背景/核心观点/论据/结论”。
+            6. tl 节点表示文章的主要阅读分支；dl 节点表示这个分支下的证据、例子、步骤、概念、问题、清单或延伸追问。
             7. 跳回原文、问这一块、收藏、点赞由前端浮层按钮处理，不属于图节点。
             8. 每个节点都必须有非空 summary，不要输出空节点。
             9. 有原文依据的节点必须提供 sourceRange.anchor，anchor 取原文短句，12-80 字。
-            10. 数据或事实、建议、延伸问题建议在 payload.items 中给出 2-5 条。
+            10. 适合清单表达的节点在 payload.items 中给出 2-5 条；payload 必须是对象，例如 {"items":["..."]}，不能直接输出数组或字符串。
             11. 每个 summary 简洁，避免长篇输出导致前台图过载。
-            12. 必须使用下列固定 id：
-                背景=tl-background，问题来源=dl-problem-source，现状=dl-current-status，
-                核心观点=tl-core，关键判断=dl-key-judgment，作者主张=dl-author-claim，
-                论据=tl-argument，数据或事实=dl-data-fact，案例一=dl-case，
-                结论=tl-conclusion，建议=dl-advice，延伸问题=dl-follow-up。
+            12. 必须使用顺序 id：tl-1、tl-2、tl-3...；对应 dl 使用 dl-1-1、dl-1-2、dl-2-1...。
 
             JSON Schema：
             {
@@ -57,10 +41,10 @@ public class ArticleReadingPromptFactory {
               },
               "nodes": [
                 {
-                  "id": "tl-background",
-                  "title": "背景",
+                  "id": "tl-1",
+                  "title": "AI 自行命名的主题分支",
                   "kind": "tl",
-                  "summary": "该分支概括文章的问题背景",
+                  "summary": "该分支概括文章的一个主要阅读方向",
                   "sourceRange": {
                     "startParagraph": 1,
                     "endParagraph": 3,
@@ -74,14 +58,14 @@ public class ArticleReadingPromptFactory {
               "edges": [
                 {
                   "from": "root",
-                  "to": "tl-background",
+                  "to": "tl-1",
                   "type": "contains"
                 }
               ]
             }
 
             edge.type 只允许：contains、expands、supports、explains。
-            edges 必须表达上述父子关系，不要把所有节点都直接连到 root。
+            edges 必须表达 root -> tl、tl -> dl 的父子关系，不要把所有节点都直接连到 root。
 
             文章标题：
             %s
@@ -99,7 +83,7 @@ public class ArticleReadingPromptFactory {
         return """
             角色：你是中文文章洞察图谱结构化助手。
             关键词：图结构、TL、DL、原文依据、少编造。
-            任务：基于文章原文生成一张可交互洞察图谱，主题分支和细节深挖必须表示为节点与边，用户操作不要作为图节点。
+            任务：基于文章原文生成一张可交互洞察图谱，主题分支由文章类型自然决定，细节深挖必须表示为节点与边，用户操作不要作为图节点。
             输出：使用中文，节点标题短而清楚，summary 负责承载内容。
             边界：只能依据原文，不补充原文之外的事实；原文依据必须取自原文短句。
             """;

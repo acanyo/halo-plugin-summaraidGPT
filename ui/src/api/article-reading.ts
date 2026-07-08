@@ -1,6 +1,7 @@
 import { axiosInstance, consoleApiClient, type ListedPost } from '@halo-dev/api-client'
 
 const API_PREFIX = '/apis/api.summary.summaraidgpt.lik.cc/v1alpha1'
+export const ARTICLE_READING_GRAPH_SCHEMA_VERSION = 5
 
 export interface ArticleReadingMetadata {
   name?: string

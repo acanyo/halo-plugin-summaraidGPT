@@ -34,12 +34,7 @@ import run.halo.app.extension.router.selector.FieldSelector;
 public class DefaultArticleReadingService implements ArticleReadingService {
 
     private static final Duration READING_GENERATION_TIMEOUT = Duration.ofSeconds(75);
-    private static final Set<String> REQUIRED_NODE_IDS = Set.of(
-        "tl-background", "dl-problem-source", "dl-current-status",
-        "tl-core", "dl-key-judgment", "dl-author-claim",
-        "tl-argument", "dl-data-fact", "dl-case",
-        "tl-conclusion", "dl-advice", "dl-follow-up"
-    );
+    private static final int MIN_TL_NODE_COUNT = 3;
 
     private final AiFoundationAiService aiFoundationAiService;
     private final ArticleReadingContentLoader contentLoader;
@@ -186,25 +181,29 @@ public class DefaultArticleReadingService implements ArticleReadingService {
             || spec.getRoot() == null || spec.getNodes() == null || spec.getEdges() == null) {
             return false;
         }
-        var nodeIds = new java.util.HashSet<String>();
-        if (StringUtils.hasText(spec.getRoot().getId())) {
-            nodeIds.add(spec.getRoot().getId());
-        }
-        spec.getNodes().stream()
+        var rootId = StringUtils.hasText(spec.getRoot().getId()) ? spec.getRoot().getId() : "root";
+        var tlIds = spec.getNodes().stream()
+            .filter(node -> "tl".equals(node.getKind()))
             .map(ArticleReading.InsightNode::getId)
             .filter(StringUtils::hasText)
-            .forEach(nodeIds::add);
-        if (!nodeIds.containsAll(REQUIRED_NODE_IDS)) {
+            .collect(java.util.stream.Collectors.toSet());
+        var dlIds = spec.getNodes().stream()
+            .filter(node -> "dl".equals(node.getKind()))
+            .map(ArticleReading.InsightNode::getId)
+            .filter(StringUtils::hasText)
+            .collect(java.util.stream.Collectors.toSet());
+        if (tlIds.size() < MIN_TL_NODE_COUNT || dlIds.isEmpty()) {
             return false;
         }
-        return spec.getEdges().stream()
-            .anyMatch(edge -> "root".equals(edge.getFrom()) && "tl-background".equals(edge.getTo()))
-            && spec.getEdges().stream()
-            .anyMatch(edge -> "root".equals(edge.getFrom()) && "tl-core".equals(edge.getTo()))
-            && spec.getEdges().stream()
-            .anyMatch(edge -> "root".equals(edge.getFrom()) && "tl-argument".equals(edge.getTo()))
-            && spec.getEdges().stream()
-            .anyMatch(edge -> "root".equals(edge.getFrom()) && "tl-conclusion".equals(edge.getTo()));
+        var rootTargets = spec.getEdges().stream()
+            .filter(edge -> rootId.equals(edge.getFrom()))
+            .map(ArticleReading.InsightEdge::getTo)
+            .collect(java.util.stream.Collectors.toSet());
+        if (!rootTargets.containsAll(tlIds)) {
+            return false;
+        }
+        return tlIds.stream().allMatch(tlId -> spec.getEdges().stream()
+            .anyMatch(edge -> tlId.equals(edge.getFrom()) && dlIds.contains(edge.getTo())));
     }
 
     private ArticleReadingInteractionCommand normalizeInteractionCommand(

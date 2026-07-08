@@ -23,42 +23,26 @@ interface GraphLinkView {
   from: GraphNodeView;
   to: GraphNodeView;
   tone: GraphTone;
+  level: 'branch' | 'leaf';
 }
 
 type GraphTone = 'neutral' | 'conclusion' | 'background' | 'core' | 'argument';
 
-const GRAPH_SCHEMA_VERSION = 4;
+interface GraphLayoutMetrics {
+  branchRadiusX: number;
+  branchRadiusY: number;
+  childOffsetX: number;
+  childOffsetY: number;
+  childSpreadX: number;
+  childSpreadY: number;
+  orphanLeafRadiusX: number;
+  orphanLeafRadiusY: number;
+}
+
+const GRAPH_SCHEMA_VERSION = 5;
 const READING_POLL_INTERVAL_MS = 3000;
 const READING_POLL_MAX_ATTEMPTS = 600;
-const REQUIRED_GRAPH_NODE_IDS = [
-  'tl-background',
-  'dl-problem-source',
-  'dl-current-status',
-  'tl-core',
-  'dl-key-judgment',
-  'dl-author-claim',
-  'tl-argument',
-  'dl-data-fact',
-  'dl-case',
-  'tl-conclusion',
-  'dl-advice',
-  'dl-follow-up',
-];
-
-const VISUAL_GRAPH_LINKS = [
-  ['root', 'tl-conclusion', 'conclusion'],
-  ['tl-conclusion', 'dl-advice', 'conclusion'],
-  ['tl-conclusion', 'dl-follow-up', 'conclusion'],
-  ['root', 'tl-background', 'background'],
-  ['tl-background', 'dl-problem-source', 'background'],
-  ['tl-background', 'dl-current-status', 'background'],
-  ['root', 'tl-core', 'core'],
-  ['tl-core', 'dl-key-judgment', 'core'],
-  ['tl-core', 'dl-author-claim', 'core'],
-  ['root', 'tl-argument', 'argument'],
-  ['tl-argument', 'dl-data-fact', 'argument'],
-  ['tl-argument', 'dl-case', 'argument'],
-] as const;
+const GRAPH_TONES: GraphTone[] = ['conclusion', 'background', 'core', 'argument'];
 
 @customElement('likcc-article-reading')
 export class ArticleReadingWidget extends LitElement {
@@ -104,9 +88,14 @@ export class ArticleReadingWidget extends LitElement {
   private isDark = false;
 
   @state()
+  private isCompactViewport = false;
+
+  @state()
   private collapsed = false;
 
   private themeObservers: MutationObserver[] = [];
+  private colorSchemeQuery?: MediaQueryList;
+  private compactViewportQuery?: MediaQueryList;
   private visitorId = '';
   private initialized = false;
   private pollTimer?: number;
@@ -116,7 +105,9 @@ export class ArticleReadingWidget extends LitElement {
     super.connectedCallback();
     this.visitorId = ensureVisitorId();
     this.refreshThemeMode();
+    this.refreshCompactViewport();
     this.bindThemeObservers();
+    this.bindEnvironmentObservers();
   }
 
   protected firstUpdated(): void {
@@ -127,6 +118,7 @@ export class ArticleReadingWidget extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.clearPollTimer();
+    this.unbindEnvironmentObservers();
     this.unbindThemeObservers();
   }
 
@@ -211,6 +203,10 @@ export class ArticleReadingWidget extends LitElement {
     this.isDark = matchesDarkSelector(this.darkSelector);
   }
 
+  private refreshCompactViewport(): void {
+    this.isCompactViewport = window.matchMedia?.('(max-width: 760px)').matches ?? false;
+  }
+
   private bindThemeObservers(): void {
     this.unbindThemeObservers();
     this.themeObservers = buildThemeObserver(this.darkSelector, () => {
@@ -221,6 +217,53 @@ export class ArticleReadingWidget extends LitElement {
   private unbindThemeObservers(): void {
     this.themeObservers.forEach((observer) => observer.disconnect());
     this.themeObservers = [];
+  }
+
+  private bindEnvironmentObservers(): void {
+    if (!window.matchMedia) {
+      return;
+    }
+    this.colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    this.compactViewportQuery = window.matchMedia('(max-width: 760px)');
+    this.addMediaListener(this.colorSchemeQuery, this.handleColorSchemeChange);
+    this.addMediaListener(this.compactViewportQuery, this.handleCompactViewportChange);
+  }
+
+  private unbindEnvironmentObservers(): void {
+    if (this.colorSchemeQuery) {
+      this.removeMediaListener(this.colorSchemeQuery, this.handleColorSchemeChange);
+      this.colorSchemeQuery = undefined;
+    }
+    if (this.compactViewportQuery) {
+      this.removeMediaListener(this.compactViewportQuery, this.handleCompactViewportChange);
+      this.compactViewportQuery = undefined;
+    }
+  }
+
+  private handleColorSchemeChange = (): void => {
+    this.refreshThemeMode();
+  };
+
+  private handleCompactViewportChange = (): void => {
+    this.refreshCompactViewport();
+  };
+
+  private addMediaListener(query: MediaQueryList, listener: () => void): void {
+    if (typeof query.addEventListener === 'function') {
+      query.addEventListener('change', listener);
+      return;
+    }
+    (query as MediaQueryList & { addListener: (listener: () => void) => void })
+      .addListener(listener);
+  }
+
+  private removeMediaListener(query: MediaQueryList, listener: () => void): void {
+    if (typeof query.removeEventListener === 'function') {
+      query.removeEventListener('change', listener);
+      return;
+    }
+    (query as MediaQueryList & { removeListener: (listener: () => void) => void })
+      .removeListener(listener);
   }
 
   private get graph(): InsightGraph {
@@ -252,6 +295,23 @@ export class ArticleReadingWidget extends LitElement {
   protected render() {
     const shellClass = this.isDark ? 'reading-shell is-dark' : 'reading-shell';
 
+    if (this.collapsed) {
+      return html`
+        <section class=${shellClass}>
+          <button
+            class="reading-collapsed"
+            type="button"
+            aria-expanded="false"
+            @click=${this.toggleCollapsed}
+          >
+            <span class="collapsed-title">洞察图谱</span>
+            <span class="collapsed-summary">${this.collapsedSummary()}</span>
+            <span class="collapse-mark" aria-hidden="true">+</span>
+          </button>
+        </section>
+      `;
+    }
+
     return html`
       <section class=${shellClass}>
         <button
@@ -260,10 +320,10 @@ export class ArticleReadingWidget extends LitElement {
           aria-expanded=${String(!this.collapsed)}
           @click=${this.toggleCollapsed}
         >
-          <span>${this.collapsed ? '展开洞察图谱' : '收起洞察图谱'}</span>
-          <span class="collapse-mark" aria-hidden="true">${this.collapsed ? '+' : '-'}</span>
+          <span>收起洞察图谱</span>
+          <span class="collapse-mark" aria-hidden="true">-</span>
         </button>
-        ${this.collapsed ? nothing : this.renderBody()}
+        ${this.renderBody()}
       </section>
     `;
   }
@@ -273,6 +333,19 @@ export class ArticleReadingWidget extends LitElement {
     this.popoverOpen = false;
     this.questionOpen = false;
   };
+
+  private collapsedSummary(): string {
+    if (this.loading) {
+      return '正在读取';
+    }
+    if (this.notGenerated) {
+      return '后台生成中';
+    }
+    if (this.errorMessage) {
+      return '加载失败';
+    }
+    return this.reading?.postTitle || this.graph.root.title || '点击展开查看';
+  }
 
   private renderBody() {
     if (this.loading) {
@@ -305,11 +378,11 @@ export class ArticleReadingWidget extends LitElement {
             <svg class="graph-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               ${links.map((link) => svg`
                 <path
-                  class=${`graph-link graph-link--${link.tone}`}
+                  class=${`graph-link graph-link--${link.level} graph-link--${link.tone}`}
                   d=${this.linkPath(link)}
                 ></path>
                 <circle
-                  class=${`graph-dot graph-dot--${link.tone}`}
+                  class=${`graph-dot graph-dot--${link.level} graph-dot--${link.tone}`}
                   cx=${link.to.x}
                   cy=${link.to.y}
                   r="0.72"
@@ -323,9 +396,10 @@ export class ArticleReadingWidget extends LitElement {
                 style=${`left:${view.x}%;top:${view.y}%`}
                 @click=${() => this.handleNodeClick(view.node)}
                 aria-label=${view.node.title}
+                title=${view.node.title}
               >
                 <span class="node-icon" aria-hidden="true">${this.renderNodeIcon(view)}</span>
-                <span class="node-title">${view.node.title}</span>
+                <span class="node-title">${this.nodeDisplayTitle(view)}</span>
               </button>
             `)}
           </div>
@@ -526,43 +600,140 @@ export class ArticleReadingWidget extends LitElement {
     const views = new Map<string, GraphNodeView>();
     this.addGraphView(views, this.graph.root, 50, 50, 'root', 'neutral');
 
-    const fixedPositions: Record<string, Omit<GraphNodeView, 'node'>> = {
-      'tl-conclusion': { x: 50, y: 27, level: 'branch', tone: 'conclusion' },
-      'dl-advice': { x: 38, y: 15, level: 'leaf', tone: 'conclusion' },
-      'dl-follow-up': { x: 62, y: 15, level: 'leaf', tone: 'conclusion' },
-      'tl-background': { x: 69, y: 50, level: 'branch', tone: 'background' },
-      'dl-problem-source': { x: 84, y: 37, level: 'leaf', tone: 'background' },
-      'dl-current-status': { x: 84, y: 63, level: 'leaf', tone: 'background' },
-      'tl-core': { x: 50, y: 74, level: 'branch', tone: 'core' },
-      'dl-key-judgment': { x: 39, y: 87, level: 'leaf', tone: 'core' },
-      'dl-author-claim': { x: 61, y: 87, level: 'leaf', tone: 'core' },
-      'tl-argument': { x: 31, y: 50, level: 'branch', tone: 'argument' },
-      'dl-data-fact': { x: 16, y: 37, level: 'leaf', tone: 'argument' },
-      'dl-case': { x: 16, y: 63, level: 'leaf', tone: 'argument' },
-    };
+    const tlNodes = this.graph.nodes.filter((node) => node.kind === 'tl');
+    const parentMap = this.nodeParentMap();
+    const toneMap = this.nodeToneMap();
+    const branchCount = Math.max(1, tlNodes.length);
+    const layout = this.graphLayoutMetrics(branchCount);
 
-    Object.entries(fixedPositions).forEach(([nodeId, position]) => {
-      const node = this.nodeById(nodeId);
-      if (node) {
-        this.addGraphView(views, node, position.x, position.y, position.level, position.tone);
-      }
-    });
-
-    const unknownNodes = this.graph.nodes.filter((node) => !views.has(node.id));
-    unknownNodes.forEach((node, index) => {
-      const angle = (Math.PI * 2 * index) / Math.max(1, unknownNodes.length) - Math.PI / 2;
-      const radius = this.isBranchNode(node.id) ? 28 : 38;
+    tlNodes.forEach((node, index) => {
+      const angle = this.branchAngle(index, branchCount);
+      const branchX = this.clampPosition(50 + Math.cos(angle) * layout.branchRadiusX);
+      const branchY = this.clampPosition(50 + Math.sin(angle) * layout.branchRadiusY);
       this.addGraphView(
         views,
         node,
-        50 + Math.cos(angle) * radius,
-        50 + Math.sin(angle) * radius,
-        this.isBranchNode(node.id) ? 'branch' : 'leaf',
-        this.toneForNode(node.id),
+        branchX,
+        branchY,
+        'branch',
+        toneMap.get(node.id) || this.keywordTone(node.title),
+      );
+
+      const children = this.graphChildNodes(node.id).filter((child) => child.kind === 'dl');
+      const childCount = Math.max(1, children.length);
+      children.forEach((child, childIndex) => {
+        const childPosition = this.childNodePosition(branchX, branchY, angle, childIndex, childCount, layout);
+        this.addGraphView(
+          views,
+          child,
+          childPosition.x,
+          childPosition.y,
+          'leaf',
+          toneMap.get(child.id) || toneMap.get(node.id) || this.keywordTone(child.title),
+        );
+      });
+    });
+
+    const orphanNodes = this.graph.nodes.filter((node) => !views.has(node.id));
+    orphanNodes.forEach((node, index) => {
+      const angle = this.branchAngle(index, Math.max(1, orphanNodes.length));
+      const hasParent = Boolean(parentMap.get(node.id));
+      const radiusX = hasParent || node.kind === 'dl' ? layout.orphanLeafRadiusX : layout.branchRadiusX;
+      const radiusY = hasParent || node.kind === 'dl' ? layout.orphanLeafRadiusY : layout.branchRadiusY;
+      this.addGraphView(
+        views,
+        node,
+        this.clampPosition(50 + Math.cos(angle) * radiusX),
+        this.clampPosition(50 + Math.sin(angle) * radiusY),
+        node.kind === 'tl' ? 'branch' : 'leaf',
+        toneMap.get(node.id) || this.keywordTone(node.title),
       );
     });
 
     return Array.from(views.values());
+  }
+
+  private graphLayoutMetrics(branchCount: number): GraphLayoutMetrics {
+    const dense = branchCount > 4;
+    if (this.isCompactViewport) {
+      const branchRadiusX = dense ? 27 : 25;
+      const branchRadiusY = dense ? 30 : 28;
+      const childOffsetX = dense ? 17 : 18;
+      const childOffsetY = dense ? 13 : 14;
+      return {
+        branchRadiusX,
+        branchRadiusY,
+        childOffsetX,
+        childOffsetY,
+        childSpreadX: dense ? 16 : 17,
+        childSpreadY: dense ? 8.2 : 8.8,
+        orphanLeafRadiusX: branchRadiusX + childOffsetX,
+        orphanLeafRadiusY: branchRadiusY + childOffsetY,
+      };
+    }
+
+    const branchRadiusX = dense ? 25 : 23;
+    const branchRadiusY = dense ? 24 : 22;
+    const childOffsetX = dense ? 18.5 : 20.5;
+    const childOffsetY = dense ? 12 : 13.5;
+    return {
+      branchRadiusX,
+      branchRadiusY,
+      childOffsetX,
+      childOffsetY,
+      childSpreadX: dense ? 16.5 : 17.5,
+      childSpreadY: dense ? 7.2 : 7.8,
+      orphanLeafRadiusX: branchRadiusX + childOffsetX,
+      orphanLeafRadiusY: branchRadiusY + childOffsetY,
+    };
+  }
+
+  private childNodePosition(
+    parentX: number,
+    parentY: number,
+    angle: number,
+    childIndex: number,
+    childCount: number,
+    layout: GraphLayoutMetrics,
+  ): { x: number; y: number } {
+    const centeredIndex = childIndex - (childCount - 1) / 2;
+    const shiftX = childCount === 1 ? 0 : centeredIndex * layout.childSpreadX;
+    const shiftY = childCount === 1 ? 0 : centeredIndex * layout.childSpreadY;
+    const side = this.branchSide(angle);
+
+    if (side === 'top' || side === 'bottom') {
+      const direction = side === 'top' ? -1 : 1;
+      return {
+        x: this.clampPosition(parentX + shiftX),
+        y: this.clampPosition(parentY + direction * layout.childOffsetY),
+      };
+    }
+
+    const direction = side === 'left' ? -1 : 1;
+    const verticalDirection = Math.sin(angle);
+    const sideShiftY = Math.abs(verticalDirection) > 0.22
+      ? (verticalDirection < 0 ? -1 : 1) * childIndex * layout.childSpreadY
+      : shiftY;
+    return {
+      x: this.clampPosition(
+        parentX + direction * layout.childOffsetX,
+      ),
+      y: this.clampPosition(
+        parentY + sideShiftY,
+      ),
+    };
+  }
+
+  private branchSide(angle: number): 'top' | 'right' | 'bottom' | 'left' {
+    const x = Math.cos(angle);
+    const y = Math.sin(angle);
+    if (y < -0.86) {
+      return 'top';
+    }
+    if (y > 0.86) {
+      return 'bottom';
+    }
+    return x < 0 ? 'left' : 'right';
   }
 
   private addGraphView(
@@ -578,11 +749,13 @@ export class ArticleReadingWidget extends LitElement {
 
   private graphLinkViews(nodes: GraphNodeView[]): GraphLinkView[] {
     const viewById = new Map(nodes.map((view) => [view.node.id, view]));
-    const fixedLinks = VISUAL_GRAPH_LINKS.map(([fromId, toId, tone]) => this.linkView(viewById, fromId, toId, tone));
     const edgeLinks = this.graph.edges.map((edge) => this.linkView(viewById, edge.from, edge.to));
+    const inferredLinks = this.inferredGraphEdges().map((edge) =>
+      this.linkView(viewById, edge.from, edge.to),
+    );
 
     const seen = new Set<string>();
-    return [...fixedLinks, ...edgeLinks]
+    return [...edgeLinks, ...inferredLinks]
       .filter((link): link is GraphLinkView => Boolean(link))
       .filter((link) => {
         const key = `${link.from.node.id}->${link.to.node.id}`;
@@ -591,7 +764,8 @@ export class ArticleReadingWidget extends LitElement {
         }
         seen.add(key);
         return true;
-      });
+      })
+      .sort((a, b) => (a.level === b.level ? 0 : a.level === 'branch' ? -1 : 1));
   }
 
   private linkView(
@@ -602,16 +776,24 @@ export class ArticleReadingWidget extends LitElement {
   ): GraphLinkView | undefined {
     const from = viewById.get(fromId);
     const to = viewById.get(toId);
-    return from && to ? { from, to, tone: tone || to.tone || from.tone } : undefined;
+    if (!from || !to) {
+      return undefined;
+    }
+    return {
+      from,
+      to,
+      tone: tone || to.tone || from.tone,
+      level: from.level === 'branch' && to.level === 'leaf' ? 'leaf' : 'branch',
+    };
   }
 
   private linkPath(link: GraphLinkView): string {
     const dx = link.to.x - link.from.x;
     const dy = link.to.y - link.from.y;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      return `M ${link.from.x} ${link.from.y} C ${link.from.x + dx * 0.44} ${link.from.y}, ${link.from.x + dx * 0.56} ${link.to.y}, ${link.to.x} ${link.to.y}`;
-    }
-    return `M ${link.from.x} ${link.from.y} C ${link.from.x} ${link.from.y + dy * 0.44}, ${link.to.x} ${link.from.y + dy * 0.56}, ${link.to.x} ${link.to.y}`;
+    const bend = link.level === 'leaf' ? 0.08 : 0.14;
+    const normalX = -dy * bend;
+    const normalY = dx * bend;
+    return `M ${link.from.x} ${link.from.y} C ${link.from.x + dx * 0.42 + normalX} ${link.from.y + dy * 0.42 + normalY}, ${link.from.x + dx * 0.58 + normalX} ${link.from.y + dy * 0.58 + normalY}, ${link.to.x} ${link.to.y}`;
   }
 
   private nodeClass(view: GraphNodeView): string {
@@ -624,54 +806,178 @@ export class ArticleReadingWidget extends LitElement {
     ].filter(Boolean).join(' ');
   }
 
+  private nodeDisplayTitle(view: GraphNodeView): string {
+    const title = this.normalizeTitle(view.node.title);
+    const limit = this.nodeTitleLimit(view.level);
+    if (!title) {
+      return '未命名节点';
+    }
+
+    const colonTitle = title.split(/[：:]/)[0]?.trim();
+    if (colonTitle && colonTitle.length >= 2 && this.visualLength(colonTitle) <= limit) {
+      return colonTitle;
+    }
+
+    const sentenceTitle = title.split(/[，,。；;、|｜/（(]/)[0]?.trim();
+    if (sentenceTitle && sentenceTitle.length >= 2 && this.visualLength(sentenceTitle) <= limit) {
+      return sentenceTitle;
+    }
+
+    return this.truncateTitle(title, limit);
+  }
+
+  private nodeTitleLimit(level: GraphNodeView['level']): number {
+    if (level === 'root') {
+      return this.isCompactViewport ? 16 : 22;
+    }
+    if (level === 'branch') {
+      return this.isCompactViewport ? 8 : 10;
+    }
+    return this.isCompactViewport ? 7 : 9;
+  }
+
+  private normalizeTitle(title: string): string {
+    return title.replace(/\s+/g, ' ').trim();
+  }
+
+  private truncateTitle(title: string, limit: number): string {
+    const chars = Array.from(title);
+    let width = 0;
+    let result = '';
+    for (const char of chars) {
+      const charWidth = this.visualLength(char);
+      if (width + charWidth > limit) {
+        return `${result.trim()}…`;
+      }
+      result += char;
+      width += charWidth;
+    }
+    return result.trim();
+  }
+
+  private visualLength(value: string): number {
+    return Array.from(value).reduce((length, char) => {
+      return length + (/[\u3400-\u9fff\uff00-\uffef]/.test(char) ? 1 : 0.55);
+    }, 0);
+  }
+
   private toneForNode(nodeId: string): GraphTone {
-    if (nodeId.includes('conclusion') || nodeId.includes('advice') || nodeId.includes('follow')) {
-      return 'conclusion';
-    }
-    if (nodeId.includes('background') || nodeId.includes('problem') || nodeId.includes('status')) {
-      return 'background';
-    }
-    if (nodeId.includes('core') || nodeId.includes('judgment') || nodeId.includes('claim')) {
-      return 'core';
-    }
-    if (nodeId.includes('argument') || nodeId.includes('data') || nodeId.includes('case')) {
-      return 'argument';
-    }
-    return 'neutral';
+    const node = this.nodeById(nodeId);
+    return this.nodeToneMap().get(nodeId) || this.keywordTone(node?.title || nodeId);
   }
 
   private renderNodeIcon(view: GraphNodeView) {
     if (view.level === 'root') {
       return this.renderInlineIcon('brain');
     }
-    switch (view.node.id) {
-      case 'tl-conclusion':
-        return this.renderInlineIcon('flag');
-      case 'dl-advice':
-        return this.renderInlineIcon('message');
-      case 'dl-follow-up':
-        return this.renderInlineIcon('help');
-      case 'tl-background':
-        return this.renderInlineIcon('book');
-      case 'dl-problem-source':
-        return this.renderInlineIcon('target');
-      case 'dl-current-status':
-        return this.renderInlineIcon('monitor');
-      case 'tl-core':
-        return this.renderInlineIcon('star');
-      case 'dl-key-judgment':
-        return this.renderInlineIcon('search');
-      case 'dl-author-claim':
-        return this.renderInlineIcon('user');
-      case 'tl-argument':
-        return this.renderInlineIcon('bar');
-      case 'dl-data-fact':
-        return this.renderInlineIcon('database');
-      case 'dl-case':
-        return this.renderInlineIcon('file');
-      default:
-        return this.renderInlineIcon(view.node.kind === 'tl' ? 'flag' : 'message');
+    return this.renderInlineIcon(this.iconNameForNode(view.node, view.level));
+  }
+
+  private branchAngle(index: number, total: number): number {
+    if (total === 1) {
+      return 0;
     }
+    if (total === 2) {
+      return index === 0 ? Math.PI : 0;
+    }
+    return (Math.PI * 2 * index) / Math.max(1, total) - Math.PI / 2;
+  }
+
+  private clampPosition(value: number): number {
+    const min = this.isCompactViewport ? 11 : 8;
+    const max = this.isCompactViewport ? 89 : 92;
+    return Math.min(max, Math.max(min, value));
+  }
+
+  private nodeParentMap(): Map<string, string> {
+    const nodeIds = new Set(this.allNodes.map((node) => node.id));
+    const parentMap = new Map<string, string>();
+    this.graph.edges.forEach((edge) => {
+      if (nodeIds.has(edge.from) && nodeIds.has(edge.to) && !parentMap.has(edge.to)) {
+        parentMap.set(edge.to, edge.from);
+      }
+    });
+    return parentMap;
+  }
+
+  private nodeToneMap(): Map<string, GraphTone> {
+    const tones = new Map<string, GraphTone>();
+    const tlNodes = this.graph.nodes.filter((node) => node.kind === 'tl');
+    tlNodes.forEach((node, index) => {
+      const tone = this.keywordTone(node.title, GRAPH_TONES[index % GRAPH_TONES.length]);
+      tones.set(node.id, tone);
+      this.graphChildNodes(node.id).forEach((child) => tones.set(child.id, tone));
+    });
+    return tones;
+  }
+
+  private inferredGraphEdges(): Array<{ from: string; to: string }> {
+    const rootId = this.graph.root.id;
+    const existing = new Set(this.graph.edges.map((edge) => `${edge.from}->${edge.to}`));
+    const inferred: Array<{ from: string; to: string }> = [];
+    const tlNodes = this.graph.nodes.filter((node) => node.kind === 'tl');
+    tlNodes.forEach((node) => {
+      const key = `${rootId}->${node.id}`;
+      if (!existing.has(key)) {
+        inferred.push({ from: rootId, to: node.id });
+      }
+    });
+
+    const tlByIndex = new Map<string, string>();
+    tlNodes.forEach((node, index) => {
+      tlByIndex.set(String(index + 1), node.id);
+    });
+    this.graph.nodes
+      .filter((node) => node.kind === 'dl')
+      .forEach((node) => {
+        const hasParent = this.graph.edges.some((edge) => edge.to === node.id);
+        if (hasParent) {
+          return;
+        }
+        const match = node.id.match(/^dl-(\d+)-/);
+        const parentId = match ? tlByIndex.get(match[1]) : undefined;
+        if (parentId) {
+          inferred.push({ from: parentId, to: node.id });
+        }
+      });
+    return inferred;
+  }
+
+  private keywordTone(value: string, fallback: GraphTone = 'neutral'): GraphTone {
+    const text = value.toLowerCase();
+    if (
+      /结论|建议|行动|清单|追问|conclusion|advice|action|question|follow/.test(text)
+    ) {
+      return 'conclusion';
+    }
+    if (/背景|来源|上下文|时间|历程|开篇|background|source|timeline/.test(text)) {
+      return 'background';
+    }
+    if (/核心|观点|判断|概念|术语|解释|人物|产品|core|concept|term|people|product/.test(text)) {
+      return 'core';
+    }
+    if (/论据|证据|事实|数据|案例|风险|问题|argument|evidence|data|case|risk/.test(text)) {
+      return 'argument';
+    }
+    return fallback;
+  }
+
+  private iconNameForNode(node: InsightNode, level: GraphNodeView['level']): string {
+    const text = `${node.title} ${node.id}`.toLowerCase();
+    if (/背景|来源|上下文|开篇|background|source/.test(text)) return 'book';
+    if (/时间|历程|阶段|timeline|history|stage/.test(text)) return 'timeline';
+    if (/核心|观点|判断|主张|core|claim|judgment/.test(text)) return 'star';
+    if (/证据|依据|事实|数据|evidence|data|fact/.test(text)) return 'database';
+    if (/案例|故事|实践|case|story|practice/.test(text)) return 'file';
+    if (/步骤|流程|方法|教程|step|process|method|guide/.test(text)) return 'route';
+    if (/风险|问题|争议|risk|problem|issue/.test(text)) return 'alert';
+    if (/概念|术语|解释|term|concept|explain/.test(text)) return 'search';
+    if (/人物|角色|作者|user|people|person|role/.test(text)) return 'user';
+    if (/产品|工具|模型|product|tool|model/.test(text)) return 'box';
+    if (/行动|建议|清单|todo|action|advice|list/.test(text)) return 'check';
+    if (/追问|问题|question|follow/.test(text)) return 'help';
+    if (/结论|总结|收束|conclusion|summary/.test(text)) return 'flag';
+    return level === 'branch' ? 'flag' : 'message';
   }
 
   private renderInlineIcon(name: string) {
@@ -689,6 +995,11 @@ export class ArticleReadingWidget extends LitElement {
       bar: 'ri:bar-chart-line',
       database: 'ri:database-2-line',
       file: 'ri:file-text-line',
+      route: 'ri:route-line',
+      timeline: 'ri:time-line',
+      alert: 'ri:error-warning-line',
+      box: 'ri:box-3-line',
+      check: 'ri:check-line',
       rotate: 'ri:arrow-go-back-line',
       x: 'ri:close-line',
     };
@@ -768,8 +1079,24 @@ export class ArticleReadingWidget extends LitElement {
     if ((spec.schemaVersion || 0) < GRAPH_SCHEMA_VERSION) {
       return false;
     }
-    const nodeIds = new Set([spec.root.id, ...spec.nodes.map((node) => node.id)]);
-    return REQUIRED_GRAPH_NODE_IDS.every((id) => nodeIds.has(id));
+    const tlIds = new Set(
+      spec.nodes
+        .filter((node) => node.kind === 'tl' && Boolean(node.id))
+        .map((node) => node.id),
+    );
+    const dlIds = new Set(
+      spec.nodes
+        .filter((node) => node.kind === 'dl' && Boolean(node.id))
+        .map((node) => node.id),
+    );
+    if (tlIds.size < 3 || dlIds.size === 0) {
+      return false;
+    }
+    const rootId = spec.root.id || 'root';
+    const rootTargets = new Set(
+      spec.edges.filter((edge) => edge.from === rootId).map((edge) => edge.to),
+    );
+    return Array.from(tlIds).every((id) => rootTargets.has(id));
   }
 
   private isPendingGenerationError(message: string): boolean {

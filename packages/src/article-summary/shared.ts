@@ -95,6 +95,23 @@ export function matchesDarkSelector(selector: string): boolean {
     return prefersDark;
   }
 
+  const themeValue =
+    html.getAttribute('data-theme') ||
+    body.getAttribute('data-theme') ||
+    html.getAttribute('data-mode') ||
+    body.getAttribute('data-mode') ||
+    html.getAttribute('data-bs-theme') ||
+    body.getAttribute('data-bs-theme');
+  if (themeValue === 'dark') {
+    return true;
+  }
+  if (themeValue === 'light') {
+    return false;
+  }
+  if (themeValue === 'auto' || themeValue === 'system') {
+    return prefersDark;
+  }
+
   if (
     html.classList.contains('color-scheme-dark') ||
     body.classList.contains('color-scheme-dark') ||
@@ -118,7 +135,7 @@ export function matchesDarkSelector(selector: string): boolean {
   }
 
   if (!selector) {
-    return false;
+    return prefersDark;
   }
 
   const dataAttrMatch = selector.match(/^data-([\w-]+)=(.+)$/);
@@ -145,12 +162,19 @@ export function buildThemeObserver(
   const body = document.body;
   const observerConfig: MutationObserverInit = {
     attributes: true,
-    attributeFilter: ['class', 'data-color-scheme'],
+    attributeFilter: ['class', 'data-color-scheme', 'data-theme', 'data-mode', 'data-bs-theme'],
   };
 
   const dataAttrMatch = selector.match(/^data-([\w-]+)=(.+)$/);
   if (dataAttrMatch) {
-    observerConfig.attributeFilter = ['class', 'data-color-scheme', `data-${dataAttrMatch[1]}`];
+    observerConfig.attributeFilter = [
+      'class',
+      'data-color-scheme',
+      'data-theme',
+      'data-mode',
+      'data-bs-theme',
+      `data-${dataAttrMatch[1]}`,
+    ];
   }
 
   const htmlObserver = new MutationObserver(callback);

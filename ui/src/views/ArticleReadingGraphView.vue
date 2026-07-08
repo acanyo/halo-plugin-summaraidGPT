@@ -16,8 +16,10 @@ import RiCheckLine from '~icons/ri/check-line'
 import RiSearchLine from '~icons/ri/search-line'
 import InsightGraphPreview from '@/components/article-reading/InsightGraphPreview.vue'
 import {
+  ARTICLE_READING_GRAPH_SCHEMA_VERSION,
   articleReadingApi,
   type ArticleReading,
+  type ArticleReadingSpec,
   type SelectablePost,
 } from '@/api/article-reading'
 
@@ -40,6 +42,7 @@ const nodeCounts = computed(() => ({
   dl: (spec.value?.nodes || []).filter((node) => node.kind === 'dl').length,
 }))
 const edgeCount = computed(() => spec.value?.edges?.length || 0)
+const schemaVersion = computed(() => spec.value?.schemaVersion || '-')
 const selectedPostName = computed(() => postName.value.trim())
 const selectedPost = computed(() => {
   const name = selectedPostName.value
@@ -98,7 +101,7 @@ const loadExisting = async (notify = true) => {
   loading.value = true
   graphStatus.value = ''
   try {
-    reading.value = await articleReadingApi.get(name)
+    reading.value = normalizeReading(await articleReadingApi.get(name))
     if (notify) {
       Toast.success('图谱预览已加载')
     }
@@ -122,7 +125,7 @@ const generateGraph = async () => {
   generating.value = true
   graphStatus.value = ''
   try {
-    reading.value = await articleReadingApi.generate(name, true)
+    reading.value = normalizeReading(await articleReadingApi.generate(name, true))
     Toast.success('图谱已生成')
   } catch (error) {
     Toast.error(errorMessage(error, '生成失败'))
@@ -154,6 +157,30 @@ const postPhaseClass = (post: SelectablePost) => {
 const errorMessage = (error: unknown, fallback: string) => {
   if (error instanceof Error) return error.message || fallback
   return fallback
+}
+
+const isRenderableSpec = (value?: ArticleReadingSpec) => {
+  if (!value?.root || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
+    return false
+  }
+  if ((value.schemaVersion || 0) < ARTICLE_READING_GRAPH_SCHEMA_VERSION) {
+    return false
+  }
+  const tlIds = new Set(value.nodes.filter((node) => node.kind === 'tl' && node.id).map((node) => node.id))
+  const dlIds = new Set(value.nodes.filter((node) => node.kind === 'dl' && node.id).map((node) => node.id))
+  if (tlIds.size < 3 || dlIds.size === 0) {
+    return false
+  }
+  const rootId = value.root.id || 'root'
+  const rootTargets = new Set(value.edges.filter((edge) => edge.from === rootId).map((edge) => edge.to))
+  return Array.from(tlIds).every((id) => rootTargets.has(id))
+}
+
+const normalizeReading = (value: ArticleReading) => {
+  if (!isRenderableSpec(value.spec)) {
+    throw new Error(`当前图谱是旧版或不完整结构，请点击“图谱生成”生成新版图谱。`)
+  }
+  return value
 }
 
 onMounted(() => {
@@ -329,7 +356,7 @@ watch([postPage, postPageSize], () => {
                 {{ spec.postTitle || spec.root?.title || spec.postMetadataName }}
               </div>
               <div class=":uno: mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span>schema v{{ spec.schemaVersion || '-' }}</span>
+                <span>schema v{{ schemaVersion }}</span>
                 <span>model {{ spec.modelName || '-' }}</span>
                 <span>{{ formatDate(spec.generatedAt) }}</span>
               </div>

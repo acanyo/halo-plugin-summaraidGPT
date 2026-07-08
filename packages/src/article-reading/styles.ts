@@ -84,6 +84,49 @@ export const articleReadingStyles = css`
     color: color-mix(in srgb, var(--likcc-reading-accent) 74%, var(--likcc-reading-text));
   }
 
+  .reading-collapsed {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.58rem;
+    width: 100%;
+    min-height: 2.55rem;
+    padding: 0.36rem 0;
+    border: 0;
+    border-top: 1px solid color-mix(in srgb, var(--likcc-reading-accent) 20%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--likcc-reading-accent) 14%, transparent);
+    border-radius: 0;
+    background: transparent;
+    color: var(--likcc-reading-text);
+    box-shadow: none;
+    text-align: left;
+  }
+
+  .reading-collapsed:hover {
+    border-color: color-mix(in srgb, var(--likcc-reading-accent) 30%, transparent);
+    background: color-mix(in srgb, var(--likcc-reading-accent) 4%, transparent);
+    transform: none;
+  }
+
+  .collapsed-title {
+    color: var(--likcc-reading-accent);
+    font-size: 0.9rem;
+    font-weight: 820;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .collapsed-summary {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--likcc-reading-muted);
+    font-size: 0.84rem;
+    font-weight: 620;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .collapse-mark {
     display: inline-grid;
     place-items: center;
@@ -183,19 +226,37 @@ export const articleReadingStyles = css`
   .graph-links path {
     fill: none;
     stroke: var(--likcc-reading-link);
-    stroke-width: 3.6;
+    stroke-width: 2.4;
     stroke-linecap: round;
     stroke-linejoin: round;
-    opacity: 0.58;
+    opacity: 0.44;
     vector-effect: non-scaling-stroke;
+  }
+
+  .graph-link--branch {
+    stroke-width: 2.2;
+    opacity: 0.34;
+  }
+
+  .graph-link--leaf {
+    stroke-width: 2.9;
+    opacity: 0.76;
   }
 
   .graph-dot {
     fill: var(--likcc-reading-panel);
     stroke: var(--likcc-reading-link);
     stroke-width: 0.42;
-    opacity: 0.95;
+    opacity: 0.82;
     vector-effect: non-scaling-stroke;
+  }
+
+  .graph-dot--branch {
+    opacity: 0.5;
+  }
+
+  .graph-dot--leaf {
+    opacity: 0.92;
   }
 
   .graph-link--conclusion {
@@ -236,15 +297,15 @@ export const articleReadingStyles = css`
     --node-color: var(--likcc-reading-link);
     --node-tint: color-mix(in srgb, var(--node-color) 7%, var(--likcc-reading-node));
     display: inline-grid;
-    grid-template-columns: auto max-content;
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     justify-content: center;
     justify-items: center;
     gap: 0.42rem;
     min-height: 2.36rem;
     min-width: 0;
-    width: max-content;
-    max-width: 10.8rem;
+    width: 8.6rem;
+    max-width: 8.6rem;
     padding: 0.32rem 0.58rem 0.34rem;
     border: 1px solid color-mix(in srgb, var(--node-color) 30%, var(--likcc-reading-node-border));
     border-radius: 10px;
@@ -267,9 +328,9 @@ export const articleReadingStyles = css`
   .node-title {
     display: block;
     max-width: 100%;
-    white-space: nowrap;
-    word-break: keep-all;
-    overflow-wrap: normal;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
     text-align: center;
   }
 
@@ -279,7 +340,7 @@ export const articleReadingStyles = css`
     width: 1.48rem;
     height: 1.48rem;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--node-color) 12%, #ffffff);
+    background: color-mix(in srgb, var(--node-color) 12%, var(--likcc-reading-panel));
     color: var(--node-color);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--node-color) 8%, transparent);
   }
@@ -391,19 +452,42 @@ export const articleReadingStyles = css`
   }
 
   .graph-node--branch {
-    min-width: 5.55rem;
+    width: 8.8rem;
+    min-width: 8.8rem;
     min-height: 2.58rem;
+    max-width: 8.8rem;
     font-size: 0.88rem;
     font-weight: 800;
   }
 
   .graph-node--leaf {
     min-height: 2.34rem;
-    min-width: 5.35rem;
+    width: 7.55rem;
+    min-width: 7.55rem;
+    max-width: 7.55rem;
     background: color-mix(in srgb, var(--node-color) 5%, var(--likcc-reading-node-soft));
     box-shadow: 0 8px 18px rgba(24, 34, 49, 0.05);
     font-size: 0.76rem;
     font-weight: 720;
+  }
+
+  .graph-node--branch .node-title,
+  .graph-node--leaf .node-title {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .graph-node--branch .node-title {
+    max-width: 6.6rem;
+  }
+
+  .graph-node--leaf .node-title {
+    max-width: 5.45rem;
   }
 
   .graph-node--tone-conclusion {
@@ -427,7 +511,7 @@ export const articleReadingStyles = css`
   }
 
   .reading-shell.is-dark .graph-node {
-    background: var(--likcc-reading-node);
+    background: color-mix(in srgb, var(--node-color) 8%, var(--likcc-reading-node));
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
   }
 
@@ -440,6 +524,10 @@ export const articleReadingStyles = css`
   .reading-shell.is-dark .graph-node--leaf {
     background: color-mix(in srgb, var(--node-color) 8%, var(--likcc-reading-node-soft));
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  }
+
+  .reading-shell.is-dark .node-icon {
+    background: color-mix(in srgb, var(--node-color) 18%, var(--likcc-reading-panel));
   }
 
   .node-popover {
@@ -463,6 +551,8 @@ export const articleReadingStyles = css`
   }
 
   .reading-shell.is-dark .node-popover {
+    border-color: var(--likcc-reading-line);
+    background: linear-gradient(180deg, rgba(24, 33, 50, 0.98), rgba(18, 25, 38, 0.94));
     box-shadow: 0 20px 46px rgba(0, 0, 0, 0.38);
   }
 
@@ -520,6 +610,10 @@ export const articleReadingStyles = css`
     text-align: left;
     line-height: 1.6;
     overflow-wrap: anywhere;
+  }
+
+  .reading-shell.is-dark .source-anchor {
+    background: color-mix(in srgb, var(--likcc-reading-accent) 10%, var(--likcc-reading-panel));
   }
 
   .payload-list {
@@ -592,6 +686,10 @@ export const articleReadingStyles = css`
     line-height: 1.6;
   }
 
+  .reading-shell.is-dark .question-input {
+    background: var(--likcc-reading-soft);
+  }
+
   .question-actions {
     margin-top: 0.5rem;
   }
@@ -614,27 +712,82 @@ export const articleReadingStyles = css`
     }
 
     .graph-canvas {
-      aspect-ratio: 4 / 5;
-      min-height: 34rem;
+      aspect-ratio: 9 / 14;
+      min-height: clamp(34rem, 138vw, 44rem);
     }
 
     .graph-node {
-      min-width: 5.35rem;
-      max-width: 6.85rem;
-      padding-inline: 0.42rem;
-      gap: 0.32rem;
-      font-size: 0.72rem;
+      width: 5.75rem;
+      min-width: 5.75rem;
+      max-width: 5.75rem;
+      min-height: 2.08rem;
+      padding: 0.26rem 0.38rem;
+      gap: 0.28rem;
+      font-size: 0.68rem;
+      line-height: 1.12;
     }
 
     .node-icon {
+      width: 1.16rem;
+      height: 1.16rem;
+    }
+
+    .node-icon .iconify-icon,
+    .icon-button .iconify-icon,
+    .popover-actions .iconify-icon {
+      width: 0.74rem;
+      height: 0.74rem;
+    }
+
+    .node-title {
+      display: -webkit-box;
+      max-width: 3.9rem;
+      overflow: hidden;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .graph-node--root {
+      width: 5.7rem;
+      height: 5.7rem;
+      padding: 0.5rem;
+      font-size: 0.62rem;
+    }
+
+    .graph-node--root::before {
+      inset: -0.38rem;
+    }
+
+    .graph-node--root .node-icon {
       width: 1.36rem;
       height: 1.36rem;
     }
 
-    .graph-node--root {
-      width: 6.45rem;
-      height: 6.45rem;
-      font-size: 0.68rem;
+    .graph-node--root .node-icon .iconify-icon {
+      width: 1.08rem;
+      height: 1.08rem;
+    }
+
+    .graph-node--root .node-title {
+      max-width: 4.6rem;
+      -webkit-line-clamp: 3;
+    }
+
+    .graph-node--branch {
+      width: 5.9rem;
+      min-width: 5.9rem;
+      max-width: 5.9rem;
+      font-size: 0.72rem;
+    }
+
+    .graph-node--leaf {
+      width: 5.45rem;
+      min-width: 5.45rem;
+      max-width: 5.45rem;
+      font-size: 0.66rem;
     }
 
     .node-popover {

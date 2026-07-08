@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import { computed, ref, watch, type Component } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue'
 import type { ArticleReadingSpec, InsightNode } from '@/api/article-reading'
 import RiBarChartLine from '~icons/ri/bar-chart-line'
 import RiBookOpenLine from '~icons/ri/book-open-line'
 import RiBrainLine from '~icons/ri/brain-line'
 import RiDatabase2Line from '~icons/ri/database-2-line'
+import RiBox3Line from '~icons/ri/box-3-line'
+import RiCheckLine from '~icons/ri/check-line'
+import RiCloseLine from '~icons/ri/close-line'
+import RiErrorWarningLine from '~icons/ri/error-warning-line'
 import RiFileTextLine from '~icons/ri/file-text-line'
 import RiFlagLine from '~icons/ri/flag-line'
-import RiFocus3Line from '~icons/ri/focus-3-line'
-import RiLineChartLine from '~icons/ri/line-chart-line'
 import RiMessage3Line from '~icons/ri/message-3-line'
 import RiQuestionLine from '~icons/ri/question-line'
+import RiRouteLine from '~icons/ri/route-line'
 import RiSearchLine from '~icons/ri/search-line'
 import RiStarSmileLine from '~icons/ri/star-smile-line'
+import RiTimeLine from '~icons/ri/time-line'
 import RiUser3Line from '~icons/ri/user-3-line'
 
 type GraphTone = 'neutral' | 'conclusion' | 'background' | 'core' | 'argument'
@@ -30,59 +34,30 @@ interface GraphLinkView {
   from: GraphNodeView
   to: GraphNodeView
   tone: GraphTone
+  level: 'branch' | 'leaf'
+}
+
+interface GraphLayoutMetrics {
+  branchRadiusX: number
+  branchRadiusY: number
+  childOffsetX: number
+  childOffsetY: number
+  childSpreadX: number
+  childSpreadY: number
+  orphanLeafRadiusX: number
+  orphanLeafRadiusY: number
 }
 
 const props = defineProps<{
   spec: ArticleReadingSpec
 }>()
 
-const visualNodeLayout = [
-  ['tl-conclusion', 50, 18, 'branch', 'conclusion'],
-  ['dl-advice', 37, 10, 'leaf', 'conclusion'],
-  ['dl-follow-up', 63, 10, 'leaf', 'conclusion'],
-  ['tl-background', 20, 39, 'branch', 'background'],
-  ['dl-problem-source', 12, 27, 'leaf', 'background'],
-  ['dl-current-status', 12, 52, 'leaf', 'background'],
-  ['tl-core', 80, 39, 'branch', 'core'],
-  ['dl-key-judgment', 88, 27, 'leaf', 'core'],
-  ['dl-author-claim', 88, 52, 'leaf', 'core'],
-  ['tl-argument', 50, 82, 'branch', 'argument'],
-  ['dl-data-fact', 34, 91, 'leaf', 'argument'],
-  ['dl-case', 66, 91, 'leaf', 'argument'],
-] as const
-
-const visualLinks = [
-  ['root', 'tl-conclusion', 'conclusion'],
-  ['tl-conclusion', 'dl-advice', 'conclusion'],
-  ['tl-conclusion', 'dl-follow-up', 'conclusion'],
-  ['root', 'tl-background', 'background'],
-  ['tl-background', 'dl-problem-source', 'background'],
-  ['tl-background', 'dl-current-status', 'background'],
-  ['root', 'tl-core', 'core'],
-  ['tl-core', 'dl-key-judgment', 'core'],
-  ['tl-core', 'dl-author-claim', 'core'],
-  ['root', 'tl-argument', 'argument'],
-  ['tl-argument', 'dl-data-fact', 'argument'],
-  ['tl-argument', 'dl-case', 'argument'],
-] as const
-
-const nodeIcons: Record<string, Component> = {
-  root: RiBrainLine,
-  'tl-conclusion': RiFlagLine,
-  'dl-advice': RiMessage3Line,
-  'dl-follow-up': RiQuestionLine,
-  'tl-background': RiBookOpenLine,
-  'dl-problem-source': RiFocus3Line,
-  'dl-current-status': RiLineChartLine,
-  'tl-core': RiStarSmileLine,
-  'dl-key-judgment': RiSearchLine,
-  'dl-author-claim': RiUser3Line,
-  'tl-argument': RiBarChartLine,
-  'dl-data-fact': RiDatabase2Line,
-  'dl-case': RiFileTextLine,
-}
+const graphTones: GraphTone[] = ['conclusion', 'background', 'core', 'argument']
 
 const activeNodeId = ref('root')
+const detailOpen = ref(false)
+const compactViewport = ref(false)
+let compactViewportQuery: MediaQueryList | undefined
 
 const rootNode = computed<InsightNode>(() => ({
   id: props.spec.root?.id || 'root',
@@ -100,6 +75,147 @@ const nodeById = computed(() => {
   return nodes
 })
 
+const graphEdges = computed(() =>
+  (props.spec.edges || []).filter((edge) => nodeById.value.has(edge.from) && nodeById.value.has(edge.to)),
+)
+
+const graphChildNodes = (parentId: string) => {
+  const seen = new Set<string>()
+  return graphEdges.value
+    .filter((edge) => edge.from === parentId)
+    .map((edge) => nodeById.value.get(edge.to))
+    .filter((node): node is InsightNode => {
+      if (!node || seen.has(node.id)) {
+        return false
+      }
+      seen.add(node.id)
+      return true
+    })
+}
+
+const branchAngle = (index: number, total: number) =>
+  total === 1
+    ? 0
+    : total === 2
+      ? index === 0
+        ? Math.PI
+        : 0
+      : (Math.PI * 2 * index) / Math.max(1, total) - Math.PI / 2
+
+const clampPosition = (value: number) => {
+  const min = compactViewport.value ? 11 : 8
+  const max = compactViewport.value ? 89 : 92
+  return Math.min(max, Math.max(min, value))
+}
+
+const graphLayoutMetrics = (branchCount: number): GraphLayoutMetrics => {
+  const dense = branchCount > 4
+  if (compactViewport.value) {
+    const branchRadiusX = dense ? 27 : 25
+    const branchRadiusY = dense ? 30 : 28
+    const childOffsetX = dense ? 17 : 18
+    const childOffsetY = dense ? 13 : 14
+    return {
+      branchRadiusX,
+      branchRadiusY,
+      childOffsetX,
+      childOffsetY,
+      childSpreadX: dense ? 16 : 17,
+      childSpreadY: dense ? 8.2 : 8.8,
+      orphanLeafRadiusX: branchRadiusX + childOffsetX,
+      orphanLeafRadiusY: branchRadiusY + childOffsetY,
+    }
+  }
+
+  const branchRadiusX = dense ? 25 : 23
+  const branchRadiusY = dense ? 24 : 22
+  const childOffsetX = dense ? 18.5 : 20.5
+  const childOffsetY = dense ? 12 : 13.5
+  return {
+    branchRadiusX,
+    branchRadiusY,
+    childOffsetX,
+    childOffsetY,
+    childSpreadX: dense ? 16.5 : 17.5,
+    childSpreadY: dense ? 7.2 : 7.8,
+    orphanLeafRadiusX: branchRadiusX + childOffsetX,
+    orphanLeafRadiusY: branchRadiusY + childOffsetY,
+  }
+}
+
+const branchSide = (angle: number): 'top' | 'right' | 'bottom' | 'left' => {
+  const x = Math.cos(angle)
+  const y = Math.sin(angle)
+  if (y < -0.86) {
+    return 'top'
+  }
+  if (y > 0.86) {
+    return 'bottom'
+  }
+  return x < 0 ? 'left' : 'right'
+}
+
+const childNodePosition = (
+  parentX: number,
+  parentY: number,
+  angle: number,
+  childIndex: number,
+  childCount: number,
+  layout: GraphLayoutMetrics,
+) => {
+  const centeredIndex = childIndex - (childCount - 1) / 2
+  const shiftX = childCount === 1 ? 0 : centeredIndex * layout.childSpreadX
+  const shiftY = childCount === 1 ? 0 : centeredIndex * layout.childSpreadY
+  const side = branchSide(angle)
+
+  if (side === 'top' || side === 'bottom') {
+    const direction = side === 'top' ? -1 : 1
+    return {
+      x: clampPosition(parentX + shiftX),
+      y: clampPosition(parentY + direction * layout.childOffsetY),
+    }
+  }
+
+  const direction = side === 'left' ? -1 : 1
+  const verticalDirection = Math.sin(angle)
+  const sideShiftY =
+    Math.abs(verticalDirection) > 0.22
+      ? (verticalDirection < 0 ? -1 : 1) * childIndex * layout.childSpreadY
+      : shiftY
+  return {
+    x: clampPosition(parentX + direction * layout.childOffsetX),
+    y: clampPosition(parentY + sideShiftY),
+  }
+}
+
+const keywordTone = (value: string, fallback: GraphTone = 'neutral'): GraphTone => {
+  const text = value.toLowerCase()
+  if (/结论|建议|行动|清单|追问|conclusion|advice|action|question|follow/.test(text)) {
+    return 'conclusion'
+  }
+  if (/背景|来源|上下文|时间|历程|开篇|background|source|timeline/.test(text)) {
+    return 'background'
+  }
+  if (/核心|观点|判断|概念|术语|解释|人物|产品|core|concept|term|people|product/.test(text)) {
+    return 'core'
+  }
+  if (/论据|证据|事实|数据|案例|风险|问题|argument|evidence|data|case|risk/.test(text)) {
+    return 'argument'
+  }
+  return fallback
+}
+
+const nodeToneMap = computed(() => {
+  const tones = new Map<string, GraphTone>()
+  const tlNodes = (props.spec.nodes || []).filter((node) => node.kind === 'tl')
+  tlNodes.forEach((node, index) => {
+    const tone = keywordTone(node.title, graphTones[index % graphTones.length])
+    tones.set(node.id, tone)
+    graphChildNodes(node.id).forEach((child) => tones.set(child.id, tone))
+  })
+  return tones
+})
+
 const nodeViews = computed<GraphNodeView[]>(() => {
   const views: GraphNodeView[] = [
     {
@@ -110,24 +226,93 @@ const nodeViews = computed<GraphNodeView[]>(() => {
       tone: 'neutral',
     },
   ]
-  visualNodeLayout.forEach(([id, x, y, level, tone]) => {
-    const node = nodeById.value.get(id)
-    if (node) {
-      views.push({ node, x, y, level, tone })
-    }
+
+  const tlNodes = (props.spec.nodes || []).filter((node) => node.kind === 'tl')
+  const branchCount = Math.max(1, tlNodes.length)
+  const layout = graphLayoutMetrics(branchCount)
+
+  tlNodes.forEach((node, index) => {
+    const angle = branchAngle(index, branchCount)
+    const tone = nodeToneMap.value.get(node.id) || keywordTone(node.title)
+    const branchX = clampPosition(50 + Math.cos(angle) * layout.branchRadiusX)
+    const branchY = clampPosition(50 + Math.sin(angle) * layout.branchRadiusY)
+    views.push({
+      node,
+      x: branchX,
+      y: branchY,
+      level: 'branch',
+      tone,
+    })
+
+    const children = graphChildNodes(node.id).filter((child) => child.kind === 'dl')
+    const childCount = Math.max(1, children.length)
+    children.forEach((child, childIndex) => {
+      const childPosition = childNodePosition(branchX, branchY, angle, childIndex, childCount, layout)
+      views.push({
+        node: child,
+        x: childPosition.x,
+        y: childPosition.y,
+        level: 'leaf',
+        tone,
+      })
+    })
   })
+
+  const visibleIds = new Set(views.map((view) => view.node.id))
+  ;(props.spec.nodes || [])
+    .filter((node) => !visibleIds.has(node.id))
+    .forEach((node, index, nodes) => {
+      const angle = branchAngle(index, Math.max(1, nodes.length))
+      const radiusX = node.kind === 'tl' ? layout.branchRadiusX : layout.orphanLeafRadiusX
+      const radiusY = node.kind === 'tl' ? layout.branchRadiusY : layout.orphanLeafRadiusY
+      views.push({
+        node,
+        x: clampPosition(50 + Math.cos(angle) * radiusX),
+        y: clampPosition(50 + Math.sin(angle) * radiusY),
+        level: node.kind === 'tl' ? 'branch' : 'leaf',
+        tone: nodeToneMap.value.get(node.id) || keywordTone(node.title),
+      })
+    })
   return views
 })
 
 const linkViews = computed<GraphLinkView[]>(() => {
   const views = new Map(nodeViews.value.map((view) => [view.node.id, view]))
-  return visualLinks
-    .map(([fromId, toId, tone]) => {
-      const from = views.get(fromId)
-      const to = views.get(toId)
-      return from && to ? { from, to, tone } : undefined
+  const seen = new Set<string>()
+  const links = graphEdges.value
+    .map((edge) => {
+      const from = views.get(edge.from)
+      const to = views.get(edge.to)
+      return from && to
+        ? {
+            from,
+            to,
+            tone: to.tone || from.tone,
+            level: from.level === 'branch' && to.level === 'leaf' ? 'leaf' : 'branch',
+          }
+        : undefined
     })
     .filter(Boolean) as GraphLinkView[]
+
+  ;(props.spec.nodes || [])
+    .filter((node) => node.kind === 'tl')
+    .forEach((node) => {
+      const key = `${rootNode.value.id}->${node.id}`
+      if (!seen.has(key) && !links.some((link) => link.from.node.id === rootNode.value.id && link.to.node.id === node.id)) {
+        const from = views.get(rootNode.value.id)
+        const to = views.get(node.id)
+        if (from && to) {
+          links.push({ from, to, tone: to.tone || from.tone, level: 'branch' })
+        }
+      }
+    })
+
+  return links.filter((link) => {
+    const key = `${link.from.node.id}->${link.to.node.id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  }).sort((a, b) => (a.level === b.level ? 0 : a.level === 'branch' ? -1 : 1))
 })
 
 const activeView = computed(() =>
@@ -140,17 +325,58 @@ const payloadItems = computed(() =>
     : [],
 )
 
+const visualLength = (value: string) =>
+  Array.from(value).reduce((length, char) => length + (/[\u3400-\u9fff\uff00-\uffef]/.test(char) ? 1 : 0.55), 0)
+
+const normalizeTitle = (title: string) => title.replace(/\s+/g, ' ').trim()
+
+const titleLimit = (level: GraphLevel) => {
+  if (level === 'root') return compactViewport.value ? 16 : 22
+  if (level === 'branch') return compactViewport.value ? 8 : 10
+  return compactViewport.value ? 7 : 9
+}
+
+const truncateTitle = (title: string, limit: number) => {
+  let width = 0
+  let result = ''
+  for (const char of Array.from(title)) {
+    const charWidth = visualLength(char)
+    if (width + charWidth > limit) {
+      return `${result.trim()}…`
+    }
+    result += char
+    width += charWidth
+  }
+  return result.trim()
+}
+
+const nodeDisplayTitle = (view: GraphNodeView) => {
+  const title = normalizeTitle(view.node.title)
+  const limit = titleLimit(view.level)
+  if (!title) return '未命名节点'
+
+  const colonTitle = title.split(/[：:]/)[0]?.trim()
+  if (colonTitle && colonTitle.length >= 2 && visualLength(colonTitle) <= limit) {
+    return colonTitle
+  }
+
+  const sentenceTitle = title.split(/[，,。；;、|｜/（(]/)[0]?.trim()
+  if (sentenceTitle && sentenceTitle.length >= 2 && visualLength(sentenceTitle) <= limit) {
+    return sentenceTitle
+  }
+
+  return truncateTitle(title, limit)
+}
+
 const linkPath = (link: GraphLinkView) => {
   const dx = link.to.x - link.from.x
   const dy = link.to.y - link.from.y
-  if (Math.abs(dx) > Math.abs(dy)) {
-    return `M ${link.from.x} ${link.from.y} C ${link.from.x + dx * 0.44} ${link.from.y}, ${
-      link.from.x + dx * 0.56
-    } ${link.to.y}, ${link.to.x} ${link.to.y}`
-  }
-  return `M ${link.from.x} ${link.from.y} C ${link.from.x} ${
-    link.from.y + dy * 0.44
-  }, ${link.to.x} ${link.from.y + dy * 0.56}, ${link.to.x} ${link.to.y}`
+  const bend = link.level === 'leaf' ? 0.08 : 0.14
+  const normalX = -dy * bend
+  const normalY = dx * bend
+  return `M ${link.from.x} ${link.from.y} C ${link.from.x + dx * 0.42 + normalX} ${
+    link.from.y + dy * 0.42 + normalY
+  }, ${link.from.x + dx * 0.58 + normalX} ${link.from.y + dy * 0.58 + normalY}, ${link.to.x} ${link.to.y}`
 }
 
 const nodeClass = (view: GraphNodeView) => [
@@ -161,56 +387,103 @@ const nodeClass = (view: GraphNodeView) => [
 ]
 
 const selectNode = (node: InsightNode) => {
+  const wasOpen = detailOpen.value && activeNodeId.value === node.id
   activeNodeId.value = node.id
+  detailOpen.value = !wasOpen
 }
 
-const iconForNode = (view: GraphNodeView) =>
-  nodeIcons[view.node.id] || (view.level === 'branch' ? RiFlagLine : RiMessage3Line)
+const refreshCompactViewport = () => {
+  compactViewport.value = window.matchMedia?.('(max-width: 760px)').matches ?? false
+}
+
+const iconForNode = (view: GraphNodeView): Component => {
+  if (view.level === 'root') return RiBrainLine
+  const text = `${view.node.title} ${view.node.id}`.toLowerCase()
+  if (/背景|来源|上下文|开篇|background|source/.test(text)) return RiBookOpenLine
+  if (/时间|历程|阶段|timeline|history|stage/.test(text)) return RiTimeLine
+  if (/核心|观点|判断|主张|core|claim|judgment/.test(text)) return RiStarSmileLine
+  if (/证据|依据|事实|数据|evidence|data|fact/.test(text)) return RiDatabase2Line
+  if (/案例|故事|实践|case|story|practice/.test(text)) return RiFileTextLine
+  if (/步骤|流程|方法|教程|step|process|method|guide/.test(text)) return RiRouteLine
+  if (/风险|问题|争议|risk|problem|issue/.test(text)) return RiErrorWarningLine
+  if (/概念|术语|解释|term|concept|explain/.test(text)) return RiSearchLine
+  if (/人物|角色|作者|user|people|person|role/.test(text)) return RiUser3Line
+  if (/产品|工具|模型|product|tool|model/.test(text)) return RiBox3Line
+  if (/行动|建议|清单|todo|action|advice|list/.test(text)) return RiCheckLine
+  if (/追问|问题|question|follow/.test(text)) return RiQuestionLine
+  if (/结论|总结|收束|conclusion|summary/.test(text)) return RiFlagLine
+  return view.level === 'branch' ? RiBarChartLine : RiMessage3Line
+}
 
 watch(
   () => props.spec.postMetadataName,
   () => {
     activeNodeId.value = 'root'
+    detailOpen.value = false
   },
 )
+
+onMounted(() => {
+  refreshCompactViewport()
+  compactViewportQuery = window.matchMedia?.('(max-width: 760px)')
+  compactViewportQuery?.addEventListener('change', refreshCompactViewport)
+})
+
+onUnmounted(() => {
+  compactViewportQuery?.removeEventListener('change', refreshCompactViewport)
+})
 </script>
 
 <template>
   <div class="graph-preview">
     <div class="graph-stage" aria-label="洞察图谱预览">
-      <svg class="preview-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <template v-for="link in linkViews" :key="`${link.from.node.id}-${link.to.node.id}`">
-          <path :class="['preview-link', `preview-link--${link.tone}`]" :d="linkPath(link)" />
-          <circle :class="['preview-dot', `preview-dot--${link.tone}`]" :cx="link.to.x" :cy="link.to.y" r="0.72" />
-        </template>
-      </svg>
+      <div class="graph-board">
+        <svg class="preview-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <template v-for="link in linkViews" :key="`${link.from.node.id}-${link.to.node.id}`">
+            <path :class="['preview-link', `preview-link--${link.level}`, `preview-link--${link.tone}`]" :d="linkPath(link)" />
+            <circle
+              :class="['preview-dot', `preview-dot--${link.level}`, `preview-dot--${link.tone}`]"
+              :cx="link.to.x"
+              :cy="link.to.y"
+              r="0.72"
+            />
+          </template>
+        </svg>
 
-      <button
-        v-for="view in nodeViews"
-        :key="view.node.id"
-        type="button"
-        :class="nodeClass(view)"
-        :style="{ left: `${view.x}%`, top: `${view.y}%` }"
-        @click="selectNode(view.node)"
-      >
-        <span class="preview-node-icon" aria-hidden="true">
-          <component :is="iconForNode(view)" />
-        </span>
-        <span class="preview-node-title">{{ view.node.title }}</span>
-      </button>
-    </div>
-
-    <aside class="graph-detail">
-      <div class="detail-kicker">当前节点</div>
-      <h3>{{ activeNode.title }}</h3>
-      <p v-if="activeNode.summary">{{ activeNode.summary }}</p>
-      <div v-if="activeNode.sourceRange?.anchor" class="detail-source">
-        {{ activeNode.sourceRange.anchor }}
+        <button
+          v-for="view in nodeViews"
+          :key="view.node.id"
+          type="button"
+          :class="nodeClass(view)"
+          :style="{ left: `${view.x}%`, top: `${view.y}%` }"
+          :title="view.node.title"
+          :aria-label="view.node.title"
+          @click="selectNode(view.node)"
+        >
+          <span class="preview-node-icon" aria-hidden="true">
+            <component :is="iconForNode(view)" />
+          </span>
+          <span class="preview-node-title">{{ nodeDisplayTitle(view) }}</span>
+        </button>
       </div>
-      <ul v-if="payloadItems.length" class="detail-items">
-        <li v-for="item in payloadItems" :key="item">{{ item }}</li>
-      </ul>
-    </aside>
+
+      <aside v-if="detailOpen" class="graph-detail">
+        <div class="detail-head">
+          <span class="detail-kicker">当前节点</span>
+          <button class="detail-close" type="button" aria-label="关闭详情" @click="detailOpen = false">
+            <RiCloseLine />
+          </button>
+        </div>
+        <h3>{{ activeNode.title }}</h3>
+        <p v-if="activeNode.summary">{{ activeNode.summary }}</p>
+        <div v-if="activeNode.sourceRange?.anchor" class="detail-source">
+          {{ activeNode.sourceRange.anchor }}
+        </div>
+        <ul v-if="payloadItems.length" class="detail-items">
+          <li v-for="item in payloadItems" :key="item">{{ item }}</li>
+        </ul>
+      </aside>
+    </div>
   </div>
 </template>
 
@@ -223,22 +496,59 @@ watch(
   --tone-background: #36a190;
   --tone-core: #5f8fd6;
   --tone-argument: #b864ad;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem);
-  gap: 1rem;
-  align-items: stretch;
-  min-height: 31rem;
+  --graph-panel: #fff;
+  --graph-node: rgba(255, 255, 255, 0.95);
+  --graph-node-soft: rgba(255, 255, 255, 0.88);
+  --graph-node-border: #e7e2da;
+  display: block;
   color: var(--graph-text);
+}
+
+:global(.dark) .graph-preview,
+:global(.color-scheme-dark) .graph-preview,
+:global([data-color-scheme="dark"]) .graph-preview {
+  --graph-text: #edf2f7;
+  --graph-muted: #a8b4c6;
+  --graph-line: #495567;
+  --graph-panel: #182132;
+  --graph-node: rgba(31, 41, 55, 0.94);
+  --graph-node-soft: rgba(24, 34, 49, 0.9);
+  --graph-node-border: #374254;
+  --tone-conclusion: #e1a05e;
+  --tone-background: #6fd3c5;
+  --tone-core: #93b8ff;
+  --tone-argument: #d99bdd;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global([data-color-scheme="auto"]) .graph-preview {
+    --graph-text: #edf2f7;
+    --graph-muted: #a8b4c6;
+    --graph-line: #495567;
+    --graph-panel: #182132;
+    --graph-node: rgba(31, 41, 55, 0.94);
+    --graph-node-soft: rgba(24, 34, 49, 0.9);
+    --graph-node-border: #374254;
+    --tone-conclusion: #e1a05e;
+    --tone-background: #6fd3c5;
+    --tone-core: #93b8ff;
+    --tone-argument: #d99bdd;
+  }
 }
 
 .graph-stage {
   position: relative;
-  min-height: 31rem;
-  overflow: hidden;
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(249, 250, 251, 0.9)),
-    radial-gradient(circle at 50% 50%, rgba(17, 24, 39, 0.045), transparent 26%);
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+  min-height: 29rem;
+  max-height: 42rem;
+  overflow: visible;
+  background: transparent;
+}
+
+.graph-board {
+  position: absolute;
+  inset: 0;
 }
 
 .preview-links {
@@ -255,16 +565,35 @@ watch(
   stroke: var(--graph-line);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3.2;
-  opacity: 0.62;
+  stroke-width: 2.4;
+  opacity: 0.44;
   vector-effect: non-scaling-stroke;
 }
 
+.preview-link--branch {
+  stroke-width: 2.2;
+  opacity: 0.34;
+}
+
+.preview-link--leaf {
+  stroke-width: 2.9;
+  opacity: 0.76;
+}
+
 .preview-dot {
-  fill: #fff;
+  fill: var(--graph-panel);
   stroke: var(--graph-line);
   stroke-width: 0.42;
+  opacity: 0.82;
   vector-effect: non-scaling-stroke;
+}
+
+.preview-dot--branch {
+  opacity: 0.5;
+}
+
+.preview-dot--leaf {
+  opacity: 0.92;
 }
 
 .preview-link--conclusion,
@@ -292,20 +621,22 @@ watch(
   z-index: 2;
   --node-color: var(--graph-line);
   display: inline-grid;
-  grid-template-columns: auto max-content;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   justify-content: center;
+  justify-items: center;
   gap: 0.42rem;
-  min-height: 2.35rem;
-  min-width: 5.35rem;
-  max-width: 10.5rem;
-  padding: 0.34rem 0.6rem;
-  border: 1px solid color-mix(in srgb, var(--node-color) 34%, #e7e2da);
+  min-height: 2.36rem;
+  min-width: 0;
+  width: 8.6rem;
+  max-width: 8.6rem;
+  padding: 0.32rem 0.58rem 0.34rem;
+  border: 1px solid color-mix(in srgb, var(--node-color) 34%, var(--graph-node-border));
   border-radius: 10px;
-  background: color-mix(in srgb, var(--node-color) 7%, rgba(255, 255, 255, 0.95));
+  background: color-mix(in srgb, var(--node-color) 7%, var(--graph-node));
   color: var(--graph-text);
-  box-shadow: 0 9px 22px rgba(24, 34, 49, 0.07);
-  font-size: 0.78rem;
+  box-shadow: 0 8px 20px rgba(24, 34, 49, 0.06);
+  font-size: 0.82rem;
   font-weight: 760;
   line-height: 1.15;
   text-align: center;
@@ -315,16 +646,16 @@ watch(
 
 .preview-node:hover,
 .preview-node.is-active {
-  border-color: color-mix(in srgb, var(--node-color) 72%, #e7e2da);
-  background: color-mix(in srgb, var(--node-color) 13%, rgba(255, 255, 255, 0.98));
-  box-shadow: 0 12px 28px rgba(24, 34, 49, 0.12);
+  border-color: color-mix(in srgb, var(--node-color) 72%, var(--graph-node-border));
+  background: color-mix(in srgb, var(--node-color) 13%, var(--graph-node));
+  box-shadow: 0 10px 24px rgba(24, 34, 49, 0.12);
 }
 
 .preview-node--root {
   grid-template-columns: 1fr;
   gap: 0.48rem;
-  width: 8.1rem;
-  height: 8.1rem;
+  width: 8.25rem;
+  height: 8.25rem;
   min-width: 0;
   min-height: 0;
   border-color: #26323f;
@@ -333,6 +664,9 @@ watch(
     radial-gradient(circle at 38% 26%, rgba(255, 255, 255, 0.1), transparent 28%),
     linear-gradient(145deg, #1a2432, #0f1722 76%);
   color: #fff;
+  box-shadow: 0 16px 34px rgba(20, 30, 45, 0.18);
+  font-size: 0.78rem;
+  line-height: 1.36;
 }
 
 .preview-node--root:hover,
@@ -343,13 +677,20 @@ watch(
 }
 
 .preview-node--branch {
-  min-width: 5.55rem;
+  width: 8.8rem;
+  min-width: 8.8rem;
+  min-height: 2.58rem;
+  max-width: 8.8rem;
   font-size: 0.86rem;
   font-weight: 820;
 }
 
 .preview-node--leaf {
-  background: color-mix(in srgb, var(--node-color) 5%, rgba(255, 255, 255, 0.88));
+  background: color-mix(in srgb, var(--node-color) 5%, var(--graph-node-soft));
+  min-height: 2.34rem;
+  width: 7.55rem;
+  min-width: 7.55rem;
+  max-width: 7.55rem;
   font-size: 0.74rem;
 }
 
@@ -375,7 +716,7 @@ watch(
   width: 1.42rem;
   height: 1.42rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--node-color) 12%, #fff);
+  background: color-mix(in srgb, var(--node-color) 12%, var(--graph-panel));
   color: var(--node-color);
 }
 
@@ -400,8 +741,27 @@ watch(
   max-width: 100%;
   overflow: hidden;
   text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.preview-node--branch .preview-node-title,
+.preview-node--leaf .preview-node-title {
+  display: -webkit-box;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.preview-node--branch .preview-node-title {
+  max-width: 6.6rem;
+}
+
+.preview-node--leaf .preview-node-title {
+  max-width: 5.45rem;
 }
 
 .preview-node--root .preview-node-title {
@@ -414,19 +774,51 @@ watch(
 }
 
 .graph-detail {
-  align-self: stretch;
+  position: absolute;
+  top: 50%;
+  right: 1.25rem;
+  z-index: 4;
+  box-sizing: border-box;
+  width: min(20.5rem, 28vw);
+  max-height: min(31rem, calc(100% - 3rem));
   overflow: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid color-mix(in srgb, var(--graph-line) 68%, transparent);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 1rem;
-  box-shadow: 0 16px 38px rgba(24, 34, 49, 0.08);
+  background: color-mix(in srgb, var(--graph-panel) 94%, transparent);
+  padding: 1.22rem;
+  box-shadow: 0 22px 50px rgba(24, 34, 49, 0.14);
+  transform: translateY(-50%);
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.72rem;
+  margin-bottom: 0.72rem;
 }
 
 .detail-kicker {
   color: var(--graph-muted);
   font-size: 0.72rem;
   font-weight: 760;
+}
+
+.detail-close {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--graph-text);
+}
+
+.detail-close svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .graph-detail h3 {
@@ -444,13 +836,19 @@ watch(
   line-height: 1.75;
 }
 
+:global(.dark) .graph-detail p,
+:global(.color-scheme-dark) .graph-detail p,
+:global([data-color-scheme="dark"]) .graph-detail p {
+  color: var(--graph-muted);
+}
+
 .detail-source {
   margin-top: 0.8rem;
   border-left: 3px solid #2d9b8a;
   border-radius: 8px;
-  background: #f8fafc;
+  background: color-mix(in srgb, var(--tone-background) 8%, var(--graph-panel));
   padding: 0.62rem 0.72rem;
-  color: #475569;
+  color: var(--graph-muted);
   font-size: 0.78rem;
   line-height: 1.62;
 }
@@ -466,7 +864,7 @@ watch(
 .detail-items li {
   position: relative;
   padding-left: 0.84rem;
-  color: #334155;
+  color: var(--graph-text);
   font-size: 0.8rem;
   line-height: 1.56;
 }
@@ -483,33 +881,87 @@ watch(
 }
 
 @media (max-width: 960px) {
-  .graph-preview {
-    grid-template-columns: 1fr;
+  .graph-stage {
+    aspect-ratio: 9 / 14;
+    min-height: clamp(34rem, 138vw, 44rem);
   }
 
-  .graph-stage {
-    min-height: 34rem;
+  .graph-detail {
+    position: absolute;
+    inset: auto 1rem 1rem 1rem;
+    width: auto;
+    max-height: 24rem;
+    transform: none;
   }
 }
 
 @media (max-width: 680px) {
   .preview-node {
-    min-width: 4.85rem;
-    max-width: 6.6rem;
-    gap: 0.3rem;
-    padding-inline: 0.42rem;
-    font-size: 0.7rem;
+    width: 5.75rem;
+    min-width: 5.75rem;
+    max-width: 5.75rem;
+    min-height: 2.08rem;
+    gap: 0.28rem;
+    padding: 0.26rem 0.38rem;
+    font-size: 0.68rem;
+    line-height: 1.12;
   }
 
   .preview-node-icon {
-    width: 1.28rem;
-    height: 1.28rem;
+    width: 1.16rem;
+    height: 1.16rem;
+  }
+
+  .preview-node-icon svg {
+    width: 0.74rem;
+    height: 0.74rem;
+  }
+
+  .preview-node-title {
+    display: -webkit-box;
+    max-width: 3.9rem;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .preview-node--root {
-    width: 6.4rem;
-    height: 6.4rem;
-    font-size: 0.68rem;
+    width: 5.7rem;
+    height: 5.7rem;
+    padding: 0.5rem;
+    font-size: 0.62rem;
   }
+
+  .preview-node--root .preview-node-icon {
+    width: 1.36rem;
+    height: 1.36rem;
+  }
+
+  .preview-node--root .preview-node-icon svg {
+    width: 1.08rem;
+    height: 1.08rem;
+  }
+
+  .preview-node--root .preview-node-title {
+    max-width: 4.6rem;
+    -webkit-line-clamp: 3;
+  }
+
+  .preview-node--branch {
+    width: 5.9rem;
+    min-width: 5.9rem;
+    max-width: 5.9rem;
+    font-size: 0.72rem;
+  }
+
+  .preview-node--leaf {
+    width: 5.45rem;
+    min-width: 5.45rem;
+    max-width: 5.45rem;
+    font-size: 0.66rem;
+  }
+
 }
 </style>

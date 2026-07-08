@@ -4,8 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.handsome.summary.reading.extension.ArticleReading;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -14,27 +19,15 @@ import org.springframework.util.StringUtils;
 @Component
 public class ArticleReadingJsonParser {
 
-    public static final int SCHEMA_VERSION = 4;
+    public static final int SCHEMA_VERSION = 5;
 
+    private static final int MIN_TL_COUNT = 3;
+    private static final int MAX_TL_COUNT = 6;
+    private static final int MAX_DL_PER_TL = 4;
     private static final int MAX_TITLE_LENGTH = 40;
     private static final int MAX_SUMMARY_LENGTH = 320;
     private static final int MAX_ANCHOR_LENGTH = 100;
     private static final int MAX_ITEM_LENGTH = 120;
-
-    private static final List<NodeTemplate> NODE_TEMPLATES = List.of(
-        new NodeTemplate("tl-background", "背景", "tl", "root"),
-        new NodeTemplate("dl-problem-source", "问题来源", "dl", "tl-background"),
-        new NodeTemplate("dl-current-status", "现状", "dl", "tl-background"),
-        new NodeTemplate("tl-core", "核心观点", "tl", "root"),
-        new NodeTemplate("dl-key-judgment", "关键判断", "dl", "tl-core"),
-        new NodeTemplate("dl-author-claim", "作者主张", "dl", "tl-core"),
-        new NodeTemplate("tl-argument", "论据", "tl", "root"),
-        new NodeTemplate("dl-data-fact", "数据或事实", "dl", "tl-argument"),
-        new NodeTemplate("dl-case", "案例一", "dl", "tl-argument"),
-        new NodeTemplate("tl-conclusion", "结论", "tl", "root"),
-        new NodeTemplate("dl-advice", "建议", "dl", "tl-conclusion"),
-        new NodeTemplate("dl-follow-up", "延伸问题", "dl", "tl-conclusion")
-    );
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -43,8 +36,7 @@ public class ArticleReadingJsonParser {
             var root = objectMapper.readTree(extractJson(aiResponse));
             return sanitize(root, title, content);
         } catch (Exception e) {
-            log.warn("洞察图谱解析失败，将使用本地结构 fallback: {}",
-                e.getMessage());
+            log.warn("洞察图谱解析失败，将使用本地结构 fallback: {}", e.getMessage());
             return fallback(title, content);
         }
     }
@@ -53,17 +45,27 @@ public class ArticleReadingJsonParser {
         var spec = new ArticleReading.Spec();
         spec.setSchemaVersion(SCHEMA_VERSION);
         spec.setRoot(rootNode(title, content));
-        spec.setNodes(completeNodes(List.of(), title, content));
-        spec.setEdges(defaultEdges());
+        var branches = fallbackBranches(content);
+        spec.setNodes(flattenNodes(branches));
+        spec.setEdges(buildEdges(spec.getRoot().getId(), branches));
         return spec;
     }
 
     private ArticleReading.Spec sanitize(JsonNode graphNode, String title, String content) {
+        var root = readRoot(graphNode.path("root"), title, content);
+        var rawNodes = readRawNodes(graphNode.path("nodes"));
+        var rawEdges = readRawEdges(graphNode.path("edges"));
+        var branches = buildBranches(rawNodes, rawEdges, content);
+        if (branches.size() < MIN_TL_COUNT) {
+            log.warn("洞察图谱节点不足，将使用本地结构 fallback，TL 节点数: {}", branches.size());
+            return fallback(title, content);
+        }
+
         var spec = new ArticleReading.Spec();
         spec.setSchemaVersion(SCHEMA_VERSION);
-        spec.setRoot(readRoot(graphNode.path("root"), title, content));
-        spec.setNodes(completeNodes(readNodes(graphNode.path("nodes")), title, content));
-        spec.setEdges(defaultEdges());
+        spec.setRoot(root);
+        spec.setNodes(flattenNodes(branches));
+        spec.setEdges(buildEdges(root.getId(), branches));
         return spec;
     }
 
@@ -77,6 +79,7 @@ public class ArticleReadingJsonParser {
         if (!StringUtils.hasText(root.getSummary())) {
             root.setSummary(buildOverviewSummary(title, content));
         }
+        root.setPayload(payload());
         return root;
     }
 
@@ -85,20 +88,32 @@ public class ArticleReadingJsonParser {
             buildOverviewSummary(title, content), null, payload());
     }
 
-    private List<ArticleReading.InsightNode> readNodes(JsonNode node) {
-        var nodes = new ArrayList<ArticleReading.InsightNode>();
+    private List<RawNode> readRawNodes(JsonNode node) {
+        var nodes = new ArrayList<RawNode>();
         if (!node.isArray()) {
             return nodes;
         }
+
+        var seenIds = new HashSet<String>();
+        var order = 0;
         for (JsonNode item : node) {
-            var insightNode = readNode(item, null, null, null);
-            if (StringUtils.hasText(insightNode.getId())
-                && !"root".equals(insightNode.getKind())
-                && !isActionOrLegacyGroup(insightNode)) {
-                nodes.add(insightNode);
+            var rawKind = defaultString(item.path("kind").asText("")).toLowerCase();
+            if (isIgnoredKind(rawKind)) {
+                continue;
             }
+            var insightNode = readNode(item, null, rawKind, null);
+            if (!StringUtils.hasText(insightNode.getId())) {
+                insightNode.setId("node-" + (++order));
+            }
+            if (!StringUtils.hasText(insightNode.getTitle()) || isActionOrLegacyGroup(insightNode)) {
+                continue;
+            }
+            if (!seenIds.add(insightNode.getId())) {
+                continue;
+            }
+            nodes.add(new RawNode(insightNode.getId(), insightNode, order++));
         }
-        return dedupeNodes(nodes);
+        return nodes;
     }
 
     private ArticleReading.InsightNode readNode(JsonNode node, String idFallback,
@@ -107,119 +122,220 @@ public class ArticleReadingJsonParser {
         insightNode.setId(clean(nonBlank(node.path("id").asText(""), idFallback), 64));
         insightNode.setTitle(clean(nonBlank(node.path("title").asText(""), titleFallback),
             MAX_TITLE_LENGTH));
-        insightNode.setKind(normalizeKind(nonBlank(node.path("kind").asText(""), kindFallback)));
+        insightNode.setKind(normalizeKind(nonBlank(node.path("kind").asText(""), kindFallback),
+            insightNode.getId()));
         insightNode.setSummary(clean(node.path("summary").asText(""), MAX_SUMMARY_LENGTH));
         insightNode.setSourceRange(readSourceRange(node.path("sourceRange")));
         insightNode.setPayload(readPayload(node.path("payload")));
         return insightNode;
     }
 
-    private List<ArticleReading.InsightNode> completeNodes(List<ArticleReading.InsightNode> input,
-        String title, String content) {
-        var paragraphs = paragraphs(content);
-        var points = fallbackPoints(paragraphs);
-        var result = new ArrayList<ArticleReading.InsightNode>();
-        for (var template : NODE_TEMPLATES) {
-            var existing = findMatchingNode(input, template);
-            var fallback = fallbackNode(template, title, content, paragraphs, points);
-            if (existing == null) {
-                result.add(fallback);
+    private List<RawEdge> readRawEdges(JsonNode node) {
+        var edges = new ArrayList<RawEdge>();
+        if (!node.isArray()) {
+            return edges;
+        }
+        var seen = new HashSet<String>();
+        for (JsonNode item : node) {
+            var from = clean(item.path("from").asText(""), 64);
+            var to = clean(item.path("to").asText(""), 64);
+            if (!StringUtils.hasText(from) || !StringUtils.hasText(to) || from.equals(to)) {
                 continue;
             }
-            existing.setId(template.id());
-            existing.setTitle(template.title());
-            existing.setKind(template.kind());
-            if (!StringUtils.hasText(existing.getSummary())) {
-                existing.setSummary(fallback.getSummary());
+            var type = normalizeEdgeType(item.path("type").asText(""));
+            var key = from + "->" + to;
+            if (seen.add(key)) {
+                edges.add(new RawEdge(from, to, type));
             }
-            if (existing.getSourceRange() == null) {
-                existing.setSourceRange(fallback.getSourceRange());
-            }
-            if (!hasPayloadContent(existing.getPayload())) {
-                existing.setPayload(fallback.getPayload());
-            }
-            result.add(existing);
         }
-        return result;
+        return edges;
     }
 
-    private ArticleReading.InsightNode findMatchingNode(List<ArticleReading.InsightNode> nodes,
-        NodeTemplate template) {
-        return nodes.stream()
-            .filter(node -> template.id().equals(node.getId())
-                || template.title().equals(node.getTitle())
-                || isLegacyEquivalent(node, template))
-            .findFirst()
-            .orElse(null);
+    private List<BranchDraft> buildBranches(List<RawNode> rawNodes, List<RawEdge> rawEdges,
+        String content) {
+        var rawTlNodes = rawNodes.stream()
+            .filter(rawNode -> "tl".equals(rawNode.node().getKind()))
+            .limit(MAX_TL_COUNT)
+            .toList();
+        if (rawTlNodes.size() < MIN_TL_COUNT) {
+            return List.of();
+        }
+
+        var rawDlNodes = rawNodes.stream()
+            .filter(rawNode -> "dl".equals(rawNode.node().getKind()))
+            .toList();
+        var rawById = new HashMap<String, RawNode>();
+        rawNodes.forEach(rawNode -> rawById.put(rawNode.originalId(), rawNode));
+
+        var parentByChild = parentByChild(rawEdges, rawById);
+        var drafts = new ArrayList<RawBranchDraft>();
+        var assignedDlIds = new HashSet<String>();
+        for (int index = 0; index < rawTlNodes.size(); index++) {
+            var tl = rawTlNodes.get(index);
+            var nextTlOrder = index + 1 < rawTlNodes.size()
+                ? rawTlNodes.get(index + 1).order()
+                : Integer.MAX_VALUE;
+            var children = new ArrayList<RawNode>();
+
+            rawDlNodes.stream()
+                .filter(dl -> tl.originalId().equals(parentByChild.get(dl.originalId())))
+                .forEach(children::add);
+            rawDlNodes.stream()
+                .filter(dl -> !parentByChild.containsKey(dl.originalId()))
+                .filter(dl -> dl.order() > tl.order() && dl.order() < nextTlOrder)
+                .forEach(children::add);
+
+            var branchChildren = new ArrayList<>(children.stream()
+                .sorted(Comparator.comparingInt(RawNode::order))
+                .filter(child -> !assignedDlIds.contains(child.originalId()))
+                .limit(MAX_DL_PER_TL)
+                .toList());
+            branchChildren.forEach(child -> assignedDlIds.add(child.originalId()));
+            drafts.add(new RawBranchDraft(tl, orderedUniqueChildren(branchChildren)));
+        }
+
+        attachUnassignedChildren(rawDlNodes, drafts, assignedDlIds);
+        return normalizeBranches(drafts, content);
     }
 
-    private boolean isLegacyEquivalent(ArticleReading.InsightNode node, NodeTemplate template) {
-        var id = defaultString(node.getId());
-        var title = defaultString(node.getTitle());
-        return switch (template.id()) {
-            case "tl-background" -> id.equals("tl-background") || title.equals("背景");
-            case "tl-core" -> id.equals("tl-core") || title.equals("核心观点");
-            case "tl-argument" -> id.equals("tl-argument") || title.equals("论据");
-            case "tl-conclusion" -> id.equals("tl-conclusion") || title.equals("结论");
-            case "dl-data-fact" -> id.equals("dl-evidence") || title.equals("原文证据");
-            case "dl-case" -> id.equals("tl-case") || title.equals("案例");
-            case "dl-advice" -> id.equals("dl-actions") || title.equals("行动清单");
-            case "dl-follow-up" -> id.equals("dl-questions") || title.equals("可追问问题");
-            default -> false;
-        };
+    private Map<String, String> parentByChild(List<RawEdge> rawEdges, Map<String, RawNode> rawById) {
+        var parentByChild = new LinkedHashMap<String, String>();
+        for (var edge : rawEdges) {
+            var parent = rawById.get(edge.from());
+            var child = rawById.get(edge.to());
+            if (parent == null || child == null) {
+                continue;
+            }
+            if ("tl".equals(parent.node().getKind()) && "dl".equals(child.node().getKind())) {
+                parentByChild.putIfAbsent(child.originalId(), parent.originalId());
+            }
+        }
+        return parentByChild;
     }
 
-    private ArticleReading.InsightNode fallbackNode(NodeTemplate template, String title,
-        String content, List<String> paragraphs, List<String> points) {
-        var first = paragraphAt(paragraphs, 0);
-        var second = paragraphAt(paragraphs, 1);
-        var third = paragraphAt(paragraphs, 2);
-        var fourth = paragraphAt(paragraphs, 3);
-        var last = paragraphs.isEmpty() ? "" : paragraphs.getLast();
-        var lastIndex = Math.max(1, paragraphs.size());
-
-        return switch (template.id()) {
-            case "tl-background" -> node(template, "文章先交代问题来源和当前状态。",
-                range(1, 2, first), payloadItems(points));
-            case "dl-problem-source" -> node(template,
-                nonBlank(first, "从开头段落提取文章讨论的问题来源。"), range(1, 1, first),
-                payload());
-            case "dl-current-status" -> node(template,
-                nonBlank(second, "概括问题当前的状态、影响或争议。"), range(2, 2, second),
-                payload());
-            case "tl-core" -> node(template,
-                nonBlank(firstSentence(content), "文章围绕核心观点展开判断。"), range(1, 3, second),
-                payload());
-            case "dl-key-judgment" -> node(template,
-                nonBlank(firstSentence(content), "提炼文章中最关键的判断。"), range(1, 1, first),
-                payload());
-            case "dl-author-claim" -> node(template,
-                nonBlank(second, "概括作者最希望读者接受的主张。"), range(2, 2, second),
-                payload());
-            case "tl-argument" -> node(template, "文章通过事实、数据或案例支撑核心观点。",
-                range(3, 4, third), payloadItems(points));
-            case "dl-data-fact" -> node(template,
-                nonBlank(third, "提取文中可作为证据的数据、事实或关键句。"), range(3, 3, third),
-                payload());
-            case "dl-case" -> node(template,
-                nonBlank(fourth, "提取文中用于说明观点的案例或现象。"), range(4, 4, fourth),
-                payload());
-            case "tl-conclusion" -> node(template,
-                nonBlank(last, "回到文章结尾，理解作者最终想表达的结论。"),
-                range(lastIndex, lastIndex, last), payload());
-            case "dl-advice" -> node(template, "结合原文结论形成可执行建议。",
-                range(lastIndex, lastIndex, last),
-                payloadItems(List.of("核对原文关键句", "记录可执行建议", "继续追问不清楚的部分")));
-            case "dl-follow-up" -> node(template, "可以继续追问结论、证据、概念和下一步行动。",
-                range(lastIndex, lastIndex, last),
-                payloadItems(List.of("这部分的关键结论是什么？", "有哪些原文证据支撑？", "下一步可以怎么做？")));
-            default -> node(template, buildOverviewSummary(title, content), null, payload());
-        };
+    private List<RawNode> orderedUniqueChildren(List<RawNode> children) {
+        var unique = new LinkedHashMap<String, RawNode>();
+        children.stream()
+            .sorted(Comparator.comparingInt(RawNode::order))
+            .forEach(child -> {
+                if (unique.size() < MAX_DL_PER_TL) {
+                    unique.putIfAbsent(child.originalId(), child);
+                }
+            });
+        return new ArrayList<>(unique.values());
     }
 
-    private ArticleReading.InsightNode node(NodeTemplate template, String summary,
-        ArticleReading.SourceRange range, ArticleReading.InsightPayload payload) {
-        return node(template.id(), template.title(), template.kind(), summary, range, payload);
+    private void attachUnassignedChildren(List<RawNode> rawDlNodes, List<RawBranchDraft> drafts,
+        Set<String> assignedDlIds) {
+        for (var child : rawDlNodes) {
+            if (assignedDlIds.contains(child.originalId())) {
+                continue;
+            }
+            var target = drafts.stream()
+                .filter(draft -> draft.children().size() < MAX_DL_PER_TL)
+                .filter(draft -> child.order() > draft.tl().order())
+                .reduce((previous, current) -> current)
+                .orElseGet(() -> drafts.stream()
+                    .filter(draft -> draft.children().size() < MAX_DL_PER_TL)
+                    .findFirst()
+                    .orElse(null));
+            if (target != null) {
+                target.children().add(child);
+                assignedDlIds.add(child.originalId());
+            }
+        }
+    }
+
+    private List<BranchDraft> normalizeBranches(List<RawBranchDraft> drafts, String content) {
+        var branches = new ArrayList<BranchDraft>();
+        for (int branchIndex = 0; branchIndex < drafts.size(); branchIndex++) {
+            var rawBranch = drafts.get(branchIndex);
+            var tl = normalizeFinalNode(rawBranch.tl().node(), "tl-" + (branchIndex + 1),
+                "tl", "主题 " + (branchIndex + 1), content, branchIndex);
+            var children = new ArrayList<ArticleReading.InsightNode>();
+            for (int childIndex = 0; childIndex < rawBranch.children().size()
+                && childIndex < MAX_DL_PER_TL; childIndex++) {
+                var child = normalizeFinalNode(rawBranch.children().get(childIndex).node(),
+                    "dl-" + (branchIndex + 1) + "-" + (childIndex + 1), "dl",
+                    "细节 " + (childIndex + 1), content, branchIndex + childIndex + 1);
+                children.add(child);
+            }
+            if (children.isEmpty()) {
+                children.add(defaultDetailNode(branchIndex, 0, tl.getTitle(), content));
+            }
+            branches.add(new BranchDraft(tl, children));
+        }
+        return branches;
+    }
+
+    private ArticleReading.InsightNode normalizeFinalNode(ArticleReading.InsightNode input,
+        String id, String kind, String titleFallback, String content, int paragraphIndex) {
+        var title = clean(nonBlank(input.getTitle(), titleFallback), MAX_TITLE_LENGTH);
+        var summary = clean(input.getSummary(), MAX_SUMMARY_LENGTH);
+        if (!StringUtils.hasText(summary)) {
+            summary = fallbackSummary(title, content, paragraphIndex);
+        }
+        var range = input.getSourceRange();
+        if (range == null) {
+            range = rangeForParagraph(content, paragraphIndex);
+        }
+        var payload = hasPayloadContent(input.getPayload()) ? input.getPayload() : payload();
+        return node(id, title, kind, summary, range, payload);
+    }
+
+    private List<BranchDraft> fallbackBranches(String content) {
+        var branches = new ArrayList<BranchDraft>();
+        branches.add(branch(0, "内容脉络", "梳理文章从哪里开始、先交代了什么。",
+            List.of("开篇信息", "上下文"), content));
+        branches.add(branch(1, "主要信息", "提取文章主体中最值得先理解的内容。",
+            List.of("关键内容", "重要细节"), content));
+        branches.add(branch(2, "阅读焦点", "把原文中支撑理解的事实、例子或概念集中起来。",
+            List.of("原文依据", "概念补充"), content));
+        branches.add(branch(3, "后续思考", "整理读者读完后可以继续追问或行动的方向。",
+            List.of("可行动作", "可追问问题"), content));
+        return branches;
+    }
+
+    private BranchDraft branch(int index, String title, String summary, List<String> childTitles,
+        String content) {
+        var tl = node("tl-" + (index + 1), title, "tl", summary,
+            rangeForParagraph(content, index), payloadItems(fallbackPoints(paragraphs(content))));
+        var children = new ArrayList<ArticleReading.InsightNode>();
+        for (int childIndex = 0; childIndex < childTitles.size(); childIndex++) {
+            children.add(defaultDetailNode(index, childIndex, childTitles.get(childIndex), content));
+        }
+        return new BranchDraft(tl, children);
+    }
+
+    private ArticleReading.InsightNode defaultDetailNode(int branchIndex, int childIndex,
+        String title, String content) {
+        var paragraphIndex = branchIndex + childIndex;
+        var items = title.contains("追问")
+            ? List.of("这一部分和全文主旨是什么关系？", "有哪些原文句子最能支撑它？", "还能从哪个角度继续读？")
+            : List.<String>of();
+        return node("dl-" + (branchIndex + 1) + "-" + (childIndex + 1), title, "dl",
+            fallbackSummary(title, content, paragraphIndex), rangeForParagraph(content, paragraphIndex),
+            payloadItems(items));
+    }
+
+    private List<ArticleReading.InsightNode> flattenNodes(List<BranchDraft> branches) {
+        var nodes = new ArrayList<ArticleReading.InsightNode>();
+        for (var branch : branches) {
+            nodes.add(branch.tl());
+            nodes.addAll(branch.children());
+        }
+        return nodes;
+    }
+
+    private List<ArticleReading.InsightEdge> buildEdges(String rootId, List<BranchDraft> branches) {
+        var edges = new ArrayList<ArticleReading.InsightEdge>();
+        for (var branch : branches) {
+            edges.add(edge(rootId, branch.tl().getId(), "contains"));
+            for (var child : branch.children()) {
+                edges.add(edge(branch.tl().getId(), child.getId(), edgeTypeFor(child)));
+            }
+        }
+        return edges;
     }
 
     private ArticleReading.InsightNode node(String id, String title, String kind, String summary,
@@ -254,6 +370,11 @@ public class ArticleReadingJsonParser {
         range.setEndParagraph(Math.max(start, end));
         range.setAnchor(clean(anchor, MAX_ANCHOR_LENGTH));
         return range;
+    }
+
+    private ArticleReading.SourceRange rangeForParagraph(String content, int paragraphIndex) {
+        var paragraph = paragraphAt(paragraphs(content), Math.max(0, paragraphIndex));
+        return range(Math.max(1, paragraphIndex + 1), Math.max(1, paragraphIndex + 1), paragraph);
     }
 
     private ArticleReading.InsightPayload readPayload(JsonNode node) {
@@ -343,36 +464,23 @@ public class ArticleReadingJsonParser {
             && !payload.getItems().isEmpty();
     }
 
-    private List<ArticleReading.InsightEdge> defaultEdges() {
-        var edges = new ArrayList<ArticleReading.InsightEdge>();
-        for (var template : NODE_TEMPLATES) {
-            edges.add(edge(template.parentId(), template.id(), "contains"));
-        }
-        return edges;
-    }
-
     private ArticleReading.InsightEdge edge(String from, String to, String type) {
         var edge = new ArticleReading.InsightEdge();
         edge.setFrom(from);
         edge.setTo(to);
-        edge.setType(type);
+        edge.setType(normalizeEdgeType(type));
         return edge;
     }
 
-    private List<ArticleReading.InsightNode> dedupeNodes(List<ArticleReading.InsightNode> nodes) {
-        var unique = new LinkedHashMap<String, ArticleReading.InsightNode>();
-        for (var node : nodes) {
-            if (StringUtils.hasText(node.getId())) {
-                unique.putIfAbsent(node.getId(), node);
-            }
-        }
-        return new ArrayList<>(unique.values());
+    private boolean isIgnoredKind(String kind) {
+        return "root".equals(kind) || "overview".equals(kind) || "action".equals(kind);
     }
 
     private boolean isActionOrLegacyGroup(ArticleReading.InsightNode node) {
         var id = defaultString(node.getId());
         var title = defaultString(node.getTitle());
         return "action".equals(node.getKind())
+            || "overview".equals(node.getKind())
             || id.equals("overview-30s")
             || id.equals("overview-conclusion")
             || id.equals("overview-keypoints")
@@ -392,12 +500,42 @@ public class ArticleReadingJsonParser {
             || title.equals("点赞反馈");
     }
 
-    private String normalizeKind(String value) {
+    private String normalizeKind(String value, String id) {
         var normalized = defaultString(value).toLowerCase();
-        return switch (normalized) {
-            case "root", "overview", "tl", "dl" -> normalized;
-            default -> "dl";
+        if ("root".equals(normalized)) {
+            return "root";
+        }
+        if ("tl".equals(normalized) || defaultString(id).startsWith("tl-")) {
+            return "tl";
+        }
+        return "dl";
+    }
+
+    private String normalizeEdgeType(String value) {
+        return switch (defaultString(value).toLowerCase()) {
+            case "contains", "expands", "supports", "explains" -> value.toLowerCase();
+            default -> "contains";
         };
+    }
+
+    private String edgeTypeFor(ArticleReading.InsightNode node) {
+        var title = defaultString(node.getTitle());
+        if (title.contains("证据") || title.contains("依据") || title.contains("事实")
+            || title.contains("数据")) {
+            return "supports";
+        }
+        if (title.contains("解释") || title.contains("概念") || title.contains("术语")) {
+            return "explains";
+        }
+        return "expands";
+    }
+
+    private String fallbackSummary(String title, String content, int paragraphIndex) {
+        var paragraph = paragraphAt(paragraphs(content), Math.max(0, paragraphIndex));
+        if (StringUtils.hasText(paragraph)) {
+            return clean("围绕「" + title + "」整理：" + paragraph, MAX_SUMMARY_LENGTH);
+        }
+        return clean("围绕「" + title + "」整理原文中的相关信息。", MAX_SUMMARY_LENGTH);
     }
 
     private String buildOverviewSummary(String title, String content) {
@@ -492,6 +630,16 @@ public class ArticleReadingJsonParser {
         return value == null ? "" : value;
     }
 
-    private record NodeTemplate(String id, String title, String kind, String parentId) {
+    private record RawNode(String originalId, ArticleReading.InsightNode node, int order) {
+    }
+
+    private record RawEdge(String from, String to, String type) {
+    }
+
+    private record RawBranchDraft(RawNode tl, List<RawNode> children) {
+    }
+
+    private record BranchDraft(ArticleReading.InsightNode tl,
+                               List<ArticleReading.InsightNode> children) {
     }
 }

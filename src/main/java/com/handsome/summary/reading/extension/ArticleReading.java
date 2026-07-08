@@ -40,7 +40,7 @@ public class ArticleReading extends AbstractExtension {
         private String contentHash;
 
         @Schema(description = "Insight graph schema version")
-        private Integer schemaVersion = 4;
+        private Integer schemaVersion = 5;
 
         @Schema(description = "AI model metadata.name")
         private String modelName;
