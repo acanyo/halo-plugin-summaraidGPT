@@ -7,26 +7,20 @@ plugins {
 group 'com.handsome.summary'
 
 repositories {
-    maven {
-        url = uri('https://central.sonatype.com/repository/maven-snapshots/')
-        mavenContent {
-            snapshotsOnly()
-        }
-    }
     mavenCentral()
 }
 
 dependencies {
     implementation platform('run.halo.tools.platform:plugin:2.25.0')
     compileOnly 'run.halo.app:api'
-    compileOnly 'run.halo.aifoundation:api:1.0.0-SNAPSHOT'
+    compileOnly 'run.halo.aifoundation:api:1.0.0-beta.4'
     // Halo already provides Lucene; bundling it in the plugin breaks Lucene SPI under PF4J.
     compileOnly 'org.apache.lucene:lucene-core:10.3.2'
     compileOnly 'org.apache.lucene:lucene-analysis-common:10.3.2'
     compileOnly 'org.apache.lucene:lucene-queryparser:10.3.2'
     implementation 'org.jsoup:jsoup:1.22.1'
     testImplementation 'run.halo.app:api'
-    testImplementation 'run.halo.aifoundation:api:1.0.0-SNAPSHOT'
+    testImplementation 'run.halo.aifoundation:api:1.0.0-beta.4'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
