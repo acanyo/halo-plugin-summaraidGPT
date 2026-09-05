@@ -12,10 +12,10 @@ import org.apache.lucene.index.SegmentWriteState;
 public class SummaraidGptLuceneCodec extends FilterCodec {
 
     private static final int MAX_DIMENSIONS = 4096;
-    private static final String DEFAULT_CODEC_NAME = "Lucene103";
 
     public SummaraidGptLuceneCodec() {
-        this(Codec.forName(DEFAULT_CODEC_NAME));
+        // Halo supplies Lucene; named codecs from older versions may become read-only.
+        this(Codec.getDefault());
     }
 
     public SummaraidGptLuceneCodec(Codec delegate) {

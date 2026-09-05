@@ -1,6 +1,5 @@
 import {
   Chat,
-  DefaultChatTransport,
   pruneMessages,
   type ToolPart,
   type UIMessage,
@@ -12,6 +11,7 @@ import {
   type AgentAfterNavigationDisplayMode,
 } from './navigation-intent';
 import { AgentToolRuntime } from './runtime';
+import { AgentChatTransport } from './transport';
 import type { AgentRuntimeConfig } from './types';
 
 const SERVER_MANAGED_TOOL_NAMES = new Set([
@@ -180,7 +180,7 @@ export class AgentChatClient {
     this.chat = new Chat({
       id: 'summaraid-rag-agent',
       messages: options.historyMessages ?? [],
-      transport: new DefaultChatTransport({
+      transport: new AgentChatTransport({
         api: `${RAG_API_BASE}/ragAgentChat`,
         credentials: 'same-origin',
         body: {

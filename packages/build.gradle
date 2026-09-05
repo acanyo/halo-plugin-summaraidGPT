@@ -27,6 +27,17 @@ tasks.register('pnpmBuild', PnpmTask) {
     outputs.dir(layout.projectDirectory.dir('dist'))
 }
 
+tasks.register('pnpmCheck', PnpmTask) {
+    group = 'verification'
+    description = 'Run tests for the frontend packages'
+    args = ['test']
+    dependsOn tasks.named('pnpmInstall')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('pnpmCheck')
+}
+
 tasks.named('assemble') {
     dependsOn tasks.named('pnpmBuild')
 }

@@ -32,6 +32,9 @@ importers:
       vite:
         specifier: ^7.2.2
         version: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(sass-embedded@1.98.0)(sass@1.98.0)(terser@5.48.0)
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(sass-embedded@1.98.0)(sass@1.98.0)(terser@5.48.0)
 
   ui:
     dependencies:

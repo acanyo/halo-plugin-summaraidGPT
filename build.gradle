@@ -10,6 +10,9 @@ repositories {
     mavenCentral()
 }
 
+// Exercise newer Halo runtimes where older Lucene codecs are read-only.
+def luceneTestVersion = providers.gradleProperty('luceneTestVersion').getOrElse('10.5.0')
+
 dependencies {
     implementation platform('run.halo.tools.platform:plugin:2.25.0')
     compileOnly 'run.halo.app:api'
@@ -22,6 +25,10 @@ dependencies {
     testImplementation 'run.halo.app:api'
     testImplementation 'run.halo.aifoundation:api:1.0.0-beta.4'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation "org.apache.lucene:lucene-core:${luceneTestVersion}"
+    testImplementation "org.apache.lucene:lucene-analysis-common:${luceneTestVersion}"
+    testImplementation "org.apache.lucene:lucene-queryparser:${luceneTestVersion}"
+    testRuntimeOnly "org.apache.lucene:lucene-backward-codecs:${luceneTestVersion}"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
