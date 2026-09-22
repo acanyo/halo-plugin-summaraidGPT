@@ -134,6 +134,7 @@ public interface SettingConfigGetter {
         private Boolean enable = true;
         private Boolean enableUiInjection = true;
         private Boolean autoGenerate = true;
+        private Boolean defaultCollapsed = false;
     }
 
     @Data

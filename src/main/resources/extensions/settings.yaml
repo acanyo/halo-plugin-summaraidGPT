@@ -724,6 +724,13 @@ spec:
           key: articleReadingAutoGenerate
           value: true
           help: "开启后访问文章页时会在后台生成洞察图谱；关闭后只通过控制台手动图谱生成。"
+        - $formkit: switch
+          label: 文章页默认折叠
+          name: defaultCollapsed
+          id: articleReadingDefaultCollapsed
+          key: articleReadingDefaultCollapsed
+          value: false
+          help: "开启后文章页的洞察图谱默认收起，读者点击标题栏再展开，避免占用正文阅读空间。"
 
     - group: style
       label: 摘要框样式设置

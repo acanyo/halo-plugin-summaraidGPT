@@ -767,6 +767,8 @@ $2`).replace(/(^|\n)(#{1,6})(?=[^\s#])/g,"$1$2 ").replace(/([:：])-(?=(?:\*\*|�
     display: flex;
     flex-direction: column;
     min-height: 0;
+    /* 网格项默认 min-width: auto，代码块的 min-content 宽度会把内容撑出面板并被裁掉 */
+    min-width: 0;
   }
 
   .pet-panel-thread {

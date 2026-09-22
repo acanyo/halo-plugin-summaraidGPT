@@ -51,7 +51,10 @@ export async function askArticleReading(question: string, context: string): Prom
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    const error = (await response.json().catch(() => undefined)) as ErrorResponse | undefined;
+    throw new Error(
+      error?.detail || error?.message || `HTTP ${response.status}: ${response.statusText}`,
+    );
   }
 
   const data = (await response.json()) as ConversationResponse;
