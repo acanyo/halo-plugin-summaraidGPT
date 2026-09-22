@@ -54,6 +54,9 @@ export class ArticleReadingWidget extends LitElement {
   @property({ type: String, attribute: 'dark-selector' })
   darkSelector = '';
 
+  @property({ type: Boolean, attribute: 'default-collapsed' })
+  defaultCollapsed = false;
+
   @state()
   private reading?: ArticleReadingSpec;
 
@@ -97,6 +100,7 @@ export class ArticleReadingWidget extends LitElement {
   private colorSchemeQuery?: MediaQueryList;
   private compactViewportQuery?: MediaQueryList;
   private visitorId = '';
+  private collapseTouched = false;
   private initialized = false;
   private pollTimer?: number;
   private pollAttempts = 0;
@@ -111,6 +115,7 @@ export class ArticleReadingWidget extends LitElement {
   }
 
   protected firstUpdated(): void {
+    this.collapsed = this.defaultCollapsed;
     void this.loadReading();
     this.initialized = true;
   }
@@ -126,6 +131,11 @@ export class ArticleReadingWidget extends LitElement {
     if (changedProperties.has('darkSelector')) {
       this.refreshThemeMode();
       this.bindThemeObservers();
+    }
+
+    // 读者手动展开或收起后，站点配置的默认折叠不再覆盖读者的选择
+    if (changedProperties.has('defaultCollapsed') && !this.collapseTouched) {
+      this.collapsed = this.defaultCollapsed;
     }
 
     if (!this.initialized) {
@@ -329,6 +339,7 @@ export class ArticleReadingWidget extends LitElement {
   }
 
   private toggleCollapsed = (): void => {
+    this.collapseTouched = true;
     this.collapsed = !this.collapsed;
     this.popoverOpen = false;
     this.questionOpen = false;

@@ -25,6 +25,7 @@ export interface SummaryWidgetConfig {
   themeName: string;
   theme: SummaryTheme | string;
   typewriter: boolean;
+  readingDefaultCollapsed: boolean;
 }
 
 export interface SummaryContentResponse {
@@ -60,6 +61,7 @@ export const DEFAULT_SUMMARY_CONFIG: SummaryWidgetConfig = {
   themeName: 'custom',
   theme: DEFAULT_SUMMARY_THEME,
   typewriter: true,
+  readingDefaultCollapsed: false,
 };
 
 export function parseTheme(theme: SummaryTheme | string | null | undefined): SummaryTheme {

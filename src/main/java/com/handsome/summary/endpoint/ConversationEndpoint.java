@@ -124,7 +124,8 @@ public class ConversationEndpoint implements CustomEndpoint {
         String fixedDensity,
         String themeName,
         String theme,
-        Boolean typewriter
+        Boolean typewriter,
+        Boolean readingDefaultCollapsed
     ) {}
 
     public record ApiResponse(boolean success, String message, String response, String aiService, Long timestamp) {
@@ -645,11 +646,13 @@ public class ConversationEndpoint implements CustomEndpoint {
     private Mono<ServerResponse> getSummaryConfig(ServerRequest request) {
         return Mono.zip(
             settingConfigGetter.getSummaryConfig(),
-            settingConfigGetter.getStyleConfig()
+            settingConfigGetter.getStyleConfig(),
+            settingConfigGetter.getArticleReadingConfig()
         ).map(tuple -> {
             var summaryConfig = tuple.getT1();
             var styleConfig = tuple.getT2();
-            
+            var articleReadingConfig = tuple.getT3();
+
             return new SummaryConfig(
                 styleConfig.getLogo() != null ? styleConfig.getLogo() : "icon.svg",
                 summaryConfig.getSummaryTitle() != null ? summaryConfig.getSummaryTitle() : "文章摘要",
@@ -661,7 +664,8 @@ public class ConversationEndpoint implements CustomEndpoint {
                 resolveFixedDensity(styleConfig),
                 resolveThemeName(styleConfig),
                 buildThemeString(styleConfig),
-                summaryConfig.getTypewriter() != null ? summaryConfig.getTypewriter() : true
+                summaryConfig.getTypewriter() != null ? summaryConfig.getTypewriter() : true,
+                Boolean.TRUE.equals(articleReadingConfig.getDefaultCollapsed())
             );
         })
         .flatMap(summaryConfig -> ServerResponse.ok()
@@ -681,7 +685,8 @@ public class ConversationEndpoint implements CustomEndpoint {
                 "compact",
                 "custom",
                 "{\"bg\":\"#f7f9fe\",\"main\":\"#4F8DFD\",\"contentFontSize\":\"16px\",\"title\":\"#3A5A8C\",\"content\":\"#222\",\"gptName\":\"#7B88A8\",\"contentBg\":\"#fff\",\"border\":\"#e3e8f7\",\"shadow\":\"0 2px 12px 0 rgba(60,80,180,0.08)\",\"tagBg\":\"#f0f4ff\",\"tagColor\":\"#4F8DFD\",\"cursor\":\"#4F8DFD\"}",
-                true
+                true,
+                false
             );
             return ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)

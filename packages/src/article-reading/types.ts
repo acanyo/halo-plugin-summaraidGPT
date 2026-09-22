@@ -54,4 +54,6 @@ export interface ConversationResponse {
 export interface ErrorResponse {
   success?: boolean;
   message?: string;
+  // Halo 的 problem+json 把服务端说明放在 detail 里，例如访问模式要求登录
+  detail?: string;
 }

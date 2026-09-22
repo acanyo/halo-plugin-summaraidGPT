@@ -14,7 +14,7 @@ rules:
     resources: ["articleReadings","articleReadingInteractions"]
     verbs: ["get", "list", "create"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
-    resources: ["ragSearch","ragAsk","ragAskStream","ragAgentChat"]
+    resources: ["ragSearch","ragAsk","ragAskStream","ragAgentChat","conversation"]
     verbs: ["create"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragConversations"]

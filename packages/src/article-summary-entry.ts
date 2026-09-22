@@ -72,6 +72,7 @@ function applyReadingConfig(
 ): void {
   element.postName = source.getAttribute('name') || '';
   element.darkSelector = config.darkSelector || '';
+  element.defaultCollapsed = config.readingDefaultCollapsed ?? false;
 }
 
 async function mountSummaryWidgets(

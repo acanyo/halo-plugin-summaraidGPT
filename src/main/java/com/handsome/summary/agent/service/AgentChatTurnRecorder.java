@@ -1,6 +1,7 @@
 package com.handsome.summary.agent.service;
 
 import com.handsome.summary.ai.AiFoundationCallLog;
+import com.handsome.summary.ai.ConditionalOnHaloAiFoundation;
 import com.handsome.summary.ai.model.AiCallLogRecord;
 import com.handsome.summary.ai.service.AiCallLogService;
 import com.handsome.summary.rag.model.RagSourceReference;
@@ -32,6 +33,7 @@ import run.halo.aifoundation.ui.UIMessageRole;
 
 @Slf4j
 @Component
+@ConditionalOnHaloAiFoundation
 @RequiredArgsConstructor
 public class AgentChatTurnRecorder {
 

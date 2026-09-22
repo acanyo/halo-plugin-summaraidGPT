@@ -22,7 +22,9 @@ spec:
   displayName: "智阅全能AI助手"
   description: "智阅全能AI助手是一款面向 Halo 的 AI 内容与站点助手，集摘要写作、润色改写、标题标签生成、RAG 知识库问答、站内检索与前台宠物助手于一体。"
   pluginDependencies:
-    ai-foundation?: "*"
+    # 必须保持必选依赖：PF4J 不会把可选依赖放进依赖图，写成 "ai-foundation?" 就没有启动顺序保证，
+    # 即使 AI 基座已经 STARTED，本插件也可能先启动而看不到 run.halo.aifoundation.* 的类。
+    ai-foundation: "*"
   license:
     - name: "GPL-3.0"
       url: "https://github.com/halo-dev/plugin-starter/blob/main/LICENSE"

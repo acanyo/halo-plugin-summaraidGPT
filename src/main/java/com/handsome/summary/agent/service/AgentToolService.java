@@ -6,6 +6,7 @@ import com.handsome.summary.agent.model.AgentToolApproval;
 import com.handsome.summary.agent.model.AgentToolAuth;
 import com.handsome.summary.agent.model.AgentToolSet;
 import com.handsome.summary.agent.model.NormalizedAgentTool;
+import com.handsome.summary.ai.ConditionalOnHaloAiFoundation;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,6 +17,7 @@ import run.halo.aifoundation.schema.JsonSchema;
 import run.halo.aifoundation.tool.ToolDefinition;
 
 @Component
+@ConditionalOnHaloAiFoundation
 @RequiredArgsConstructor
 public class AgentToolService {
     private static final String RESPONSE_FORMAT_PROMPT = "\n\n【回复格式】\n"
