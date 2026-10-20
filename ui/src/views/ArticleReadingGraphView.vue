@@ -1,373 +1,209 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import {
-  Toast,
-  VButton,
-  VCard,
-  VEmpty,
-  VLoading,
-  VPageHeader,
-  VPagination,
-} from '@halo-dev/components'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { utils } from '@halo-dev/ui-shared'
-import RiArticleLine from '~icons/ri/article-line'
-import RiBrainLine from '~icons/ri/brain-line'
-import RiCheckLine from '~icons/ri/check-line'
-import RiSearchLine from '~icons/ri/search-line'
+import { VLoading } from '@halo-dev/components'
+import WorkbenchIcon from '@/workbench/components/WorkbenchIcon.vue'
+import WorkbenchSectionHeader from '@/workbench/components/WorkbenchSectionHeader.vue'
 import InsightGraphPreview from '@/components/article-reading/InsightGraphPreview.vue'
-import {
-  ARTICLE_READING_GRAPH_SCHEMA_VERSION,
-  articleReadingApi,
-  type ArticleReading,
-  type ArticleReadingSpec,
-  type SelectablePost,
-} from '@/api/article-reading'
+import { useArticlePostList } from '@/components/article-reading/useArticlePostList'
+import { useArticleReading } from '@/components/article-reading/useArticleReading'
+import { hasUiPermission } from '@/utils/permissions'
+import { workbenchLocation } from '@/workbench/navigation'
+import type { SelectablePost } from '@/api/article-reading'
+import '@/components/article-reading/manager.css'
 
-const postName = ref('')
-const loading = ref(false)
-const generating = ref(false)
-const reading = ref<ArticleReading>()
-const posts = ref<SelectablePost[]>([])
-const postsLoading = ref(false)
-const postKeyword = ref('')
-const postPage = ref(1)
-const postPageSize = ref(10)
-const postTotal = ref(0)
-const selectedPostCache = ref<SelectablePost>()
-const graphStatus = ref('')
-
-const spec = computed(() => reading.value?.spec)
-const nodeCounts = computed(() => ({
-  tl: (spec.value?.nodes || []).filter((node) => node.kind === 'tl').length,
-  dl: (spec.value?.nodes || []).filter((node) => node.kind === 'dl').length,
-}))
-const edgeCount = computed(() => spec.value?.edges?.length || 0)
-const schemaVersion = computed(() => spec.value?.schemaVersion || '-')
-const selectedPostName = computed(() => postName.value.trim())
-const selectedPost = computed(() => {
-  const name = selectedPostName.value
-  if (!name) {
-    return undefined
-  }
-  return (
-    posts.value.find((post) => post.name === name) ||
-    (selectedPostCache.value?.name === name ? selectedPostCache.value : undefined)
-  )
-})
-
-const loadPosts = async () => {
-  postsLoading.value = true
-  try {
-    const result = await articleReadingApi.listSelectablePosts({
-      page: postPage.value,
-      size: postPageSize.value,
-      keyword: postKeyword.value,
-    })
-    posts.value = result.items
-    postPage.value = result.page
-    postPageSize.value = result.size
-    postTotal.value = result.total
-  } catch (error) {
-    Toast.error(errorMessage(error, '文章列表加载失败'))
-  } finally {
-    postsLoading.value = false
-  }
+const route = useRoute()
+const router = useRouter()
+const articles = useArticlePostList()
+const { posts, keyword, page, total, pages, loading: postsLoading, error: postsError } = articles
+const postName = computed(() => (typeof route.query.post === 'string' ? route.query.post : ''))
+const { reading, loading, generating, generatingFor, error, load, generate } =
+  useArticleReading(postName)
+const selectedPost = computed(() => posts.value.find((post) => post.name === postName.value))
+const title = computed(
+  () => selectedPost.value?.title || reading.value?.spec?.postTitle || '文章洞察',
+)
+const canGenerate = computed(() => hasUiPermission('plugin:summaraidGPT:article-reading:manage'))
+const formatDate = (value?: string) => (value ? utils.date.format(value, 'YYYY-MM-DD') : '未发布')
+function selectPost(post: SelectablePost) {
+  void router.replace(workbenchLocation('reading', { ...route.query, post: post.name }))
 }
-
-const searchPosts = async () => {
-  if (postPage.value === 1) {
-    await loadPosts()
-    return
-  }
-  postPage.value = 1
-}
-
-const selectPost = (post: SelectablePost) => {
-  if (postName.value !== post.name) {
-    reading.value = undefined
-  }
-  postName.value = post.name
-  selectedPostCache.value = post
-  graphStatus.value = ''
-  void loadExisting(false)
-}
-
-const loadExisting = async (notify = true) => {
-  const name = selectedPostName.value
-  if (!name) {
-    Toast.warning('请先选择文章')
-    return
-  }
-  loading.value = true
-  graphStatus.value = ''
-  try {
-    reading.value = normalizeReading(await articleReadingApi.get(name))
-    if (notify) {
-      Toast.success('图谱预览已加载')
-    }
-  } catch (error) {
-    reading.value = undefined
-    graphStatus.value = errorMessage(error, '洞察图谱尚未生成')
-    if (notify) {
-      Toast.error(graphStatus.value)
-    }
-  } finally {
-    loading.value = false
-  }
-}
-
-const generateGraph = async () => {
-  const name = selectedPostName.value
-  if (!name) {
-    Toast.warning('请先选择文章')
-    return
-  }
-  generating.value = true
-  graphStatus.value = ''
-  try {
-    reading.value = normalizeReading(await articleReadingApi.generate(name, true))
-    Toast.success('图谱已生成')
-  } catch (error) {
-    Toast.error(errorMessage(error, '生成失败'))
-  } finally {
-    generating.value = false
-  }
-}
-
-const formatDate = (value?: string) => (value ? utils.date.format(value) : '-')
-
-const postPhaseText = (post: SelectablePost) => {
-  if (post.phase === 'PUBLISHED' || post.published) return '已发布'
-  if (post.phase === 'DRAFT') return '草稿'
-  if (post.phase === 'PENDING_APPROVAL') return '待审核'
-  if (post.phase === 'FAILED') return '发布失败'
-  return post.phase || '未发布'
-}
-
-const postPhaseClass = (post: SelectablePost) => {
-  if (post.phase === 'PUBLISHED' || post.published) {
-    return ':uno: border-emerald-200 bg-emerald-50 text-emerald-700'
-  }
-  if (post.phase === 'FAILED') {
-    return ':uno: border-rose-200 bg-rose-50 text-rose-700'
-  }
-  return ':uno: border-slate-200 bg-slate-50 text-slate-600'
-}
-
-const errorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof Error) return error.message || fallback
-  return fallback
-}
-
-const isRenderableSpec = (value?: ArticleReadingSpec) => {
-  if (!value?.root || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) {
-    return false
-  }
-  if ((value.schemaVersion || 0) < ARTICLE_READING_GRAPH_SCHEMA_VERSION) {
-    return false
-  }
-  const tlIds = new Set(value.nodes.filter((node) => node.kind === 'tl' && node.id).map((node) => node.id))
-  const dlIds = new Set(value.nodes.filter((node) => node.kind === 'dl' && node.id).map((node) => node.id))
-  if (tlIds.size < 3 || dlIds.size === 0) {
-    return false
-  }
-  const rootId = value.root.id || 'root'
-  const rootTargets = new Set(value.edges.filter((edge) => edge.from === rootId).map((edge) => edge.to))
-  return Array.from(tlIds).every((id) => rootTargets.has(id))
-}
-
-const normalizeReading = (value: ArticleReading) => {
-  if (!isRenderableSpec(value.spec)) {
-    throw new Error(`当前图谱是旧版或不完整结构，请点击“图谱生成”生成新版图谱。`)
-  }
-  return value
-}
-
-onMounted(() => {
-  loadPosts()
-})
-
-watch([postPage, postPageSize], () => {
-  loadPosts()
-})
 </script>
 
 <template>
-  <VPageHeader title="洞察图谱">
-    <template #icon>
-      <RiBrainLine class="mr-2 self-center" />
-    </template>
-  </VPageHeader>
-
-  <div class=":uno: grid gap-3 p-4 max-[680px]:p-3">
-    <VCard :body-class="[':uno: !p-0']">
-      <div class=":uno: border-b border-slate-100 px-4 py-3">
-        <div class=":uno: flex flex-wrap items-center justify-between gap-3">
-          <div class=":uno: min-w-0">
-            <div class=":uno: text-sm font-semibold text-slate-900">选择文章</div>
-            <div class=":uno: mt-1 text-xs leading-relaxed text-slate-500">
-              从 Halo 文章列表选择文章；已生成的洞察图谱会直接在下方预览。
-            </div>
-          </div>
-          <div
-            v-if="selectedPostName"
-            class=":uno: inline-flex max-w-full items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
-          >
-            <RiCheckLine class=":uno: size-4 shrink-0" />
-            <span class=":uno: truncate">已选：{{ selectedPost?.title || selectedPostName }}</span>
-          </div>
-        </div>
+  <WorkbenchSectionHeader title="洞察图谱" description="沿着文章的脉络，读懂每一个观点。">
+    <template #actions
+      ><RouterLink
+        v-if="hasUiPermission('system:plugins:view')"
+        :to="workbenchLocation('settings', { group: 'articleReading' })"
+        class="sw-button"
+        ><WorkbenchIcon name="settings" :size="15" />图谱设置</RouterLink
+      ></template
+    >
+  </WorkbenchSectionHeader>
+  <div class="sw-reading-layout">
+    <aside class="sw-reading-library" aria-label="选择文章">
+      <header class="sw-reading-library-head">
+        <h2>文章</h2>
+        <span>{{ total }} 篇</span
+        ><button
+          type="button"
+          class="sw-text-button"
+          aria-label="刷新文章列表"
+          :disabled="postsLoading"
+          @click="articles.load"
+        >
+          <WorkbenchIcon name="refresh" :size="15" :class="{ 'is-spinning': postsLoading }" />
+        </button>
+      </header>
+      <form class="sw-reading-search" role="search" @submit.prevent="articles.search">
+        <WorkbenchIcon name="search" :size="15" /><input
+          v-model="keyword"
+          type="search"
+          aria-label="搜索文章"
+          placeholder="搜索文章…"
+        /><button type="submit" aria-label="搜索" :disabled="postsLoading">
+          <WorkbenchIcon name="arrow" :size="14" />
+        </button>
+      </form>
+      <VLoading v-if="postsLoading" />
+      <div v-else-if="postsError" class="sw-reading-list-state" role="alert">
+        <p>{{ postsError }}</p>
+        <button type="button" class="sw-text-button" @click="articles.load">重新加载</button>
       </div>
-
-      <div class=":uno: grid gap-3 p-4">
-        <div class=":uno: flex min-w-0 gap-2 max-[680px]:grid">
-          <label class=":uno: relative min-w-0 flex-1">
-            <RiSearchLine
-              class=":uno: pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              v-model="postKeyword"
-              class=":uno: h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-blue-400 focus:ring-3 focus:ring-blue-100"
-              placeholder="搜索文章标题、别名或摘要"
-              @keydown.enter.prevent="searchPosts"
-            />
-          </label>
-          <VButton type="secondary" :loading="postsLoading" @click="searchPosts">搜索</VButton>
-          <VButton type="secondary" :loading="postsLoading" @click="loadPosts">刷新</VButton>
-          <VButton
-            type="secondary"
-            :loading="loading"
-            :disabled="!selectedPostName"
-            @click="loadExisting(true)"
-          >
-            预览图谱
-          </VButton>
-          <VButton
-            type="primary"
-            :loading="generating"
-            :disabled="!selectedPostName"
-            @click="generateGraph"
-          >
-            图谱生成
-          </VButton>
+      <div v-else-if="!posts.length" class="sw-reading-list-state">
+        <p>{{ keyword ? '没有找到相关文章' : '还没有可用的文章' }}</p>
+        <button v-if="keyword" type="button" class="sw-text-button" @click="articles.clearSearch">
+          清除搜索
+        </button>
+      </div>
+      <nav v-else class="sw-reading-posts" aria-label="文章列表">
+        <button
+          v-for="post in posts"
+          :key="post.name"
+          type="button"
+          class="sw-reading-post"
+          :class="{ 'is-selected': postName === post.name }"
+          :aria-pressed="postName === post.name"
+          :aria-label="post.title"
+          @click="selectPost(post)"
+        >
+          <span class="sw-reading-post-icon"><WorkbenchIcon name="book" :size="16" /></span
+          ><span class="sw-reading-post-copy"
+            ><strong>{{ post.title }}</strong
+            ><small
+              ><span class="sw-status-dot" :class="{ 'is-ready': post.published }" />{{
+                post.published ? '已发布' : '未发布'
+              }}<span aria-hidden="true">·</span
+              >{{ formatDate(post.publishTime || post.updatedAt) }}</small
+            ></span
+          ><WorkbenchIcon v-if="postName === post.name" name="chevron" :size="13" />
+        </button>
+      </nav>
+      <footer v-if="total > 10" class="sw-reading-pagination">
+        <button
+          type="button"
+          class="sw-text-button"
+          aria-label="上一页文章"
+          :disabled="page <= 1 || postsLoading"
+          @click="page--"
+        >
+          <WorkbenchIcon name="chevron" :size="13" class="sw-reading-back" /></button
+        ><span>{{ page }} / {{ pages }}</span
+        ><button
+          type="button"
+          class="sw-text-button"
+          aria-label="下一页文章"
+          :disabled="page >= pages || postsLoading"
+          @click="page++"
+        >
+          <WorkbenchIcon name="chevron" :size="13" />
+        </button>
+      </footer>
+      <p class="sw-reading-library-note">选择文章后，可直接阅读已生成的图谱。</p>
+    </aside>
+    <section class="sw-reading-preview" aria-label="文章图谱预览">
+      <template v-if="postName">
+        <header class="sw-reading-preview-head">
+          <div>
+            <span class="sw-eyebrow">文章洞察</span>
+            <h2>{{ title }}</h2>
+            <p v-if="reading?.spec?.generatedAt">
+              更新于 {{ utils.date.format(reading.spec.generatedAt) }}
+            </p>
+          </div>
+          <div class="sw-reading-preview-actions">
+            <button
+              type="button"
+              class="sw-button"
+              aria-label="刷新当前图谱"
+              :disabled="loading || generating"
+              @click="load"
+            >
+              <WorkbenchIcon
+                name="refresh"
+                :size="15"
+                :class="{ 'is-spinning': loading }"
+              /></button
+            ><button
+              v-if="canGenerate"
+              type="button"
+              class="sw-button"
+              :class="{ 'is-primary': !reading }"
+              :disabled="Boolean(generatingFor) || loading"
+              @click="generate"
+            >
+              <WorkbenchIcon name="sparkles" :size="15" :class="{ 'is-spinning': generating }" />{{
+                generating ? '正在生成…' : reading ? '重新生成' : '生成图谱'
+              }}
+            </button>
+          </div>
+        </header>
+        <div v-if="error && reading" class="sw-notice" role="alert">
+          <WorkbenchIcon name="info" :size="16" />{{ error }}
         </div>
-
-        <VLoading v-if="postsLoading" />
-
-        <VEmpty
-          v-else-if="!posts.length"
-          title="没有找到文章"
-          message="换个关键词搜索文章。"
-        />
-
-        <div v-else class=":uno: grid gap-2">
+        <div v-if="loading || generating" class="sw-reading-state" role="status">
+          <WorkbenchIcon
+            :name="generating ? 'sparkles' : 'refresh'"
+            :size="26"
+            class="is-spinning"
+          />
+          <h3>{{ generating ? '正在梳理文章脉络' : '正在读取图谱' }}</h3>
+          <p>
+            {{
+              generating ? '完成后会在这里显示，你可以先浏览其他文章。' : '正在载入已生成的内容…'
+            }}
+          </p>
+        </div>
+        <InsightGraphPreview v-else-if="reading?.spec" :key="postName" :spec="reading.spec" />
+        <div v-else class="sw-reading-state">
+          <span class="sw-reading-state-icon"><WorkbenchIcon name="graph" :size="27" /></span>
+          <h3>这篇文章还没有可用的图谱</h3>
+          <p>{{ error || '生成图谱，把文章中的主题、观点与依据连接起来。' }}</p>
           <button
-            v-for="post in posts"
-            :key="post.name"
+            v-if="canGenerate"
             type="button"
-            class=":uno: w-full rounded-lg border bg-white p-3 text-left transition hover:border-blue-300 hover:bg-blue-50/40"
-            :class="
-              post.name === selectedPostName
-                ? ':uno: border-blue-400 ring-3 ring-blue-100'
-                : ':uno: border-slate-200'
-            "
-            @click="selectPost(post)"
+            class="sw-button is-primary"
+            :disabled="Boolean(generatingFor)"
+            @click="generate"
           >
-            <div class=":uno: flex min-w-0 items-start gap-3">
-              <span
-                class=":uno: flex size-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600"
-              >
-                <RiArticleLine class=":uno: size-4" />
-              </span>
-              <span class=":uno: min-w-0 flex-1">
-                <span class=":uno: flex min-w-0 flex-wrap items-center gap-2">
-                  <strong class=":uno: min-w-0 truncate text-sm text-slate-900">
-                    {{ post.title }}
-                  </strong>
-                  <span
-                    class=":uno: inline-flex shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold"
-                    :class="postPhaseClass(post)"
-                  >
-                    {{ postPhaseText(post) }}
-                  </span>
-                </span>
-                <span class=":uno: mt-1 block truncate font-mono text-xs text-slate-500">
-                  {{ post.name }}
-                </span>
-                <span class=":uno: mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                  <span v-if="post.slug" class=":uno: truncate">slug: {{ post.slug }}</span>
-                  <span v-if="post.publishTime">发布时间：{{ formatDate(post.publishTime) }}</span>
-                  <span v-else-if="post.updatedAt">更新：{{ formatDate(post.updatedAt) }}</span>
-                </span>
-              </span>
-              <span
-                v-if="post.name === selectedPostName"
-                class=":uno: inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white"
-              >
-                <RiCheckLine class=":uno: size-4" />
-              </span>
-            </div>
+            <WorkbenchIcon name="sparkles" :size="15" />生成图谱
           </button>
+          <p v-else>请联系管理员生成图谱。</p>
         </div>
-      </div>
-
-      <template v-if="postTotal > 0" #footer>
-        <VPagination
-          v-model:page="postPage"
-          v-model:size="postPageSize"
-          page-label="页"
-          size-label="条 / 页"
-          :total-label="`共 ${postTotal} 篇文章`"
-          :total="postTotal"
-          :size-options="[10, 20, 50]"
-        />
       </template>
-    </VCard>
-
-    <VLoading v-if="loading || generating" />
-
-    <VEmpty
-      v-if="!reading && !loading && !generating"
-      title="暂无洞察图谱"
-      :message="graphStatus || '选择文章后会自动预览已生成图谱；未生成时点击图谱生成。'"
-    />
-
-    <template v-if="spec">
-      <div class=":uno: grid grid-cols-3 gap-2 max-[960px]:grid-cols-2">
-        <VCard :body-class="[':uno: px-4 py-3']">
-          <div class=":uno: text-xs text-slate-500">主题节点</div>
-          <div class=":uno: mt-1 text-xl font-bold text-slate-900">{{ nodeCounts.tl }}</div>
-        </VCard>
-        <VCard :body-class="[':uno: px-4 py-3']">
-          <div class=":uno: text-xs text-slate-500">深挖节点</div>
-          <div class=":uno: mt-1 text-xl font-bold text-slate-900">{{ nodeCounts.dl }}</div>
-        </VCard>
-        <VCard :body-class="[':uno: px-4 py-3']">
-          <div class=":uno: text-xs text-slate-500">连线</div>
-          <div class=":uno: mt-1 text-xl font-bold text-slate-900">{{ edgeCount }}</div>
-        </VCard>
-      </div>
-
-      <VCard :body-class="[':uno: !p-0']">
-        <template #header>
-          <div class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3">
-            <div class=":uno: min-w-0">
-              <div class=":uno: truncate text-sm font-bold text-slate-900">
-                {{ spec.postTitle || spec.root?.title || spec.postMetadataName }}
-              </div>
-              <div class=":uno: mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span>schema v{{ schemaVersion }}</span>
-                <span>model {{ spec.modelName || '-' }}</span>
-                <span>{{ formatDate(spec.generatedAt) }}</span>
-              </div>
-            </div>
-          </div>
-        </template>
-
-        <div class=":uno: p-4">
-          <InsightGraphPreview :spec="spec" />
+      <div v-else class="sw-reading-state is-intro">
+        <span class="sw-reading-state-icon"><WorkbenchIcon name="graph" :size="32" /></span
+        ><span class="sw-eyebrow">从一篇文章开始</span>
+        <h2>让阅读，多一条清晰的路径。</h2>
+        <p>选择一篇文章，查看它的核心主题与延伸内容。<br />点击节点，展开观点和原文依据。</p>
+        <div class="sw-reading-legend">
+          <span><i class="is-root" />文章</span><span class="sw-reading-legend-line" /><span
+            ><i />主题</span
+          ><span class="sw-reading-legend-line" /><span><i class="is-leaf" />延伸阅读</span>
         </div>
-      </VCard>
-    </template>
+      </div>
+    </section>
   </div>
 </template>

@@ -1,0 +1,69 @@
+/* Adapt existing Halo primitives inside this workbench without changing the host Console. */
+.sw-workbench .card-wrapper {
+  background: var(--sw-bg);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius);
+  box-shadow: none;
+}
+.sw-workbench .card-wrapper > .card-header {
+  border-bottom-color: var(--sw-border);
+  background: var(--sw-sidebar);
+  padding: 0;
+}
+.sw-workbench .card-wrapper > .card-footer {
+  border-top-color: var(--sw-border);
+  background: var(--sw-bg);
+}
+.sw-workbench .entity-wrapper {
+  border-color: var(--sw-border);
+}
+.sw-workbench
+  :where(
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+    select,
+    textarea
+  ),
+.sw-workbench-dialog
+  :where(
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+    select,
+    textarea
+  ) {
+  border-color: var(--sw-border);
+  border-radius: var(--sw-control-radius);
+  background-color: var(--sw-bg);
+  color: var(--sw-text);
+  box-shadow: none;
+}
+.sw-workbench :where(input, textarea)::placeholder,
+.sw-workbench-dialog :where(input, textarea)::placeholder {
+  color: var(--sw-faint);
+}
+.sw-workbench :where(input, select, textarea):focus,
+.sw-workbench-dialog :where(input, select, textarea):focus {
+  border-color: var(--sw-muted);
+  --tw-ring-color: transparent;
+}
+.sw-workbench :where(input[type='checkbox'], input[type='radio']),
+.sw-workbench-dialog :where(input[type='checkbox'], input[type='radio']) {
+  accent-color: var(--sw-text);
+}
+.sw-workbench .sw-knowledge-detail-header {
+  padding: 0 0 22px;
+  margin-bottom: 22px;
+  background: transparent;
+}
+.sw-workbench .sw-knowledge-detail-body {
+  padding: 0;
+}
+.sw-workbench-dialog .modal-content {
+  background: var(--sw-bg);
+  border: 1px solid var(--sw-border);
+  border-radius: 14px;
+  color: var(--sw-text);
+}
+.sw-workbench-dialog .modal-header,
+.sw-workbench-dialog .modal-footer {
+  border-color: var(--sw-border);
+  background: var(--sw-bg);
+}

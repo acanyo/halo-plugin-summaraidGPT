@@ -24,6 +24,12 @@ const BUNDLE_TARGETS: Record<string, BundleTarget> = {
     fileName: 'RagAssistant.js',
     emptyOutDir: false,
   },
+  podcast: {
+    entry: './src/article-podcast-entry.ts',
+    name: 'ArticlePodcast',
+    fileName: 'ArticlePodcast.js',
+    emptyOutDir: false,
+  },
 };
 
 function copyToStatic(file: string): Plugin {

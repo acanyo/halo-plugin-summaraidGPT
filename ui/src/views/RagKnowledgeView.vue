@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WorkbenchSectionHeader from '@/workbench/components/WorkbenchSectionHeader.vue'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   Dialog,
@@ -13,7 +14,6 @@ import {
   VEntityField,
   VLoading,
   VModal,
-  VPageHeader,
   VPagination,
   VSpace,
   VStatusDot,
@@ -26,7 +26,6 @@ import RiAlertLine from '~icons/ri/alert-line'
 import RiArrowLeftLine from '~icons/ri/arrow-left-line'
 import RiArrowRightSLine from '~icons/ri/arrow-right-s-line'
 import RiArticleLine from '~icons/ri/article-line'
-import RiBookOpenLine from '~icons/ri/book-open-line'
 import RiCloseLine from '~icons/ri/close-line'
 import RiFileTextLine from '~icons/ri/file-text-line'
 import RiQuestionAnswerLine from '~icons/ri/question-answer-line'
@@ -410,7 +409,7 @@ const fetchKnowledgeBases = async (options: { silent?: boolean } = {}) => {
     ) {
       activeKnowledgeBaseName.value = knowledgeBases.value[0]?.metadata.name || ''
     }
-  } catch (error) {
+  } catch {
     if (!options.silent) {
       Toast.error('加载失败')
     }
@@ -435,7 +434,7 @@ const fetchDocuments = async (resetPage = true, options: { silent?: boolean } = 
     syncDeletingDocumentRefetch()
     const maxPage = Math.max(1, Math.ceil(documents.value.length / documentPageSize.value))
     documentPage.value = resetPage ? 1 : Math.min(documentPage.value, maxPage)
-  } catch (error) {
+  } catch {
     if (!options.silent) {
       Toast.error('文档加载失败')
     }
@@ -454,7 +453,7 @@ const fetchStats = async () => {
   loadingStats.value = true
   try {
     stats.value = await ragApi.stats(activeKnowledgeBaseName.value)
-  } catch (error) {
+  } catch {
     Toast.error('统计加载失败')
   } finally {
     loadingStats.value = false
@@ -474,7 +473,7 @@ const fetchLatestTask = async (silent = false) => {
     } else {
       closeTaskSubscription()
     }
-  } catch (error) {
+  } catch {
     if (!silent) {
       Toast.error('索引状态加载失败')
     }
@@ -536,7 +535,7 @@ const saveKnowledgeBase = async () => {
     if (viewMode.value === 'detail') {
       await fetchDetailData()
     }
-  } catch (error) {
+  } catch {
     Toast.error('保存失败')
   }
 }
@@ -555,7 +554,7 @@ const deleteKnowledgeBase = (event: Event | undefined, knowledgeBase: RagKnowled
         activeKnowledgeBaseName.value = ''
         localNeedsRebuild.value = false
         await fetchKnowledgeBases()
-      } catch (error) {
+      } catch {
         Toast.error('删除失败')
       }
     },
@@ -603,7 +602,7 @@ const saveDocument = async () => {
     showDocumentModal.value = false
     markNeedsRebuild()
     await Promise.all([fetchDocuments(!editingDocument.value), fetchStats()])
-  } catch (error) {
+  } catch {
     Toast.error('保存失败')
   }
 }
@@ -619,7 +618,7 @@ const deleteDocument = (document: RagDocument) => {
         Toast.success('删除成功')
         markNeedsRebuild()
         await Promise.all([fetchDocuments(false), fetchStats()])
-      } catch (error) {
+      } catch {
         Toast.error('删除失败')
       }
     },
@@ -633,7 +632,7 @@ const updateDocumentEnabled = async (document: RagDocument, enabled: boolean) =>
     Toast.success(enabled ? '已启用' : '已禁用')
     markNeedsRebuild()
     await Promise.all([fetchDocuments(false), fetchStats()])
-  } catch (error) {
+  } catch {
     Toast.error('状态更新失败')
   } finally {
     mutatingDocument.value = false
@@ -686,7 +685,7 @@ const fetchImportablePosts = async () => {
     importablePosts.value = await ragApi.listImportablePosts({
       knowledgeBase: activeKnowledgeBaseName.value,
     })
-  } catch (error) {
+  } catch {
     Toast.error('可导入文章加载失败')
   } finally {
     loadingImportablePosts.value = false
@@ -704,7 +703,7 @@ const fetchImportableDocsmeDocuments = async () => {
     })
     importableDocsmeDocuments.value = result.items
     docsmeImportAvailable.value = result.docsmeAvailable
-  } catch (error) {
+  } catch {
     Toast.error('可导入文档加载失败')
   } finally {
     loadingImportableDocsmeDocuments.value = false
@@ -809,7 +808,7 @@ const importPosts = (mode: 'all' | 'selected') => {
           markNeedsRebuild()
         }
         await refreshAll()
-      } catch (error) {
+      } catch {
         Toast.error('导入失败')
       } finally {
         importing.value = false
@@ -860,7 +859,7 @@ const importDocsmeDocuments = (mode: 'all' | 'selected') => {
           markNeedsRebuild()
         }
         await refreshAll()
-      } catch (error) {
+      } catch {
         Toast.error('导入失败')
       } finally {
         importing.value = false
@@ -910,7 +909,7 @@ const importTextDocument = async () => {
     showImportPostsModal.value = false
     textImportForm.value = createRagTextImportForm()
     await refreshAll()
-  } catch (error) {
+  } catch {
     Toast.error('文件导入失败')
   } finally {
     importing.value = false
@@ -932,7 +931,7 @@ const rebuildIndex = () => {
         subscribeIndexTask(result.task)
         Toast.success('索引任务已启动')
         await refreshAll()
-      } catch (error) {
+      } catch {
         Toast.error('重建索引失败')
       } finally {
         rebuildingIndex.value = false
@@ -955,7 +954,7 @@ const forceStopIndexTask = () => {
         closeTaskSubscription()
         Toast.success('索引任务已强制停止')
         await refreshAll()
-      } catch (error) {
+      } catch {
         Toast.error('强制停止索引任务失败')
       } finally {
         forceStoppingIndex.value = false
@@ -979,7 +978,7 @@ const forceRebuildIndex = () => {
         subscribeIndexTask(result.task)
         Toast.success('已强制启动新的索引任务')
         await refreshAll()
-      } catch (error) {
+      } catch {
         Toast.error('强制重新索引失败')
       } finally {
         forceRebuildingIndex.value = false
@@ -1004,7 +1003,7 @@ const runSearch = async () => {
       limit: Number(searchLimit.value) || 10,
     })
     searchElapsedMs.value = Math.round(performance.now() - startedAt)
-  } catch (error) {
+  } catch {
     Toast.error('搜索失败')
   } finally {
     searching.value = false
@@ -1045,7 +1044,7 @@ const runAsk = async () => {
       },
       controller.signal,
     )
-  } catch (error) {
+  } catch {
     if (!controller.signal.aborted) {
       Toast.error('问答失败')
     }
@@ -1381,10 +1380,7 @@ onBeforeUnmount(() => {
 
 <template>
   <template v-if="viewMode === 'list'">
-    <VPageHeader title="知识库">
-      <template #icon>
-        <RiBookOpenLine class="mr-2 self-center" />
-      </template>
+    <WorkbenchSectionHeader title="知识库" description="导入站点内容，构建可检索、可引用的知识。">
       <template #actions>
         <VSpace>
           <VButton type="secondary" :loading="loadingKnowledgeBases" @click="refreshAll">
@@ -1406,14 +1402,14 @@ onBeforeUnmount(() => {
           </VButton>
         </VSpace>
       </template>
-    </VPageHeader>
+    </WorkbenchSectionHeader>
 
-    <div class=":uno: m-0 md:m-4">
+    <div class="sw-module-body">
       <VCard :body-class="[':uno: !p-0']">
         <template #header>
-          <div class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3">
-            <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-gray-500">
-              <strong class=":uno: text-lg leading-none text-gray-900">{{
+          <div class=":uno: flex w-full items-center justify-between gap-3 bg-[var(--sw-sidebar)] px-4 py-3">
+            <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-[var(--sw-muted)]">
+              <strong class=":uno: text-lg leading-none text-[var(--sw-text)]">{{
                 knowledgeBases.length
               }}</strong>
               <span>个知识库</span>
@@ -1462,7 +1458,7 @@ onBeforeUnmount(() => {
           >
             <template #start>
               <div
-                class=":uno: grid h-[38px] w-[38px] place-items-center rounded-lg border border-gray-200 bg-slate-50 text-sm font-bold text-gray-900"
+                class=":uno: grid h-[38px] w-[38px] place-items-center rounded-lg border border-[var(--sw-border)] bg-[var(--sw-sidebar)] text-sm font-bold text-[var(--sw-text)]"
               >
                 {{ firstCharacter(knowledgeBase) }}
               </div>
@@ -1487,7 +1483,7 @@ onBeforeUnmount(() => {
               <VEntityField width="7rem">
                 <template #description>
                   <span
-                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
                   >
                     文档 {{ knowledgeBase.status?.documentCount || 0 }}
                   </span>
@@ -1496,7 +1492,7 @@ onBeforeUnmount(() => {
               <VEntityField width="11rem">
                 <template #description>
                   <span
-                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-400 tabular-nums"
+                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-faint)] tabular-nums"
                   >
                     {{ formatRelativeDate(knowledgeBase.status?.lastIndexedAt) }}
                   </span>
@@ -1505,7 +1501,7 @@ onBeforeUnmount(() => {
               <VEntityField>
                 <template #description>
                   <RiArrowRightSLine
-                    class=":uno: h-5 w-5 text-slate-400 transition-all duration-200"
+                    class=":uno: h-5 w-5 text-[var(--sw-faint)] transition-all duration-200"
                   />
                 </template>
               </VEntityField>
@@ -1537,7 +1533,7 @@ onBeforeUnmount(() => {
 
   <template v-else>
     <div
-      class=":uno: flex items-center justify-between gap-4 border-b border-[#edf0f5] bg-white px-5 py-3 max-[720px]:flex-col max-[720px]:items-start max-[720px]:px-3"
+      class="sw-knowledge-detail-header :uno: flex items-center justify-between gap-4 border-b border-[var(--sw-border)] max-[720px]:flex-col max-[720px]:items-start"
     >
       <div class=":uno: flex min-w-0 items-center gap-3">
         <VButton size="sm" type="secondary" @click="backToKnowledgeBases">
@@ -1548,11 +1544,11 @@ onBeforeUnmount(() => {
         </VButton>
         <div class=":uno: grid min-w-0 gap-0.5">
           <h1
-            class=":uno: m-0 overflow-hidden text-ellipsis whitespace-nowrap text-xl font-bold leading-snug text-gray-900"
+            class=":uno: m-0 overflow-hidden text-ellipsis whitespace-nowrap text-xl font-bold leading-snug text-[var(--sw-text)]"
           >
             {{ displayName(activeKnowledgeBase) }}
           </h1>
-          <span class=":uno: text-xs leading-snug text-slate-500">知识库详情</span>
+          <span class=":uno: text-xs leading-snug text-[var(--sw-muted)]">知识库详情</span>
         </div>
       </div>
 
@@ -1610,47 +1606,47 @@ onBeforeUnmount(() => {
       </VSpace>
     </div>
 
-    <div class=":uno: flex flex-col gap-4 p-4 max-[720px]:p-3">
+    <div class="sw-knowledge-detail-body :uno: flex flex-col gap-4">
       <VLoading v-if="loadingDocuments || loadingStats" />
 
       <template v-else-if="activeKnowledgeBase">
         <div
-          class=":uno: grid grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] overflow-hidden rounded-lg border border-[#edf0f5] bg-white max-[1080px]:grid-cols-1"
+          class=":uno: grid grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] overflow-hidden rounded-lg border border-[var(--sw-border)] bg-[var(--sw-bg)] max-[1080px]:grid-cols-1"
         >
           <div class=":uno: flex min-w-0 items-start gap-3 p-4">
             <VStatusDot v-bind="statusInfo(activeKnowledgeBase.status?.indexState)" />
-            <p class=":uno: m-0 line-clamp-3 min-w-0 text-[13px] leading-relaxed text-slate-600">
+            <p class=":uno: m-0 line-clamp-3 min-w-0 text-[13px] leading-relaxed text-[var(--sw-muted)]">
               {{ activeKnowledgeBase.spec?.description || '这个知识库还没有描述。' }}
             </p>
           </div>
           <dl
-            class=":uno: m-0 grid grid-cols-[repeat(5,minmax(0,1fr))] border-l border-[#edf0f5] max-[1080px]:border-l-0 max-[1080px]:border-t max-[720px]:grid-cols-2 max-[520px]:grid-cols-1"
+            class=":uno: m-0 grid grid-cols-[repeat(5,minmax(0,1fr))] border-l border-[var(--sw-border)] max-[1080px]:border-l-0 max-[1080px]:border-t max-[720px]:grid-cols-2 max-[520px]:grid-cols-1"
           >
-            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">已索引文档</dt>
-              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">
+            <div class=":uno: min-w-0 border-r border-[var(--sw-border)] px-3.5 py-3">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">已索引文档</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-[var(--sw-text)]">
                 {{ activeKnowledgeBase.status?.documentCount || enabledDocumentCount }}
               </dd>
             </div>
-            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">启用条目</dt>
-              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">
+            <div class=":uno: min-w-0 border-r border-[var(--sw-border)] px-3.5 py-3">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">启用条目</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-[var(--sw-text)]">
                 {{ enabledDocumentCount }}
               </dd>
             </div>
-            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">分块</dt>
-              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">{{ chunkCount }}</dd>
+            <div class=":uno: min-w-0 border-r border-[var(--sw-border)] px-3.5 py-3">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">分块</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-[var(--sw-text)]">{{ chunkCount }}</dd>
             </div>
-            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">分类</dt>
-              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">
+            <div class=":uno: min-w-0 border-r border-[var(--sw-border)] px-3.5 py-3">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">分类</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-[var(--sw-text)]">
                 {{ categories.length }}
               </dd>
             </div>
             <div class=":uno: min-w-0 px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">最后索引</dt>
-              <dd class=":uno: m-0 mt-1 text-base font-bold text-gray-900">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">最后索引</dt>
+              <dd class=":uno: m-0 mt-1 text-base font-bold text-[var(--sw-text)]">
                 {{ formatRelativeDate(activeKnowledgeBase.status?.lastIndexedAt) }}
               </dd>
             </div>
@@ -1715,9 +1711,9 @@ onBeforeUnmount(() => {
 
         <div
           v-if="latestTaskRunning && latestTask"
-          class=":uno: grid gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3"
+          class=":uno: grid gap-2 rounded-lg border border-[var(--sw-border)] bg-[var(--sw-subtle)] p-3"
         >
-          <div class=":uno: flex items-center justify-between gap-3 text-xs text-blue-700">
+          <div class=":uno: flex items-center justify-between gap-3 text-xs text-[var(--sw-text)]">
             <span>{{ latestTask.status?.message || '索引任务执行中' }}</span>
             <div class=":uno: flex flex-none items-center gap-2">
               <strong>{{ latestTask.status?.progress ?? 0 }}%</strong>
@@ -1753,9 +1749,9 @@ onBeforeUnmount(() => {
               </VSpace>
             </div>
           </div>
-          <div class=":uno: h-1.5 overflow-hidden rounded-full bg-blue-100">
+          <div class=":uno: h-1.5 overflow-hidden rounded-full bg-[var(--sw-subtle)]">
             <span
-              class=":uno: block h-full rounded-full bg-blue-500 transition-all duration-300"
+              class=":uno: block h-full rounded-full bg-[var(--sw-subtle)]0 transition-all duration-300"
               :style="{ width: `${latestTask.status?.progress ?? 0}%` }"
             ></span>
           </div>
@@ -1763,13 +1759,13 @@ onBeforeUnmount(() => {
 
         <div
           v-if="showSearchPanel"
-          class=":uno: overflow-hidden rounded-lg border border-[#edf0f5] bg-white"
+          class=":uno: overflow-hidden rounded-lg border border-[var(--sw-border)] bg-[var(--sw-bg)]"
         >
           <div
-            class=":uno: flex items-center justify-between gap-3 border-b border-[#edf0f5] bg-slate-50 px-4 py-3"
+            class=":uno: flex items-center justify-between gap-3 border-b border-[var(--sw-border)] bg-[var(--sw-sidebar)] px-4 py-3"
           >
-            <div class=":uno: flex items-center gap-2 text-[13px] font-bold text-gray-900">
-              <RiSearchLine class=":uno: h-4 w-4 text-slate-500" />
+            <div class=":uno: flex items-center gap-2 text-[13px] font-bold text-[var(--sw-text)]">
+              <RiSearchLine class=":uno: h-4 w-4 text-[var(--sw-muted)]" />
               <span>RAG 命中调试</span>
             </div>
             <VButton size="sm" circle v-tooltip="'关闭'" @click="showSearchPanel = false">
@@ -1804,7 +1800,7 @@ onBeforeUnmount(() => {
               <VButton size="sm" :loading="searching" @click="runSearch">搜索</VButton>
             </div>
             <div
-              class=":uno: flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-700"
+              class=":uno: flex flex-wrap items-center gap-2 rounded-lg border border-[var(--sw-border)] bg-[var(--sw-subtle)] px-3 py-2 text-xs text-[var(--sw-text)]"
             >
               <span>当前知识库：{{ displayName(activeKnowledgeBase) }}</span>
               <span v-if="searchElapsedMs !== undefined">耗时 {{ searchElapsedMs }}ms</span>
@@ -1814,31 +1810,31 @@ onBeforeUnmount(() => {
               </span>
             </div>
             <div
-              class=":uno: min-h-[160px] overflow-hidden rounded-lg border border-[#edf0f5] bg-slate-50"
+              class=":uno: min-h-[160px] overflow-hidden rounded-lg border border-[var(--sw-border)] bg-[var(--sw-sidebar)]"
             >
               <VLoading v-if="searching" />
               <div
                 v-else-if="searchResults.length === 0"
-                class=":uno: flex min-h-[160px] flex-col items-center justify-center gap-2 text-xs text-slate-400"
+                class=":uno: flex min-h-[160px] flex-col items-center justify-center gap-2 text-xs text-[var(--sw-faint)]"
               >
                 <RiSearchLine class=":uno: h-8 w-8 text-slate-300" />
                 <span>{{ searchQuery ? '没有匹配的结果' : '输入关键词开始测试' }}</span>
               </div>
-              <div v-else class=":uno: divide-y divide-slate-100 bg-white">
+              <div v-else class=":uno: divide-y divide-slate-100 bg-[var(--sw-bg)]">
                 <div
                   v-for="(item, index) in searchResults"
                   :key="item.id"
-                  class=":uno: grid grid-cols-[32px_minmax(0,1fr)] gap-3 px-3.5 py-3 hover:bg-slate-50"
+                  class=":uno: grid grid-cols-[32px_minmax(0,1fr)] gap-3 px-3.5 py-3 hover:bg-[var(--sw-sidebar)]"
                 >
                   <span
-                    class=":uno: grid h-8 w-8 place-items-center rounded-full bg-blue-50 text-xs font-bold text-blue-600"
+                    class=":uno: grid h-8 w-8 place-items-center rounded-full bg-[var(--sw-subtle)] text-xs font-bold text-[var(--sw-text)]"
                   >
                     {{ index + 1 }}
                   </span>
                   <div class=":uno: grid min-w-0 gap-2">
                     <div class=":uno: flex items-start justify-between gap-3">
                       <div
-                        class=":uno: min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-gray-900"
+                        class=":uno: min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold text-[var(--sw-text)]"
                       >
                         {{ searchResultTitle(item) }}
                       </div>
@@ -1846,42 +1842,42 @@ onBeforeUnmount(() => {
                         <span
                           v-for="score in searchScoreBreakdown(item)"
                           :key="score.label"
-                          class=":uno: inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
+                          class=":uno: inline-flex items-center gap-1 rounded-full bg-[var(--sw-subtle)] px-2 py-0.5 text-[11px] font-semibold text-[var(--sw-muted)]"
                         >
                           <span>{{ score.label }}</span>
-                          <strong class=":uno: font-mono text-blue-600">{{
+                          <strong class=":uno: font-mono text-[var(--sw-text)]">{{
                             formatScore(score.value)
                           }}</strong>
                         </span>
                       </div>
                     </div>
-                    <div class=":uno: flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                    <div class=":uno: flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--sw-faint)]">
                       <VTag v-if="item.sourceType" size="sm">
                         {{ sourceTypeText(item.sourceType) }}
                       </VTag>
                       <span>{{ searchResultMetaLine(item) || '无来源元信息' }}</span>
                     </div>
-                    <div class=":uno: line-clamp-2 text-xs leading-relaxed text-slate-500">
+                    <div class=":uno: line-clamp-2 text-xs leading-relaxed text-[var(--sw-muted)]">
                       {{ stripHtmlAndMarkdown(item.content) }}
                     </div>
-                    <details class=":uno: rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
-                      <summary class=":uno: cursor-pointer text-xs font-semibold text-slate-600">
+                    <details class=":uno: rounded-md border border-[var(--sw-border)] bg-[var(--sw-sidebar)] px-3 py-2">
+                      <summary class=":uno: cursor-pointer text-xs font-semibold text-[var(--sw-muted)]">
                         查看命中片段和调试信息
                       </summary>
                       <div
-                        class=":uno: mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded bg-white p-2 text-xs leading-relaxed text-slate-700"
+                        class=":uno: mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded bg-[var(--sw-bg)] p-2 text-xs leading-relaxed text-[var(--sw-text)]"
                       >
                         {{ item.content || '暂无片段内容' }}
                       </div>
                       <div
                         v-if="searchMetadataEntries(item).length"
-                        class=":uno: mt-2 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1 text-[11px] text-slate-500"
+                        class=":uno: mt-2 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1 text-[11px] text-[var(--sw-muted)]"
                       >
                         <template
                           v-for="entry in searchMetadataEntries(item)"
                           :key="entry.key"
                         >
-                          <span class=":uno: font-semibold text-slate-400">{{ entry.key }}</span>
+                          <span class=":uno: font-semibold text-[var(--sw-faint)]">{{ entry.key }}</span>
                           <span class=":uno: min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                             {{ entry.value }}
                           </span>
@@ -1897,13 +1893,13 @@ onBeforeUnmount(() => {
 
         <div
           v-if="showAskPanel"
-          class=":uno: overflow-hidden rounded-lg border border-[#edf0f5] bg-white"
+          class=":uno: overflow-hidden rounded-lg border border-[var(--sw-border)] bg-[var(--sw-bg)]"
         >
           <div
-            class=":uno: flex items-center justify-between gap-3 border-b border-[#edf0f5] bg-slate-50 px-4 py-3"
+            class=":uno: flex items-center justify-between gap-3 border-b border-[var(--sw-border)] bg-[var(--sw-sidebar)] px-4 py-3"
           >
-            <div class=":uno: flex items-center gap-2 text-[13px] font-bold text-gray-900">
-              <RiQuestionAnswerLine class=":uno: h-4 w-4 text-slate-500" />
+            <div class=":uno: flex items-center gap-2 text-[13px] font-bold text-[var(--sw-text)]">
+              <RiQuestionAnswerLine class=":uno: h-4 w-4 text-[var(--sw-muted)]" />
               <span>RAG 问答</span>
             </div>
             <VButton size="sm" circle v-tooltip="'关闭'" @click="showAskPanel = false">
@@ -1933,7 +1929,7 @@ onBeforeUnmount(() => {
             </div>
             <div
               v-if="answer"
-              class=":uno: whitespace-pre-wrap rounded-lg border border-[#edf0f5] bg-slate-50 p-3 text-[13px] leading-relaxed text-slate-800"
+              class=":uno: whitespace-pre-wrap rounded-lg border border-[var(--sw-border)] bg-[var(--sw-sidebar)] p-3 text-[13px] leading-relaxed text-[var(--sw-text)]"
             >
               {{ answer }}
             </div>
@@ -1941,14 +1937,14 @@ onBeforeUnmount(() => {
               <div
                 v-for="source in answerSources"
                 :key="source.id"
-                class=":uno: inline-flex max-w-full items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs text-blue-600"
+                class=":uno: inline-flex max-w-full items-center gap-1.5 rounded-full bg-[var(--sw-subtle)] px-2.5 py-1 text-xs text-[var(--sw-text)]"
               >
                 <RiArticleLine class=":uno: h-3.5 w-3.5 flex-none" />
                 <a
                   v-if="source.url"
                   :href="source.url"
                   target="_blank"
-                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-blue-600 no-underline"
+                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-[var(--sw-text)] no-underline"
                 >
                   {{ source.title || source.id }}
                 </a>
@@ -1960,9 +1956,9 @@ onBeforeUnmount(() => {
 
         <VCard class=":uno: overflow-hidden" :body-class="[':uno: !p-0']">
           <template #header>
-            <div class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3">
-              <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-gray-500">
-                <strong class=":uno: text-lg leading-none text-gray-900">{{
+            <div class=":uno: flex w-full items-center justify-between gap-3 bg-[var(--sw-sidebar)] px-4 py-3">
+              <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-[var(--sw-muted)]">
+                <strong class=":uno: text-lg leading-none text-[var(--sw-text)]">{{
                   documents.length
                 }}</strong>
                 <span>条内容</span>
@@ -2025,7 +2021,7 @@ onBeforeUnmount(() => {
                 <VEntityField v-if="document.status?.chunkCount">
                   <template #description>
                     <span
-                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
                     >
                       {{ document.status.chunkCount }} 分块
                     </span>
@@ -2034,7 +2030,7 @@ onBeforeUnmount(() => {
                 <VEntityField v-if="document.status?.lastIndexedAt" width="10rem">
                   <template #description>
                     <span
-                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-400 tabular-nums"
+                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-faint)] tabular-nums"
                     >
                       {{ formatRelativeDate(document.status.lastIndexedAt) }}
                     </span>
@@ -2089,7 +2085,7 @@ onBeforeUnmount(() => {
     </div>
   </template>
 
-  <VModal
+  <VModal class="sw-workbench-dialog"
     v-model:visible="showKnowledgeBaseModal"
     :title="editingKnowledgeBase ? '编辑知识库' : '新建知识库'"
     :width="480"
@@ -2119,7 +2115,7 @@ onBeforeUnmount(() => {
         label="描述"
         placeholder="可选，简要描述知识库用途"
       />
-      <label class=":uno: inline-flex items-center gap-2 text-[13px] text-slate-700">
+      <label class=":uno: inline-flex items-center gap-2 text-[13px] text-[var(--sw-text)]">
         <VSwitch v-model="knowledgeBaseForm.enabled" />
         <span>启用知识库</span>
       </label>
@@ -2132,7 +2128,7 @@ onBeforeUnmount(() => {
     </template>
   </VModal>
 
-  <VModal
+  <VModal class="sw-workbench-dialog"
     v-model:visible="showDocumentModal"
     :title="editingDocument ? '编辑知识库条目' : '新建知识库条目'"
     :width="650"
@@ -2200,7 +2196,7 @@ onBeforeUnmount(() => {
         />
       </div>
 
-      <label class=":uno: inline-flex items-center gap-2 text-[13px] text-slate-700">
+      <label class=":uno: inline-flex items-center gap-2 text-[13px] text-[var(--sw-text)]">
         <VSwitch v-model="documentForm.enabled" />
         <span>启用此条目</span>
       </label>
@@ -2213,16 +2209,16 @@ onBeforeUnmount(() => {
     </template>
   </VModal>
 
-  <VModal v-model:visible="showImportPostsModal" title="导入知识库" :width="820">
+  <VModal class="sw-workbench-dialog" v-model:visible="showImportPostsModal" title="导入知识库" :width="820">
     <div class=":uno: grid gap-4">
-      <div class=":uno: flex flex-wrap gap-2 rounded-lg bg-slate-100 p-1">
+      <div class=":uno: flex flex-wrap gap-2 rounded-lg bg-[var(--sw-subtle)] p-1">
         <button
           type="button"
           class=":uno: inline-flex flex-1 items-center justify-center gap-2 rounded-md border-0 px-3 py-2 text-sm font-medium transition-colors"
           :class="
             importSourceType === 'POST'
-              ? ':uno: bg-white text-blue-600 shadow-sm'
-              : ':uno: bg-transparent text-slate-500 hover:text-slate-800'
+              ? ':uno: bg-[var(--sw-bg)] text-[var(--sw-text)] shadow-sm'
+              : ':uno: bg-transparent text-[var(--sw-muted)] hover:text-[var(--sw-text)]'
           "
           @click="switchImportSourceType('POST')"
         >
@@ -2234,8 +2230,8 @@ onBeforeUnmount(() => {
           class=":uno: inline-flex flex-1 items-center justify-center gap-2 rounded-md border-0 px-3 py-2 text-sm font-medium transition-colors"
           :class="
             importSourceType === 'DOCSME'
-              ? ':uno: bg-white text-blue-600 shadow-sm'
-              : ':uno: bg-transparent text-slate-500 hover:text-slate-800'
+              ? ':uno: bg-[var(--sw-bg)] text-[var(--sw-text)] shadow-sm'
+              : ':uno: bg-transparent text-[var(--sw-muted)] hover:text-[var(--sw-text)]'
           "
           @click="switchImportSourceType('DOCSME')"
         >
@@ -2247,8 +2243,8 @@ onBeforeUnmount(() => {
           class=":uno: inline-flex flex-1 items-center justify-center gap-2 rounded-md border-0 px-3 py-2 text-sm font-medium transition-colors"
           :class="
             importSourceType === 'TEXT'
-              ? ':uno: bg-white text-blue-600 shadow-sm'
-              : ':uno: bg-transparent text-slate-500 hover:text-slate-800'
+              ? ':uno: bg-[var(--sw-bg)] text-[var(--sw-text)] shadow-sm'
+              : ':uno: bg-transparent text-[var(--sw-muted)] hover:text-[var(--sw-text)]'
           "
           @click="switchImportSourceType('TEXT')"
         >
@@ -2257,17 +2253,17 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <div class=":uno: grid gap-4 rounded-lg border border-[#edf0f5] bg-white p-4">
+      <div class=":uno: grid gap-4 rounded-lg border border-[var(--sw-border)] bg-[var(--sw-bg)] p-4">
         <div class=":uno: flex items-center gap-3">
-          <div class=":uno: grid h-10 w-10 place-items-center rounded-lg bg-blue-50 text-blue-600">
+          <div class=":uno: grid h-10 w-10 place-items-center rounded-lg bg-[var(--sw-subtle)] text-[var(--sw-text)]">
             <RiArticleLine v-if="importSourceType === 'POST'" class=":uno: h-5 w-5" />
             <RiFileTextLine v-else class=":uno: h-5 w-5" />
           </div>
           <div>
-            <h4 class=":uno: m-0 text-sm font-bold text-gray-900">
+            <h4 class=":uno: m-0 text-sm font-bold text-[var(--sw-text)]">
               {{ importSourceTitle }}
             </h4>
-            <p class=":uno: m-0 mt-1 text-xs text-slate-500">
+            <p class=":uno: m-0 mt-1 text-xs text-[var(--sw-muted)]">
               {{ importSourceDescription }}
             </p>
           </div>
@@ -2319,7 +2315,7 @@ onBeforeUnmount(() => {
           <VEmpty v-else-if="importableFilteredPosts.length === 0" title="暂无可导入文章" />
           <VEntityContainer
             v-else
-            class="post-list :uno: max-h-[420px] overflow-auto rounded-lg border border-[#edf0f5]"
+            class="post-list :uno: max-h-[420px] overflow-auto rounded-lg border border-[var(--sw-border)]"
           >
             <VEntity>
               <template #start>
@@ -2346,7 +2342,7 @@ onBeforeUnmount(() => {
                 <VEntityField>
                   <template #description>
                     <span
-                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
                     >
                       已选 {{ selectedPostNames.length }}
                     </span>
@@ -2374,7 +2370,7 @@ onBeforeUnmount(() => {
                   <VEntityField :title="post.title || post.postName">
                     <template #description>
                       <span
-                        class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                        class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
                       >
                         {{ post.postName }} · {{ post.chunkCount || 0 }} 分块 ·
                         {{ formatDate(post.lastImportedAt) }}
@@ -2390,7 +2386,7 @@ onBeforeUnmount(() => {
                       :class="
                         post.imported
                           ? ':uno: bg-emerald-50 text-emerald-700'
-                          : ':uno: bg-slate-100 text-slate-500'
+                          : ':uno: bg-[var(--sw-subtle)] text-[var(--sw-muted)]'
                       "
                     >
                       {{ post.imported ? '已导入' : '未导入' }}
@@ -2425,7 +2421,7 @@ onBeforeUnmount(() => {
           />
           <VEntityContainer
             v-else
-            class="post-list :uno: max-h-[420px] overflow-auto rounded-lg border border-[#edf0f5]"
+            class="post-list :uno: max-h-[420px] overflow-auto rounded-lg border border-[var(--sw-border)]"
           >
             <VEntity>
               <template #start>
@@ -2452,7 +2448,7 @@ onBeforeUnmount(() => {
                 <VEntityField>
                   <template #description>
                     <span
-                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                      class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
                     >
                       已选 {{ selectedDocsmeDocumentNames.length }}
                     </span>
@@ -2481,7 +2477,7 @@ onBeforeUnmount(() => {
                   <VEntityField :title="document.title || document.docName">
                     <template #description>
                       <span
-                        class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                        class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
                       >
                         {{ document.projectDisplayName || document.projectName || 'Docsme' }} ·
                         {{ document.versionSlug || 'default' }} ·
@@ -2499,7 +2495,7 @@ onBeforeUnmount(() => {
                       :class="
                         document.imported
                           ? ':uno: bg-emerald-50 text-emerald-700'
-                          : ':uno: bg-slate-100 text-slate-500'
+                          : ':uno: bg-[var(--sw-subtle)] text-[var(--sw-muted)]'
                       "
                     >
                       {{ document.imported ? '已导入' : '未导入' }}
@@ -2612,7 +2608,7 @@ onBeforeUnmount(() => {
   height: 18px;
   margin: 0;
   cursor: pointer;
-  accent-color: #2563eb;
+  accent-color: var(--sw-text);
 }
 
 @media (max-width: 720px) {

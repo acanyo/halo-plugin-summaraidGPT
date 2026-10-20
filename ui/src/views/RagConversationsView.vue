@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WorkbenchSectionHeader from '@/workbench/components/WorkbenchSectionHeader.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
   Dialog,
@@ -12,14 +13,12 @@ import {
   VEntityContainer,
   VEntityField,
   VLoading,
-  VPageHeader,
   VPagination,
   VSpace,
   VStatusDot,
 } from '@halo-dev/components'
 import { utils } from '@halo-dev/ui-shared'
 import RiDeleteBinLine from '~icons/ri/delete-bin-line'
-import RiMessage3Line from '~icons/ri/message-3-line'
 import { ragApi, type RagConversation, type RagSourceReference } from '@/api/rag'
 import { hasUiPermission } from '@/utils/permissions'
 
@@ -101,7 +100,7 @@ const fetchConversations = async (options: { silent?: boolean } = {}) => {
       activeConversationName.value =
         conversations.value.find((item) => !isConversationDeleting(item))?.metadata.name || ''
     }
-  } catch (error) {
+  } catch {
     if (!options.silent) {
       Toast.error('会话记录加载失败')
     }
@@ -139,7 +138,7 @@ const deleteConversation = (conversation: RagConversation) => {
         await ragApi.deleteConversation(conversation.metadata.name)
         Toast.success('已删除')
         await fetchConversations()
-      } catch (error) {
+      } catch {
         Toast.error('删除失败')
       } finally {
         deleting.value = false
@@ -172,7 +171,7 @@ const messageBubbleClass = (role?: string, error?: boolean) => {
     return ':uno: border border-red-200 bg-red-50 text-red-700'
   }
   if (role === 'assistant') {
-    return ':uno: border border-slate-200 bg-white text-slate-800 shadow-sm'
+    return ':uno: border border-[var(--sw-border)] bg-[var(--sw-bg)] text-[var(--sw-text)] shadow-sm'
   }
   return ':uno: bg-blue-600 text-white'
 }
@@ -233,10 +232,7 @@ onMounted(fetchConversations)
 </script>
 
 <template>
-  <VPageHeader title="会话记录">
-    <template #icon>
-      <RiMessage3Line class="mr-2 self-center" />
-    </template>
+  <WorkbenchSectionHeader title="会话记录" description="回顾访客的问题、回答与引用，了解内容被如何使用。">
     <template #actions>
       <VSpace>
         <VButton type="secondary" :loading="loadingConversations" @click="refreshAll">
@@ -247,19 +243,19 @@ onMounted(fetchConversations)
         </VButton>
       </VSpace>
     </template>
-  </VPageHeader>
+  </WorkbenchSectionHeader>
 
-  <div class=":uno: p-4 max-[680px]:p-3">
+  <div class="sw-module-body">
     <div
       class=":uno: grid grid-cols-[minmax(320px,420px)_minmax(0,1fr)] items-start gap-2 max-[960px]:grid-cols-1"
     >
       <VCard class=":uno: min-w-0" :body-class="[':uno: !p-0']">
         <template #header>
           <div
-            class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3 max-[960px]:flex-col max-[960px]:items-stretch"
+            class=":uno: flex w-full items-center justify-between gap-3 bg-[var(--sw-sidebar)] px-4 py-3 max-[960px]:flex-col max-[960px]:items-stretch"
           >
-            <div class=":uno: flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <strong class=":uno: text-lg leading-none text-gray-900">
+            <div class=":uno: flex flex-wrap items-center gap-2 text-xs text-[var(--sw-muted)]">
+              <strong class=":uno: text-lg leading-none text-[var(--sw-text)]">
                 {{ conversationTotal }}
               </strong>
               <span>条会话</span>
@@ -311,7 +307,7 @@ onMounted(fetchConversations)
               <VEntityField>
                 <template #description>
                   <span
-                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
                   >
                     {{ visitorText(conversation) }}
                   </span>
@@ -320,7 +316,7 @@ onMounted(fetchConversations)
               <VEntityField>
                 <template #description>
                   <span
-                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500 tabular-nums"
+                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)] tabular-nums"
                   >
                     {{
                       formatRelativeDate(
@@ -361,17 +357,17 @@ onMounted(fetchConversations)
       <VCard class=":uno: min-w-0" :body-class="[':uno: !p-0']">
         <template #header>
           <div
-            class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3 max-[960px]:flex-col max-[960px]:items-stretch"
+            class=":uno: flex w-full items-center justify-between gap-3 bg-[var(--sw-sidebar)] px-4 py-3 max-[960px]:flex-col max-[960px]:items-stretch"
           >
             <div class=":uno: grid min-w-0 gap-[3px]">
               <strong
-                class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-sm leading-snug text-gray-900"
+                class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-sm leading-snug text-[var(--sw-text)]"
               >
                 {{ activeConversation ? conversationTitle(activeConversation) : '会话详情' }}
               </strong>
               <span
                 v-if="activeConversation"
-                class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
               >
                 访客 {{ visitorText(activeConversation) }} · 最近
                 {{
@@ -381,7 +377,7 @@ onMounted(fetchConversations)
                   )
                 }}
               </span>
-              <span v-else class=":uno: text-xs text-slate-500">从左侧选择一条会话</span>
+              <span v-else class=":uno: text-xs text-[var(--sw-muted)]">从左侧选择一条会话</span>
             </div>
             <VButton
               v-if="
@@ -403,41 +399,41 @@ onMounted(fetchConversations)
 
         <template v-if="activeConversation">
           <dl
-            class=":uno: m-0 grid grid-cols-5 border-b border-[#edf0f5] bg-white max-[680px]:grid-cols-2"
+            class=":uno: m-0 grid grid-cols-5 border-b border-[var(--sw-border)] bg-[var(--sw-bg)] max-[680px]:grid-cols-2"
           >
-            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">消息</dt>
-              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-gray-900">
+            <div class=":uno: min-w-0 border-r border-[var(--sw-border)] px-3.5 py-3">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">消息</dt>
+              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-[var(--sw-text)]">
                 {{ activeConversation.status?.messageCount || 0 }}
               </dd>
             </div>
-            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">用户</dt>
-              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-blue-700">
+            <div class=":uno: min-w-0 border-r border-[var(--sw-border)] px-3.5 py-3">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">用户</dt>
+              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-[var(--sw-text)]">
                 {{ activeConversation.status?.userMessageCount || 0 }}
               </dd>
             </div>
-            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">助手</dt>
-              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-slate-900">
+            <div class=":uno: min-w-0 border-r border-[var(--sw-border)] px-3.5 py-3">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">助手</dt>
+              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-[var(--sw-text)]">
                 {{ activeConversation.status?.assistantMessageCount || 0 }}
               </dd>
             </div>
-            <div class=":uno: min-w-0 border-r border-[#edf0f5] px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">输入字符</dt>
-              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-gray-900">
+            <div class=":uno: min-w-0 border-r border-[var(--sw-border)] px-3.5 py-3">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">输入字符</dt>
+              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-[var(--sw-text)]">
                 {{ activeConversation.status?.totalInputChars || 0 }}
               </dd>
             </div>
             <div class=":uno: min-w-0 px-3.5 py-3">
-              <dt class=":uno: text-xs text-slate-400">输出字符</dt>
-              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-gray-900">
+              <dt class=":uno: text-xs text-[var(--sw-faint)]">输出字符</dt>
+              <dd class=":uno: m-0 mt-1 text-[15px] font-bold text-[var(--sw-text)]">
                 {{ activeConversation.status?.totalOutputChars || 0 }}
               </dd>
             </div>
           </dl>
 
-          <div class=":uno: max-h-[640px] overflow-y-auto bg-[#f6f8fb] px-4 py-4">
+          <div class=":uno: max-h-[640px] overflow-y-auto bg-[var(--sw-sidebar)] px-4 py-4">
             <div v-if="activeConversation.spec?.messages?.length" class=":uno: flex flex-col gap-3">
               <article
                 v-for="message in activeConversation.spec?.messages || []"
@@ -449,7 +445,7 @@ onMounted(fetchConversations)
                   class=":uno: flex max-w-[min(720px,86%)] flex-col gap-1.5"
                   :class="message.role === 'assistant' ? ':uno: items-start' : ':uno: items-end'"
                 >
-                  <div class=":uno: flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                  <div class=":uno: flex flex-wrap items-center gap-2 text-[11px] text-[var(--sw-muted)]">
                     <span class=":uno: font-bold">
                       {{ messageRoleText(message.role) }}
                     </span>
@@ -474,7 +470,7 @@ onMounted(fetchConversations)
                       :href="source.url || undefined"
                       target="_blank"
                       rel="noopener noreferrer"
-                      class=":uno: max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap rounded border border-blue-100 bg-white px-[7px] py-[3px] text-[11px] text-blue-600 no-underline shadow-sm"
+                      class=":uno: max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap rounded border border-[var(--sw-border)] bg-[var(--sw-bg)] px-[7px] py-[3px] text-[11px] text-[var(--sw-text)] no-underline shadow-sm"
                     >
                       {{ sourceTitle(source) }}
                     </a>

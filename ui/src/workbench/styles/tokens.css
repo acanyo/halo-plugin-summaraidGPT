@@ -1,0 +1,114 @@
+/* Same neutral palette and control proportions as plugin-lingui's OAI-style studio. */
+.sw-workbench,
+.sw-workbench-dialog {
+  --sw-bg: #ffffff;
+  --sw-sidebar: #f9f9f9;
+  --sw-subtle: #f4f4f4;
+  --sw-hover: #eeeeee;
+  --sw-text: #0d0d0d;
+  --sw-muted: #646464;
+  --sw-faint: #8f8f8f;
+  --sw-border: #e5e5e5;
+  --sw-accent: #267566;
+  --sw-success-bg: #f0f7f4;
+  --sw-danger: #b42318;
+  --sw-danger-bg: #fff5f4;
+  --sw-radius: 12px;
+  --sw-control-radius: 10px;
+  color: var(--sw-text);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+:where(.dark, [data-theme='dark'], [data-color-scheme='dark'])
+  :is(.sw-workbench, .sw-workbench-dialog) {
+  --sw-bg: #212121;
+  --sw-sidebar: #171717;
+  --sw-subtle: #2f2f2f;
+  --sw-hover: #383838;
+  --sw-text: #ececec;
+  --sw-muted: #a0a0a0;
+  --sw-faint: #898989;
+  --sw-border: #3a3a3a;
+  --sw-accent: #89c7b2;
+  --sw-success-bg: #253a32;
+  --sw-danger: #ff938a;
+  --sw-danger-bg: #3e2827;
+}
+
+.sw-workbench *,
+.sw-workbench-dialog * {
+  box-sizing: border-box;
+}
+.sw-workbench :is(h1, h2, h3, p, dl, dd) {
+  margin: 0;
+}
+.sw-workbench .sw-icon {
+  flex-shrink: 0;
+}
+.sw-workbench :focus-visible,
+.sw-workbench-dialog :focus-visible {
+  outline: 2px solid var(--sw-muted);
+  outline-offset: 3px;
+}
+.sw-workbench .sw-muted {
+  color: var(--sw-muted);
+  font-size: 12px;
+}
+.sw-workbench .sw-eyebrow {
+  color: var(--sw-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+}
+.sw-workbench .sw-status-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sw-faint);
+}
+.sw-workbench .sw-status-dot.is-ready {
+  background: var(--sw-accent);
+}
+.sw-workbench .sw-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+  border: 1px solid var(--sw-border);
+  border-radius: 10px;
+  padding: 13px 16px;
+  background: var(--sw-sidebar);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.sw-workbench .sw-notice > .sw-icon {
+  margin-top: 2px;
+}
+.sw-workbench .sw-notice p {
+  color: var(--sw-muted);
+  margin-top: 4px;
+}
+.sw-workbench .sw-notice .sw-text-button {
+  margin-left: auto;
+}
+.sw-workbench .is-spinning {
+  animation: sw-spin 1s linear infinite;
+}
+@keyframes sw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sw-workbench *,
+  .sw-workbench-dialog * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}

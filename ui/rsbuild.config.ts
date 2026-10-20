@@ -15,6 +15,9 @@ export default rsbuildConfig({
     tools: {
       rspack: {
         plugins: [Icons({ compiler: 'vue3' }), UnoCSSRspackPlugin()],
+        module: {
+          rules: [{ test: /speech-models\.json$/, type: 'json' }],
+        },
       },
     },
   },

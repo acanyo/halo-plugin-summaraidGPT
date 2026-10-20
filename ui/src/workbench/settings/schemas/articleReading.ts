@@ -1,0 +1,38 @@
+export default [
+  {
+    $formkit: 'switch',
+    label: '启用洞察图谱',
+    name: 'enable',
+    id: 'articleReadingEnable',
+    key: 'articleReadingEnable',
+    value: true,
+    help: '开启后会为文章生成并保存洞察图谱结构。',
+  },
+  {
+    $formkit: 'switch',
+    label: '在文章页显示洞察图谱',
+    name: 'enableUiInjection',
+    id: 'articleReadingEnableUiInjection',
+    key: 'articleReadingEnableUiInjection',
+    value: true,
+    help: '关闭后不在文章页注入图谱 UI，但仍可在控制台生成和预览。',
+  },
+  {
+    $formkit: 'switch',
+    label: '访问文章时自动生成',
+    name: 'autoGenerate',
+    id: 'articleReadingAutoGenerate',
+    key: 'articleReadingAutoGenerate',
+    value: true,
+    help: '开启后访问文章页时会在后台生成洞察图谱；关闭后只通过控制台手动图谱生成。',
+  },
+  {
+    $formkit: 'switch',
+    label: '文章页默认折叠',
+    name: 'defaultCollapsed',
+    id: 'articleReadingDefaultCollapsed',
+    key: 'articleReadingDefaultCollapsed',
+    value: false,
+    help: '开启后文章页的洞察图谱默认收起，读者点击标题栏再展开，避免占用正文阅读空间。',
+  },
+]

@@ -21,6 +21,8 @@ tasks.register('pnpmBuild', PnpmTask) {
     args = ['build']
     dependsOn tasks.named('pnpmInstall')
     inputs.dir(layout.projectDirectory.dir('src'))
+    inputs.dir(rootProject.layout.projectDirectory.dir('shared/insight-graph'))
+    inputs.dir(rootProject.layout.projectDirectory.dir('shared/podcast'))
     inputs.files(fileTree(
         dir: layout.projectDirectory,
         includes: ['*.cjs', '*.ts', '*.js', '*.json', '*.yaml']))

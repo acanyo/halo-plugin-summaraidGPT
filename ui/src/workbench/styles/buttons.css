@@ -1,0 +1,99 @@
+/* Keep native actions and Halo buttons on the same workbench palette. */
+.sw-workbench .sw-button,
+.sw-workbench .sw-text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--sw-border);
+  border-radius: 999px;
+  min-height: 38px;
+  padding: 8px 15px;
+  background: var(--sw-bg);
+  color: var(--sw-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 140ms,
+    opacity 140ms;
+}
+.sw-workbench .sw-button:hover:not(:disabled) {
+  background: var(--sw-subtle);
+}
+.sw-workbench .sw-button.is-primary {
+  background: var(--sw-text);
+  color: var(--sw-bg);
+  border-color: var(--sw-text);
+}
+.sw-workbench .sw-button.is-primary:hover:not(:disabled) {
+  background: var(--sw-text);
+  opacity: 0.85;
+}
+.sw-workbench .sw-text-button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--sw-muted);
+  padding: 7px 9px;
+}
+.sw-workbench .sw-text-button:hover:not(:disabled) {
+  color: var(--sw-text);
+  background: var(--sw-subtle);
+}
+
+:is(.sw-workbench, .sw-workbench-dialog) .btn {
+  --sw-button-bg: var(--sw-bg);
+  --sw-button-color: var(--sw-text);
+  --sw-button-border: var(--sw-border);
+  --sw-button-hover: var(--sw-subtle);
+  --sw-button-active: var(--sw-hover);
+  border: 1px solid var(--sw-button-border);
+  border-radius: 999px;
+  min-height: 34px;
+  background-color: var(--sw-button-bg) !important;
+  color: var(--sw-button-color);
+  font-size: 12px;
+  box-shadow: none;
+}
+:is(.sw-workbench, .sw-workbench-dialog) .btn-primary {
+  --sw-button-bg: var(--sw-text);
+  --sw-button-color: var(--sw-bg);
+  --sw-button-border: var(--sw-text);
+  --sw-button-hover: var(--sw-text);
+  --sw-button-active: var(--sw-text);
+}
+:is(.sw-workbench, .sw-workbench-dialog) .btn-danger {
+  --sw-button-bg: var(--sw-danger-bg);
+  --sw-button-color: var(--sw-danger);
+  --sw-button-border: var(--sw-danger);
+  --sw-button-hover: var(--sw-danger-bg);
+  --sw-button-active: var(--sw-danger-bg);
+}
+/* Halo gives icon wrappers their own color, including the loading spinner. */
+:is(.sw-workbench, .sw-workbench-dialog) .btn .btn-icon {
+  color: inherit;
+}
+:is(.sw-workbench, .sw-workbench-dialog) .btn:hover {
+  opacity: 1;
+}
+:is(.sw-workbench, .sw-workbench-dialog) .btn:not(:disabled):not(.btn-loading):hover {
+  background-color: var(--sw-button-hover) !important;
+}
+:is(.sw-workbench, .sw-workbench-dialog) .btn:not(:disabled):not(.btn-loading):active {
+  background-color: var(--sw-button-active) !important;
+}
+:is(.sw-workbench, .sw-workbench-dialog) .btn-primary:not(:disabled):not(.btn-loading):hover {
+  opacity: 0.85;
+}
+:is(.sw-workbench, .sw-workbench-dialog) .btn:disabled,
+.sw-workbench .sw-button:disabled,
+.sw-workbench .sw-text-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+:is(.sw-workbench, .sw-workbench-dialog) .btn-loading {
+  cursor: wait;
+}

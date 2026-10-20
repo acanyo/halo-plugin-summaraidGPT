@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WorkbenchSectionHeader from '@/workbench/components/WorkbenchSectionHeader.vue'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
   VEntityContainer,
   VEntityField,
   VLoading,
-  VPageHeader,
   VPagination,
   VSpace,
   VStatusDot,
@@ -20,7 +20,6 @@ import {
 } from '@halo-dev/components'
 import { utils } from '@halo-dev/ui-shared'
 import RiDeleteBinLine from '~icons/ri/delete-bin-line'
-import RiFileList3Line from '~icons/ri/file-list-3-line'
 import RiPulseLine from '~icons/ri/pulse-line'
 import { aiCallLogApi, type AiCallLog, type ListAiCallLogsParams } from '@/api/ai-call-logs'
 import { hasUiPermission } from '@/utils/permissions'
@@ -142,7 +141,7 @@ const loadLogs = async (options: { silent?: boolean } = {}) => {
       page.value = Math.max(1, Math.ceil(result.total / pageSize.value))
       return
     }
-  } catch (error) {
+  } catch {
     if (!options.silent) {
       Toast.error('AI 调用日志加载失败')
     }
@@ -183,7 +182,7 @@ const deleteLog = (log: AiCallLog) => {
         await aiCallLogApi.delete(log.metadata.name)
         Toast.success('已删除')
         await loadLogs()
-      } catch (error) {
+      } catch {
         Toast.error('删除失败')
       } finally {
         deleting.value = false
@@ -207,7 +206,7 @@ const clearLogs = () => {
         } else {
           page.value = 1
         }
-      } catch (error) {
+      } catch {
         Toast.error('清空失败')
       } finally {
         clearing.value = false
@@ -273,10 +272,7 @@ onMounted(loadLogs)
 </script>
 
 <template>
-  <VPageHeader title="AI 调用日志">
-    <template #icon>
-      <RiFileList3Line class="mr-2 self-center" />
-    </template>
+  <WorkbenchSectionHeader title="调用日志" description="查看模型调用、耗时和失败原因，定位使用中的问题。">
     <template #actions>
       <VSpace>
         <VButton
@@ -301,9 +297,9 @@ onMounted(loadLogs)
         </VButton>
       </VSpace>
     </template>
-  </VPageHeader>
+  </WorkbenchSectionHeader>
 
-  <div class=":uno: flex flex-col gap-3 p-4">
+  <div class="sw-module-body :uno: flex flex-col gap-4">
     <VCard v-if="latestError" :body-class="[':uno: flex gap-3 bg-red-50 px-4 py-3.5 text-red-800']">
       <RiPulseLine class=":uno: mt-px h-5 w-5 flex-none" />
       <div>
@@ -319,10 +315,10 @@ onMounted(loadLogs)
     <VCard :body-class="[':uno: !p-0']">
       <template #header>
         <div
-          class=":uno: flex w-full items-center justify-between gap-4 bg-gray-50 px-4 py-3 max-[900px]:flex-col max-[900px]:items-stretch"
+          class=":uno: flex w-full items-center justify-between gap-4 bg-[var(--sw-sidebar)] px-4 py-3 max-[900px]:flex-col max-[900px]:items-stretch"
         >
-          <div class=":uno: flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <strong class=":uno: text-lg leading-none text-gray-900">{{ total }}</strong>
+          <div class=":uno: flex flex-wrap items-center gap-2 text-xs text-[var(--sw-muted)]">
+            <strong class=":uno: text-lg leading-none text-[var(--sw-text)]">{{ total }}</strong>
             <span>条日志</span>
             <span>本页成功 {{ successCount }}</span>
             <span>失败 {{ failedCount }}</span>
@@ -375,14 +371,14 @@ onMounted(loadLogs)
                     :text="log.spec?.success === false ? '失败' : '成功'"
                   />
                   <span
-                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-slate-900"
+                    class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-[var(--sw-text)]"
                   >
                     {{ operationText(log.spec?.operation) }}
                   </span>
                 </span>
               </template>
               <template #description>
-                <span class=":uno: whitespace-nowrap text-xs text-slate-500">
+                <span class=":uno: whitespace-nowrap text-xs text-[var(--sw-muted)]">
                   模型：{{ modelNameText(log.spec?.modelName) }}
                 </span>
               </template>
@@ -397,14 +393,14 @@ onMounted(loadLogs)
             </VEntityField>
             <VEntityField>
               <template #description>
-                <span class=":uno: whitespace-nowrap text-xs text-slate-500">
+                <span class=":uno: whitespace-nowrap text-xs text-[var(--sw-muted)]">
                   耗时 {{ formatDuration(log.spec?.durationMillis) }}
                 </span>
               </template>
             </VEntityField>
             <VEntityField>
               <template #description>
-                <span class=":uno: whitespace-nowrap text-xs text-slate-500">
+                <span class=":uno: whitespace-nowrap text-xs text-[var(--sw-muted)]">
                   输入 {{ formatNumber(log.spec?.inputCount) }} 项 /
                   {{ formatNumber(log.spec?.inputChars) }} 字符
                 </span>
@@ -412,7 +408,7 @@ onMounted(loadLogs)
             </VEntityField>
             <VEntityField v-if="log.spec?.outputChars !== undefined">
               <template #description>
-                <span class=":uno: whitespace-nowrap text-xs text-slate-500">
+                <span class=":uno: whitespace-nowrap text-xs text-[var(--sw-muted)]">
                   输出 {{ formatNumber(log.spec?.outputCount) }} 项 /
                   {{ formatNumber(log.spec?.outputChars) }} 字符
                 </span>
@@ -422,7 +418,7 @@ onMounted(loadLogs)
               v-if="log.spec?.candidateCount !== undefined || log.spec?.sourceCount !== undefined"
             >
               <template #description>
-                <span class=":uno: whitespace-nowrap text-xs text-slate-500">
+                <span class=":uno: whitespace-nowrap text-xs text-[var(--sw-muted)]">
                   <template v-if="log.spec?.candidateCount !== undefined">
                     候选 {{ formatNumber(log.spec?.candidateCount) }}
                   </template>
@@ -434,7 +430,7 @@ onMounted(loadLogs)
             </VEntityField>
             <VEntityField>
               <template #description>
-                <span class=":uno: whitespace-nowrap text-xs text-slate-400 tabular-nums">
+                <span class=":uno: whitespace-nowrap text-xs text-[var(--sw-faint)] tabular-nums">
                   {{ formatDate(log.spec?.startedAt || log.metadata.creationTimestamp) }}
                 </span>
               </template>
@@ -459,7 +455,7 @@ onMounted(loadLogs)
                 <span
                   v-for="[key, value] in metadataEntries(log.spec?.metadata)"
                   :key="key"
-                  class=":uno: rounded bg-slate-100 px-[7px] py-0.5 text-xs text-slate-500"
+                  class=":uno: rounded bg-[var(--sw-subtle)] px-[7px] py-0.5 text-xs text-[var(--sw-muted)]"
                 >
                   {{ key }}={{ value }}
                 </span>

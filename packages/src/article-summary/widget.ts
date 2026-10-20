@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { customElement, property, state } from 'lit/decorators.js';
 import { articleSummaryStyles } from './styles';
+import { mountLinguiSummary } from './lingui';
 import {
   buildThemeObserver,
   fetchSummaryContent,
@@ -47,6 +48,9 @@ export class ArticleSummaryWidget extends LitElement {
   @property({ type: String, attribute: 'ui-style' })
   uiStyle = 'simple';
 
+  @property({ type: String, attribute: 'lingui-project-id' })
+  linguiProjectId = '';
+
   @property({ type: String, attribute: 'fixed-tone' })
   fixedTone = 'violet';
 
@@ -74,9 +78,13 @@ export class ArticleSummaryWidget extends LitElement {
   @state()
   private isDark = false;
 
+  @state()
+  private linguiReady = false;
+
   private themeObservers: MutationObserver[] = [];
   private typewriterTimer?: number;
-  private initialized = false;
+  private summaryGeneration = 0;
+  private disposeLingui?: () => void;
   private prefersColorSchemeQuery?: MediaQueryList;
   private readonly handleSystemColorSchemeChange = () => {
     this.refreshThemeMode();
@@ -87,18 +95,8 @@ export class ArticleSummaryWidget extends LitElement {
     this.refreshThemeMode();
     this.bindThemeObservers();
     this.bindSystemColorSchemeListener();
-  }
-
-  protected firstUpdated(): void {
-    if (this.postName) {
-      void this.loadSummary();
-    } else {
-      this.loading = false;
-      this.loadFailed = true;
-      this.displayContent = '摘要加载失败，请稍后重试';
-    }
-
-    this.initialized = true;
+    // Let the same update handle reconnects and any article change queued while disconnected.
+    if (this.hasUpdated) this.requestUpdate('postName');
   }
 
   disconnectedCallback(): void {
@@ -106,24 +104,37 @@ export class ArticleSummaryWidget extends LitElement {
     this.unbindThemeObservers();
     this.unbindSystemColorSchemeListener();
     this.stopTypewriter();
+    this.summaryGeneration++;
+    this.resetLingui();
   }
 
   protected updated(changedProperties: Map<PropertyKey, unknown>): void {
+    if (!this.isConnected) return;
     if (changedProperties.has('darkSelector')) {
       this.refreshThemeMode();
       this.bindThemeObservers();
     }
 
-    if (!this.initialized) {
-      return;
-    }
-
-    if (changedProperties.has('postName') && this.postName) {
-      void this.loadSummary();
+    if (changedProperties.has('postName')) {
+      if (this.postName) {
+        void this.loadSummary();
+      } else {
+        this.summaryGeneration++;
+        this.resetLingui();
+        this.stopTypewriter();
+        this.loading = false;
+        this.loadFailed = true;
+        this.displayContent = '摘要加载失败，请稍后重试';
+      }
+    } else if (changedProperties.has('linguiProjectId') || changedProperties.has('uiStyle')
+      || changedProperties.has('summaryTitle') || changedProperties.has('gptName')) {
+      this.syncLingui();
     }
   }
 
   private async loadSummary(): Promise<void> {
+    const generation = ++this.summaryGeneration;
+    this.resetLingui();
     this.stopTypewriter();
     this.loading = true;
     this.loadFailed = false;
@@ -131,16 +142,41 @@ export class ArticleSummaryWidget extends LitElement {
 
     try {
       const data = await fetchSummaryContent(this.postName);
+      if (generation !== this.summaryGeneration) return;
       this.content = data.summaryContent?.trim() || '暂无摘要内容';
       this.applyContent();
     } catch (error) {
+      if (generation !== this.summaryGeneration) return;
       console.warn('获取摘要失败:', error);
       this.content = '摘要加载失败，请稍后重试';
       this.displayContent = this.content;
       this.loadFailed = true;
     } finally {
-      this.loading = false;
+      if (generation === this.summaryGeneration) {
+        this.loading = false;
+        this.syncLingui();
+      }
     }
+  }
+
+  private resetLingui(): void {
+    this.disposeLingui?.();
+    this.disposeLingui = undefined;
+    this.linguiReady = false;
+  }
+
+  private syncLingui(): void {
+    this.resetLingui();
+    if (this.uiStyle !== 'lingui' || !this.linguiProjectId.trim()
+      || this.loading || this.loadFailed || !this.isConnected) return;
+    this.disposeLingui = mountLinguiSummary(this, this.linguiProjectId.trim(), {
+      title: this.summaryTitle || '文章摘要',
+      gptName: this.gptName || '智阅GPT',
+      content: this.content,
+      postId: this.postName,
+      loading: false,
+      error: '',
+    }, () => { this.linguiReady = true; }, () => { this.linguiReady = false; });
   }
 
   private applyContent(): void {
@@ -316,6 +352,12 @@ export class ArticleSummaryWidget extends LitElement {
   }
 
   protected render() {
+    if (this.uiStyle === 'lingui') {
+      return html`
+        <div ?hidden=${!this.linguiReady}><slot name="lingui-summary"></slot></div>
+        ${this.linguiReady ? nothing : this.renderSimpleCard()}
+      `;
+    }
     if (this.effectiveUiStyle === 'simple') {
       return this.renderSimpleCard();
     }

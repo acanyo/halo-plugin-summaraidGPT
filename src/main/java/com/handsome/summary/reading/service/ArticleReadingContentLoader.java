@@ -56,7 +56,7 @@ public class ArticleReadingContentLoader {
     private String htmlText(String html) {
         var document = Jsoup.parse(html);
         document.select("script,style,noscript,template,ai-summaraidGPT,"
-            + "ai-summaraidGPT-reading,ai-summaraidGPT-data").remove();
+            + "ai-summaraidGPT-reading,ai-summaraidGPT-data,likcc-article-podcast").remove();
 
         var blocks = new ArrayList<String>();
         document.select(BLOCK_SELECTOR).forEach(element -> addBlockText(blocks, element));

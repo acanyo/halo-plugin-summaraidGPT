@@ -1,0 +1,72 @@
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-public-summaraidGPT-podcast
+  labels:
+    halo.run/role-template: "true"
+    halo.run/hidden: "true"
+    rbac.authorization.halo.run/aggregate-to-anonymous: "true"
+rules:
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["articlePodcasts"]
+    verbs: ["get"]
+---
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-view-summaraidGPT-podcast
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "智阅AI助手"
+    rbac.authorization.halo.run/display-name: "查看文章播客"
+    rbac.authorization.halo.run/ui-permissions: '["plugin:summaraidGPT:podcast:view"]'
+rules:
+  - apiGroups: ["console.api.summary.summaraidgpt.lik.cc"]
+    resources: ["podcastEpisodes", "podcastCapabilities"]
+    verbs: ["get", "list"]
+  - apiGroups: ["api.console.halo.run"]
+    resources: ["posts"]
+    verbs: ["get", "list"]
+---
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-manage-summaraidGPT-podcast
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "智阅AI助手"
+    rbac.authorization.halo.run/display-name: "管理文章播客"
+    rbac.authorization.halo.run/dependencies: '["role-template-view-summaraidGPT-podcast"]'
+    rbac.authorization.halo.run/ui-permissions: '["plugin:summaraidGPT:podcast:manage"]'
+rules:
+  - apiGroups: ["console.api.summary.summaraidgpt.lik.cc"]
+    resources: ["podcastEpisodes", "podcastEpisodes/audio", "podcastScripts"]
+    verbs: ["get", "list", "create", "update", "delete"]
+---
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-view-summaraidGPT-podcast-credentials
+  labels:
+    halo.run/role-template: "true"
+    halo.run/hidden: "true"
+    rbac.authorization.halo.run/aggregate-to-role-template-view-plugins: "true"
+rules:
+  - apiGroups: ["console.api.summary.summaraidgpt.lik.cc"]
+    resources: ["podcastCredentials"]
+    verbs: ["get", "list"]
+---
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-manage-summaraidGPT-podcast-credentials
+  labels:
+    halo.run/role-template: "true"
+    halo.run/hidden: "true"
+    rbac.authorization.halo.run/aggregate-to-role-template-manage-plugins: "true"
+rules:
+  - apiGroups: ["console.api.summary.summaraidgpt.lik.cc"]
+    resources: ["podcastCredentials"]
+    verbs: ["update"]

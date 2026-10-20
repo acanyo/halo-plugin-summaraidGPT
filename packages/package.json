@@ -14,7 +14,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build --mode summary && vite build --mode rag",
+    "build": "tsc && vite build --mode summary && vite build --mode rag && vite build --mode podcast",
     "test": "vitest run",
     "preview": "vite preview"
   },

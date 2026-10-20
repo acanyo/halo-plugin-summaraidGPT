@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WorkbenchSectionHeader from '@/workbench/components/WorkbenchSectionHeader.vue'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   Dialog,
@@ -13,7 +14,6 @@ import {
   VEntityField,
   VLoading,
   VModal,
-  VPageHeader,
   VPagination,
   VSpace,
   VStatusDot,
@@ -22,13 +22,13 @@ import {
 } from '@halo-dev/components'
 import { utils } from '@halo-dev/ui-shared'
 import RiAddLine from '~icons/ri/add-line'
-import RiBearSmileLine from '~icons/ri/bear-smile-line'
 import RiDownloadCloudLine from '~icons/ri/download-cloud-line'
 import RiExternalLinkLine from '~icons/ri/external-link-line'
 import RiSparkling2Line from '~icons/ri/sparkling-2-line'
 import RiStore2Line from '~icons/ri/store-2-line'
 import { petApi, type PetCompanion, type PetdexCatalogItem } from '@/api/pets'
 import { hasUiPermission } from '@/utils/permissions'
+import { workbenchLocation } from '@/workbench/navigation'
 
 const PET_FRAME_WIDTH = 192
 const PET_FRAME_HEIGHT = 208
@@ -179,7 +179,7 @@ const loadPets = async (options: { silent?: boolean } = {}) => {
     pets.value = await petApi.list()
     normalizePetPage()
     syncDeletingPetRefetch()
-  } catch (error) {
+  } catch {
     if (!options.silent) {
       Toast.error('宠物列表加载失败')
     }
@@ -204,7 +204,7 @@ const loadPetdexCatalog = async () => {
     petdexCatalog.value = catalog.items || []
     petdexCatalogGeneratedAt.value = catalog.generatedAt || ''
     petdexCatalogPage.value = 1
-  } catch (error) {
+  } catch {
     Toast.error('PetDex 宠物库加载失败')
   } finally {
     loadingPetdexCatalog.value = false
@@ -225,7 +225,7 @@ const importPet = async () => {
     })
     Toast.success(`已导入并启用 ${displayName(pet)}`)
     await loadPets()
-  } catch (error) {
+  } catch {
     Toast.error('导入失败，请确认命令来自 petdex.dev/install')
   } finally {
     importing.value = false
@@ -312,7 +312,7 @@ const enablePet = async (pet: PetCompanion) => {
     await petApi.setActive(pet.metadata.name)
     Toast.success(`已启用 ${displayName(pet)}`)
     await loadPets()
-  } catch (error) {
+  } catch {
     Toast.error('设置失败')
   } finally {
     mutating.value = false
@@ -330,7 +330,7 @@ const deletePet = (pet: PetCompanion) => {
         await petApi.delete(pet.metadata.name)
         Toast.success('已删除')
         await loadPets()
-      } catch (error) {
+      } catch {
         Toast.error('删除失败')
       } finally {
         mutating.value = false
@@ -452,12 +452,10 @@ onMounted(loadPets)
 </script>
 
 <template>
-  <VPageHeader title="宠物列表">
-    <template #icon>
-      <RiBearSmileLine class="mr-2 self-center" />
-    </template>
+  <WorkbenchSectionHeader title="前台助手" description="管理助手形象，为访客提供一个随时可以提问的入口。">
     <template #actions>
       <VSpace>
+        <RouterLink v-if="hasUiPermission('system:plugins:view')" :to="workbenchLocation('settings', { group: 'assistant' })" class="sw-button">助手设置</RouterLink>
         <VButton type="secondary" :loading="loading" @click="loadPets()">
           <template #icon>
             <IconRefreshLine class="h-full w-full" />
@@ -488,9 +486,9 @@ onMounted(loadPets)
         </VButton>
       </VSpace>
     </template>
-  </VPageHeader>
+  </WorkbenchSectionHeader>
 
-  <div class=":uno: m-0 grid gap-3 p-3 md:m-4 md:p-0">
+  <div class="sw-module-body :uno: grid gap-4">
     <VCard
       v-if="canManagePets"
       v-permission="[PETS_MANAGE_PERMISSION]"
@@ -501,11 +499,11 @@ onMounted(loadPets)
         class="pet-import-compact :uno: grid grid-cols-[minmax(150px,220px)_minmax(0,1fr)_max-content] items-center gap-3 px-3.5 py-3 max-[860px]:grid-cols-1"
       >
         <div class=":uno: grid min-w-0 gap-0.5">
-          <strong class=":uno: text-[13px] font-bold leading-snug text-gray-900">
+          <strong class=":uno: text-[13px] font-bold leading-snug text-[var(--sw-text)]">
             PetDex 导入
           </strong>
           <span
-            class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-snug text-slate-500"
+            class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-snug text-[var(--sw-muted)]"
           >
             粘贴安装命令，只读取远程资源链接。
           </span>
@@ -527,9 +525,9 @@ onMounted(loadPets)
 
     <VCard :body-class="[':uno: !p-0']">
       <template #header>
-        <div class=":uno: flex w-full items-center justify-between gap-3 bg-gray-50 px-4 py-3">
-          <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-gray-500">
-            <strong class=":uno: text-lg leading-none text-gray-900">{{ pets.length }}</strong>
+        <div class=":uno: flex w-full items-center justify-between gap-3 bg-[var(--sw-sidebar)] px-4 py-3">
+          <div class=":uno: flex min-w-0 flex-wrap items-center gap-2 text-xs text-[var(--sw-muted)]">
+            <strong class=":uno: text-lg leading-none text-[var(--sw-text)]">{{ pets.length }}</strong>
             <span>个宠物</span>
             <span>当前启用：{{ activePet ? displayName(activePet) : '未设置' }}</span>
           </div>
@@ -559,7 +557,7 @@ onMounted(loadPets)
         >
           <template #start>
             <div
-              class=":uno: relative grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50"
+              class=":uno: relative grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-lg border border-[var(--sw-border)] bg-[var(--sw-sidebar)]"
             >
               <span
                 class=":uno: absolute bottom-2 h-1.5 w-10 rounded-full bg-slate-900/10 blur-[3px]"
@@ -595,7 +593,7 @@ onMounted(loadPets)
             <VEntityField v-if="pet.spec?.petdexId" width="8rem">
               <template #description>
                 <span
-                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500"
+                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-muted)]"
                 >
                   {{ pet.spec.petdexId }}
                 </span>
@@ -608,7 +606,7 @@ onMounted(loadPets)
                   target="_blank"
                   rel="noopener noreferrer"
                   :title="sourceUrl(pet)"
-                  class=":uno: inline-flex max-w-full items-center gap-[5px] overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-tight text-blue-600 no-underline"
+                  class=":uno: inline-flex max-w-full items-center gap-[5px] overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-tight text-[var(--sw-text)] no-underline"
                   @click.stop
                 >
                   <RiExternalLinkLine class=":uno: h-[13px] w-[13px] flex-none" />
@@ -619,7 +617,7 @@ onMounted(loadPets)
             <VEntityField>
               <template #description>
                 <span
-                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-400 tabular-nums"
+                  class=":uno: overflow-hidden text-ellipsis whitespace-nowrap text-xs text-[var(--sw-faint)] tabular-nums"
                 >
                   {{ formatDate(pet.status?.updatedAt || pet.status?.importedAt) }}
                 </span>
@@ -673,14 +671,14 @@ onMounted(loadPets)
     </VCard>
   </div>
 
-  <VModal
+  <VModal class="sw-workbench-dialog"
     v-model:visible="showPetModal"
     :title="editingPet ? '编辑宠物' : '手动添加宠物'"
     :width="680"
   >
     <div class="pet-form-stack :uno: grid w-full min-w-0 gap-3">
-      <section class=":uno: grid gap-3 rounded-lg border border-[#edf0f5] bg-white p-3.5">
-        <div class=":uno: text-[13px] font-bold leading-tight text-gray-900">基础信息</div>
+      <section class=":uno: grid gap-3 rounded-lg border border-[var(--sw-border)] bg-[var(--sw-bg)] p-3.5">
+        <div class=":uno: text-[13px] font-bold leading-tight text-[var(--sw-text)]">基础信息</div>
         <div class=":uno: grid w-full min-w-0 grid-cols-1 gap-3">
           <FormKit
             v-model="petForm.displayName"
@@ -707,8 +705,8 @@ onMounted(loadPets)
         />
       </section>
 
-      <section class=":uno: grid gap-3 rounded-lg border border-[#edf0f5] bg-white p-3.5">
-        <div class=":uno: text-[13px] font-bold leading-tight text-gray-900">宠物资源</div>
+      <section class=":uno: grid gap-3 rounded-lg border border-[var(--sw-border)] bg-[var(--sw-bg)] p-3.5">
+        <div class=":uno: text-[13px] font-bold leading-tight text-[var(--sw-text)]">宠物资源</div>
         <div class=":uno: grid gap-3.5">
           <FormKit
             v-model="petForm.spritesheetUrl"
@@ -734,8 +732,8 @@ onMounted(loadPets)
         </div>
       </section>
 
-      <section class=":uno: grid gap-3 rounded-lg border border-[#edf0f5] bg-white px-3.5 py-3">
-        <label class=":uno: inline-flex items-center gap-2 text-[13px] text-slate-700">
+      <section class=":uno: grid gap-3 rounded-lg border border-[var(--sw-border)] bg-[var(--sw-bg)] px-3.5 py-3">
+        <label class=":uno: inline-flex items-center gap-2 text-[13px] text-[var(--sw-text)]">
           <VSwitch v-model="petForm.activate" />
           <span>保存后启用这个宠物</span>
         </label>
@@ -749,11 +747,11 @@ onMounted(loadPets)
     </template>
   </VModal>
 
-  <VModal v-model:visible="showPetdexCatalogModal" title="PetDex 宠物库" :width="920">
+  <VModal class="sw-workbench-dialog" v-model:visible="showPetdexCatalogModal" title="PetDex 宠物库" :width="920">
     <div class=":uno: grid gap-3">
       <div class=":uno: flex items-center justify-between gap-3">
-        <div class=":uno: flex flex-wrap items-center gap-2 text-[13px] text-slate-500">
-          <strong class=":uno: text-lg leading-none text-gray-900">
+        <div class=":uno: flex flex-wrap items-center gap-2 text-[13px] text-[var(--sw-muted)]">
+          <strong class=":uno: text-lg leading-none text-[var(--sw-text)]">
             {{ petdexCatalog.length || '—' }}
           </strong>
           <span>个公开宠物</span>
@@ -789,7 +787,7 @@ onMounted(loadPets)
               class=":uno: grid w-[min(36rem,58vw)] min-w-0 grid-cols-[72px_minmax(0,1fr)] items-center gap-3 max-[860px]:w-full"
             >
               <div
-                class=":uno: relative grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50"
+                class=":uno: relative grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-lg border border-[var(--sw-border)] bg-[var(--sw-sidebar)]"
               >
                 <span
                   class=":uno: absolute bottom-2 h-1.5 w-10 rounded-full bg-slate-900/10 blur-[3px]"
@@ -801,7 +799,7 @@ onMounted(loadPets)
               </div>
               <VEntityField :title="pet.displayName">
                 <template #description>
-                  <span class=":uno: text-xs text-slate-500">
+                  <span class=":uno: text-xs text-[var(--sw-muted)]">
                     ID {{ pet.slug }}
                     <template v-if="pet.submittedBy"> · 提交者 {{ pet.submittedBy }}</template>
                   </span>

@@ -1,0 +1,8216 @@
+{
+  "models": [
+    {
+      "id": "qwen-audio-3.1-tts-flash",
+      "label": "Qwen-Audio 3.1 Flash",
+      "family": "qwen",
+      "voices": [
+        {
+          "id": "longanyang_v3.1",
+          "label": "龙安洋 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longanhuan_v3.1",
+          "label": "龙安欢 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "pt",
+            "it",
+            "vi",
+            "id"
+          ]
+        },
+        {
+          "id": "longanlingxin_v3.1",
+          "label": "龙安灵心_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "pt",
+            "it",
+            "vi",
+            "id"
+          ]
+        },
+        {
+          "id": "longanfengyue_v3.1",
+          "label": "龙安风悦_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "pt",
+            "it",
+            "vi",
+            "id"
+          ]
+        },
+        {
+          "id": "xunanchuan_v3.1",
+          "label": "许南川 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "pt",
+            "it",
+            "vi",
+            "id"
+          ]
+        },
+        {
+          "id": "yuxiaoyun_v3.1",
+          "label": "于小云 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "qiaoxiaojiao_v3.1",
+          "label": "乔小娇 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "xiaxiaochen_v3.1",
+          "label": "夏小晨 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "anmingyuan_v3.1",
+          "label": "安明远 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "wenhuaiqing_v3.1",
+          "label": "温怀清 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "anxiaolan_v3.1",
+          "label": "安小岚 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "xieshurou_v3.1",
+          "label": "谢舒柔 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "baiqinglan_v3.1",
+          "label": "白清岚 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "xuyuyuan_v3.1",
+          "label": "许玉远 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "anruorou_v3.1",
+          "label": "安若柔 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "wenhuaizhi_v3.1",
+          "label": "闻怀之 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "xiaoxingzhi_v3.1",
+          "label": "萧行之 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "guyunshu_v3.1",
+          "label": "顾云舒 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "huozhuoshi_v3.1",
+          "label": "霍拙石 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "yeqinghe_v3.1",
+          "label": "叶清禾 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "yunhuanhuan_v3.1",
+          "label": "云欢欢 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "xuxiaoqiao_v3.1",
+          "label": "徐小俏 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "baianran_v3.1",
+          "label": "白安然 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "xuyanchu_v3.1",
+          "label": "许言初 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "yezhiqing_v3.1",
+          "label": "叶知晴 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "andi_v3.1",
+          "label": "安迪 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "anyuqing_v3.1",
+          "label": "安语晴 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "Emily_v3.1",
+          "label": "Emily · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Luna_v3.1",
+          "label": "Luna · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Eric_v3.1",
+          "label": "Eric · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Luca_v3.1",
+          "label": "Luca · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Abby_v3.1",
+          "label": "Abby · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Annie_v3.1",
+          "label": "Annie · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Ava_v3.1",
+          "label": "Ava · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Beth_v3.1",
+          "label": "Beth · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Betty_v3.1",
+          "label": "Betty · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Cally_v3.1",
+          "label": "Cally · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Cindy_v3.1",
+          "label": "Cindy · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Donna_v3.1",
+          "label": "Donna · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Andy_v3.1",
+          "label": "Andy · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "Brian_v3.1",
+          "label": "Brian · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "David_v3.1",
+          "label": "David · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "longanyuanfei_v3.1",
+          "label": "龙安元妃_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longjielidou_v3.1",
+          "label": "龙杰力豆_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longanlingxi_v3.1",
+          "label": "龙安灵希_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longhuohuo_v3.1",
+          "label": "龙火火_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longyingtao_v3.1",
+          "label": "龙应桃_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longanya_v3.1",
+          "label": "龙安雅_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longwan_v3.1",
+          "label": "龙婉_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longxing_v3.1",
+          "label": "龙星_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longhua_v3.1",
+          "label": "龙华_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longhan_v3.1",
+          "label": "龙寒_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longanzhi_v3.1",
+          "label": "龙安智_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longzhe_v3.1",
+          "label": "龙哲_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "libai_v3.1",
+          "label": "李白_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longling_v3.1",
+          "label": "龙铃_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longniuniu_v3.1",
+          "label": "龙牛牛_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longshanshan_v3.1",
+          "label": "龙闪闪_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longpaopao_v3.1",
+          "label": "龙泡泡_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "loongstella_v3.1",
+          "label": "loongstella_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longyuan_v3.1",
+          "label": "龙媛_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longmiao_v3.1",
+          "label": "龙妙_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longsanshu_v3.1",
+          "label": "龙三叔_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longanli_v3.1",
+          "label": "龙安莉_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longanwen_v3.1",
+          "label": "龙安温_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longanlang_v3.1",
+          "label": "龙安朗_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longxiaoxia_v3.1",
+          "label": "龙小夏_v3.1 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        },
+        {
+          "id": "longanchong_v3.1",
+          "label": "龙安冲_v3.1 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh"
+          ]
+        }
+      ],
+      "instructionMode": "free",
+      "customVoiceInstructionMode": "free",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "excited",
+        "curious",
+        "serious",
+        "empathetic",
+        "sad",
+        "angry",
+        "fearful",
+        "surprised",
+        "whisper",
+        "deep_shouting",
+        "trembling",
+        "sarcastic",
+        "dracula",
+        "bored",
+        "tired",
+        "scornful",
+        "shouting",
+        "asmr",
+        "mischievous",
+        "reluctant",
+        "crying",
+        "very_slowly",
+        "very_fast"
+      ],
+      "interjections": [
+        "laughing",
+        "giggles",
+        "sighing",
+        "gasp",
+        "clears_throat",
+        "cough",
+        "snorts"
+      ],
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian"
+      ]
+    },
+    {
+      "id": "qwen-audio-3.0-tts-plus",
+      "label": "Qwen-Audio 3.0 Plus",
+      "family": "qwen",
+      "voices": [
+        {
+          "id": "longanlufeng",
+          "label": "龙安鲁风 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanlingxin",
+          "label": "龙安灵心 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        }
+      ],
+      "instructionMode": "free",
+      "customVoiceInstructionMode": "free",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "excited",
+        "curious",
+        "serious",
+        "empathetic",
+        "sad",
+        "angry",
+        "fearful",
+        "surprised",
+        "whisper",
+        "deep_shouting",
+        "trembling",
+        "sarcastic",
+        "dracula",
+        "bored",
+        "tired",
+        "scornful",
+        "shouting",
+        "asmr",
+        "mischievous",
+        "reluctant",
+        "crying",
+        "very_slowly",
+        "very_fast"
+      ],
+      "interjections": [
+        "laughing",
+        "giggles",
+        "sighing",
+        "gasp",
+        "clears_throat",
+        "cough",
+        "snorts"
+      ],
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian"
+      ]
+    },
+    {
+      "id": "qwen-audio-3.0-tts-flash",
+      "label": "Qwen-Audio 3.0 Flash",
+      "family": "qwen",
+      "voices": [
+        {
+          "id": "longchuanshu_v3.6",
+          "label": "龙川叔 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanhuan_v3.6",
+          "label": "龙安欢 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "loongmary",
+          "label": "Loong Mary · 英语女声",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongeva_v3.6",
+          "label": "Loong Eva · 英语女声",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongjohn",
+          "label": "Loong John · 英语男声",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "longanfengyue",
+          "label": "龙安风悦 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanyuanfei",
+          "label": "龙安元妃 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanlingxi",
+          "label": "龙安灵希 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanxiaoxin",
+          "label": "龙安小昕 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjielidou_v3.6",
+          "label": "龙杰力豆 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longpaopao_v3.6",
+          "label": "龙泡泡 · 女声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhuohuo_v3.6",
+          "label": "龙火火 · 男声",
+          "instructionMode": "free",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        }
+      ],
+      "instructionMode": "free",
+      "customVoiceInstructionMode": "free",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "excited",
+        "curious",
+        "serious",
+        "empathetic",
+        "sad",
+        "angry",
+        "fearful",
+        "surprised",
+        "whisper",
+        "deep_shouting",
+        "trembling",
+        "sarcastic",
+        "dracula",
+        "bored",
+        "tired",
+        "scornful",
+        "shouting",
+        "asmr",
+        "mischievous",
+        "reluctant",
+        "crying",
+        "very_slowly",
+        "very_fast"
+      ],
+      "interjections": [
+        "laughing",
+        "giggles",
+        "sighing",
+        "gasp",
+        "clears_throat",
+        "cough",
+        "snorts"
+      ],
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian"
+      ]
+    },
+    {
+      "id": "cosyvoice-v3-flash",
+      "label": "CosyVoice V3 Flash",
+      "family": "cosyvoice",
+      "voices": [
+        {
+          "id": "longanyang",
+          "label": "龙安洋 · 男声",
+          "instructionMode": "fixed",
+          "emotionTemplate": "你说话的情感是{emotion}。",
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanhuan",
+          "label": "龙安欢 · 女声",
+          "instructionMode": "fixed",
+          "emotionTemplate": "你说话的情感是{emotion}。",
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanhuan_v3",
+          "label": "龙安欢（V3）",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhuhu_v3",
+          "label": "龙呼呼",
+          "instructionMode": "fixed",
+          "emotionTemplate": "你说话的情感是{emotion}。",
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longpaopao_v3",
+          "label": "龙泡泡",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjielidou_v3",
+          "label": "龙杰力豆",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxian_v3",
+          "label": "龙仙",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longling_v3",
+          "label": "龙铃",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshanshan_v3",
+          "label": "龙闪闪",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longniuniu_v3",
+          "label": "龙牛牛",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjiaxin_v3",
+          "label": "龙嘉欣",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjiayi_v3",
+          "label": "龙嘉怡",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanyue_v3",
+          "label": "龙安粤",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longlaotie_v3",
+          "label": "龙老铁",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshange_v3",
+          "label": "龙陕哥",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanmin_v3",
+          "label": "龙安闽",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "loongkyong_v3",
+          "label": "loongkyong",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ko"
+          ]
+        },
+        {
+          "id": "loongriko_v3",
+          "label": "Riko",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        },
+        {
+          "id": "loongtomoka_v3",
+          "label": "loongtomoka",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        },
+        {
+          "id": "loongabby_v3",
+          "label": "loongabby",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongandy_v3",
+          "label": "loongandy",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongannie_v3",
+          "label": "loongannie",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongava_v3",
+          "label": "loongava",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongbeth_v3",
+          "label": "loongbeth",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongbetty_v3",
+          "label": "loongbetty",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongcally_v3",
+          "label": "loongcally",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongcindy_v3",
+          "label": "loongcindy",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongdavid_v3",
+          "label": "loongdavid",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongdonna_v3",
+          "label": "loongdonna",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongemily_v3",
+          "label": "loongemily",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongeric_v3",
+          "label": "loongeric",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongluna_v3",
+          "label": "loongluna",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongluca_v3",
+          "label": "loongluca",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongtomoya_v3",
+          "label": "loongtomoya",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        },
+        {
+          "id": "loongyuuna_v3",
+          "label": "Yuuna",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        },
+        {
+          "id": "loongyuuma_v3",
+          "label": "Yuuma",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        },
+        {
+          "id": "loongjihun_v3",
+          "label": "Jihun",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ko"
+          ]
+        },
+        {
+          "id": "loongindah_v3",
+          "label": "loongindah",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "id"
+          ]
+        },
+        {
+          "id": "longfei_v3",
+          "label": "龙飞",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingxiao_v3",
+          "label": "龙应笑",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingxun_v3",
+          "label": "龙应询",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingjing_v3",
+          "label": "龙应静",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingling_v3",
+          "label": "龙应聆",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingtao_v3",
+          "label": "龙应桃",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxiaochun_v3",
+          "label": "龙小淳",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxiaoxia_v3",
+          "label": "龙小夏",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyumi_v3",
+          "label": "YUMI",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanyun_v3",
+          "label": "龙安昀",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanwen_v3",
+          "label": "龙安温",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanli_v3",
+          "label": "龙安莉",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanlang_v3",
+          "label": "龙安朗",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingmu_v3",
+          "label": "龙应沐",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longantai_v3",
+          "label": "龙安台",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhua_v3",
+          "label": "龙华",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longcheng_v3",
+          "label": "龙橙",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longze_v3",
+          "label": "龙泽",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longzhe_v3",
+          "label": "龙哲",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyan_v3",
+          "label": "龙颜",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxing_v3",
+          "label": "龙星",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longtian_v3",
+          "label": "龙天",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longwan_v3",
+          "label": "龙婉",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longqiang_v3",
+          "label": "龙嫱",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longfeifei_v3",
+          "label": "龙菲菲",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhao_v3",
+          "label": "龙浩",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanrou_v3",
+          "label": "龙安柔",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhan_v3",
+          "label": "龙寒",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanzhi_v3",
+          "label": "龙安智",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanling_v3",
+          "label": "龙安灵",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanya_v3",
+          "label": "龙安雅",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanqin_v3",
+          "label": "龙安亲",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longmiao_v3",
+          "label": "龙妙",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longsanshu_v3",
+          "label": "龙三叔",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyuan_v3",
+          "label": "龙媛",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyue_v3",
+          "label": "龙悦",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxiu_v3",
+          "label": "龙修",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longnan_v3",
+          "label": "龙楠",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longwanjun_v3",
+          "label": "龙婉君",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyichen_v3",
+          "label": "龙逸尘",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longlaobo_v3",
+          "label": "龙老伯",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longlaoyi_v3",
+          "label": "龙老姨",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjiqi_v3",
+          "label": "龙机器",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhouge_v3",
+          "label": "龙猴哥",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longdaiyu_v3",
+          "label": "龙黛玉",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanran_v3",
+          "label": "龙安燃",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanxuan_v3",
+          "label": "龙安宣",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshuo_v3",
+          "label": "龙硕",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshu_v3",
+          "label": "龙书",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "loongbella_v3",
+          "label": "Bella3.0",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        }
+      ],
+      "instructionMode": "voice",
+      "customVoiceInstructionMode": "free",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian"
+      ]
+    },
+    {
+      "id": "cosyvoice-v3-plus",
+      "label": "CosyVoice V3 Plus",
+      "family": "cosyvoice",
+      "voices": [
+        {
+          "id": "longanyang",
+          "label": "龙安洋 · 男声",
+          "instructionMode": "fixed",
+          "emotionTemplate": "你说话的情感是{emotion}。",
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanhuan",
+          "label": "龙安欢 · 女声",
+          "instructionMode": "fixed",
+          "emotionTemplate": "你说话的情感是{emotion}。",
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        }
+      ],
+      "instructionMode": "voice",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian"
+      ]
+    },
+    {
+      "id": "cosyvoice-v2",
+      "label": "CosyVoice V2",
+      "family": "cosyvoice",
+      "voices": [
+        {
+          "id": "longanlang",
+          "label": "龙安朗 · 男声",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanwen",
+          "label": "龙安温 · 女声",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingxiao",
+          "label": "龙应笑",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjiqi",
+          "label": "龙机器",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhouge",
+          "label": "龙猴哥",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjixin",
+          "label": "龙机心",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanyue",
+          "label": "龙安粤",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshange",
+          "label": "龙陕哥",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanmin",
+          "label": "龙安敏",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longdaiyu",
+          "label": "龙黛玉",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longgaoseng",
+          "label": "龙高僧",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanli",
+          "label": "龙安莉",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanyun",
+          "label": "龙安昀",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyumi_v2",
+          "label": "YUMI",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxiaochun_v2",
+          "label": "龙小淳",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxiaoxia_v2",
+          "label": "龙小夏",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyichen",
+          "label": "龙逸尘",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longwanjun",
+          "label": "龙婉君",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longlaobo",
+          "label": "龙老伯",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longlaoyi",
+          "label": "龙老姨",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longbaizhi",
+          "label": "龙白芷",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longsanshu",
+          "label": "龙三叔",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxiu_v2",
+          "label": "龙修",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longmiao_v2",
+          "label": "龙妙",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyue_v2",
+          "label": "龙悦",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longnan_v2",
+          "label": "龙楠",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyuan_v2",
+          "label": "龙媛",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanqin",
+          "label": "龙安亲",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanya",
+          "label": "龙安雅",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanshuo",
+          "label": "龙安朔",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanling",
+          "label": "龙安灵",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanzhi",
+          "label": "龙安智",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanrou",
+          "label": "龙安柔",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longqiang_v2",
+          "label": "龙嫱",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhan_v2",
+          "label": "龙寒",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxing_v2",
+          "label": "龙星",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhua_v2",
+          "label": "龙华",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longwan_v2",
+          "label": "龙婉",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longcheng_v2",
+          "label": "龙橙",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longfeifei_v2",
+          "label": "龙菲菲",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxiaocheng_v2",
+          "label": "龙小诚",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longzhe_v2",
+          "label": "龙哲",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyan_v2",
+          "label": "龙颜",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longtian_v2",
+          "label": "龙天",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longze_v2",
+          "label": "龙泽",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshao_v2",
+          "label": "龙邵",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhao_v2",
+          "label": "龙浩",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "kabuleshen_v2",
+          "label": "龙深",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longhuhu",
+          "label": "龙呼呼",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanpei",
+          "label": "龙安培",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longwangwang",
+          "label": "龙汪汪",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longpaopao",
+          "label": "龙泡泡",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshanshan",
+          "label": "龙闪闪",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longniuniu",
+          "label": "龙牛牛",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingmu",
+          "label": "龙应沐",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingxun",
+          "label": "龙应询",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingcui",
+          "label": "龙应催",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingda",
+          "label": "龙应答",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingjing",
+          "label": "龙应静",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingyan",
+          "label": "龙应严",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingtian",
+          "label": "龙应甜",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingbing",
+          "label": "龙应冰",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingtao",
+          "label": "龙应桃",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longyingling",
+          "label": "龙应聆",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanran",
+          "label": "龙安燃",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanxuan",
+          "label": "龙安宣",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanchong",
+          "label": "龙安冲",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longanping",
+          "label": "龙安萍",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjielidou_v2",
+          "label": "龙杰力豆",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longling_v2",
+          "label": "龙铃",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longke_v2",
+          "label": "龙可",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxian_v2",
+          "label": "龙仙",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longlaotie_v2",
+          "label": "龙老铁",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjiayi_v2",
+          "label": "龙嘉怡",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longtao_v2",
+          "label": "龙桃",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longfei_v2",
+          "label": "龙飞",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "libai_v2",
+          "label": "李白",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjin_v2",
+          "label": "龙津",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshu_v2",
+          "label": "龙书",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "loongbella_v2",
+          "label": "Bella2.0",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longshuo_v2",
+          "label": "龙硕",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longxiaobai_v2",
+          "label": "龙小白",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "longjing_v2",
+          "label": "龙婧",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "loongstella_v2",
+          "label": "loongstella",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "zh",
+            "en"
+          ]
+        },
+        {
+          "id": "loongyuuna_v2",
+          "label": "loongyuuna",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        },
+        {
+          "id": "loongyuuma_v2",
+          "label": "loongyuuma",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        },
+        {
+          "id": "loongjihun_v2",
+          "label": "loongjihun",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ko"
+          ]
+        },
+        {
+          "id": "loongeva_v2",
+          "label": "loongeva",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongbrian_v2",
+          "label": "loongbrian",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongluna_v2",
+          "label": "loongluna",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongluca_v2",
+          "label": "loongluca",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongemily_v2",
+          "label": "loongemily",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongeric_v2",
+          "label": "loongeric",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongabby_v2",
+          "label": "loongabby",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongannie_v2",
+          "label": "loongannie",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongandy_v2",
+          "label": "loongandy",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongava_v2",
+          "label": "loongava",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongbeth_v2",
+          "label": "loongbeth",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongbetty_v2",
+          "label": "loongbetty",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongcindy_v2",
+          "label": "loongcindy",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongcally_v2",
+          "label": "loongcally",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongdavid_v2",
+          "label": "loongdavid",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongdonna_v2",
+          "label": "loongdonna",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "en"
+          ]
+        },
+        {
+          "id": "loongkyong_v2",
+          "label": "loongkyong",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ko"
+          ]
+        },
+        {
+          "id": "loongtomoka_v2",
+          "label": "loongtomoka",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        },
+        {
+          "id": "loongtomoya_v2",
+          "label": "loongtomoya",
+          "instructionMode": "none",
+          "emotionTemplate": "",
+          "emotions": [],
+          "languages": [
+            "ja"
+          ]
+        }
+      ],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian"
+      ]
+    },
+    {
+      "id": "cosyvoice-v3.5-flash",
+      "label": "CosyVoice V3.5 Flash · 复刻/设计音色",
+      "family": "cosyvoice",
+      "voices": [],
+      "instructionMode": "free",
+      "customVoiceInstructionMode": "free",
+      "customVoicesOnly": true,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian"
+      ]
+    },
+    {
+      "id": "cosyvoice-v3.5-plus",
+      "label": "CosyVoice V3.5 Plus · 复刻/设计音色",
+      "family": "cosyvoice",
+      "voices": [],
+      "instructionMode": "free",
+      "customVoiceInstructionMode": "free",
+      "customVoicesOnly": true,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian"
+      ]
+    },
+    {
+      "id": "MiniMax/speech-2.8-turbo",
+      "label": "MiniMax 2.8-turbo",
+      "family": "minimax",
+      "voices": [],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised"
+      ],
+      "interjections": [
+        "laughing",
+        "giggles",
+        "sighing",
+        "gasp",
+        "clears_throat",
+        "cough",
+        "snorts"
+      ],
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian",
+        "minimax"
+      ],
+      "channelOverrides": {
+        "minimax": {
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "interjections": [
+            "laughing",
+            "giggles",
+            "sighing",
+            "gasp",
+            "clears_throat",
+            "cough",
+            "snorts",
+            "groaning",
+            "breath",
+            "panting",
+            "inhaling",
+            "exhaling",
+            "sniffing",
+            "burping",
+            "lip_smacking",
+            "humming",
+            "hissing",
+            "emm",
+            "sneezing"
+          ],
+          "languages": [
+            "zh",
+            "yue",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "es",
+            "ru",
+            "pt",
+            "th",
+            "id",
+            "vi",
+            "it",
+            "ms",
+            "fil",
+            "ar",
+            "tr",
+            "nl",
+            "uk",
+            "pl",
+            "ro",
+            "el",
+            "cs",
+            "fi",
+            "hi",
+            "bg",
+            "da",
+            "he",
+            "fa",
+            "sk",
+            "sv",
+            "hr",
+            "hu",
+            "no",
+            "sl",
+            "ca",
+            "nn",
+            "ta",
+            "af"
+          ]
+        }
+      },
+      "voiceSet": "minimax"
+    },
+    {
+      "id": "MiniMax/speech-2.8-hd",
+      "label": "MiniMax 2.8-hd",
+      "family": "minimax",
+      "voices": [],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised"
+      ],
+      "interjections": [
+        "laughing",
+        "giggles",
+        "sighing",
+        "gasp",
+        "clears_throat",
+        "cough",
+        "snorts"
+      ],
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian",
+        "minimax"
+      ],
+      "channelOverrides": {
+        "minimax": {
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "interjections": [
+            "laughing",
+            "giggles",
+            "sighing",
+            "gasp",
+            "clears_throat",
+            "cough",
+            "snorts",
+            "groaning",
+            "breath",
+            "panting",
+            "inhaling",
+            "exhaling",
+            "sniffing",
+            "burping",
+            "lip_smacking",
+            "humming",
+            "hissing",
+            "emm",
+            "sneezing"
+          ],
+          "languages": [
+            "zh",
+            "yue",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "es",
+            "ru",
+            "pt",
+            "th",
+            "id",
+            "vi",
+            "it",
+            "ms",
+            "fil",
+            "ar",
+            "tr",
+            "nl",
+            "uk",
+            "pl",
+            "ro",
+            "el",
+            "cs",
+            "fi",
+            "hi",
+            "bg",
+            "da",
+            "he",
+            "fa",
+            "sk",
+            "sv",
+            "hr",
+            "hu",
+            "no",
+            "sl",
+            "ca",
+            "nn",
+            "ta",
+            "af"
+          ]
+        }
+      },
+      "voiceSet": "minimax"
+    },
+    {
+      "id": "MiniMax/speech-02-turbo",
+      "label": "MiniMax 02-turbo",
+      "family": "minimax",
+      "voices": [],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised",
+        "whisper"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian",
+        "minimax"
+      ],
+      "channelOverrides": {
+        "minimax": {
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "interjections": [],
+          "languages": [
+            "zh",
+            "yue",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "es",
+            "ru",
+            "pt",
+            "th",
+            "id",
+            "vi",
+            "it",
+            "ms",
+            "ar",
+            "tr",
+            "nl",
+            "uk",
+            "pl",
+            "ro",
+            "el",
+            "cs",
+            "fi",
+            "hi",
+            "bg",
+            "da",
+            "he",
+            "sk",
+            "sv",
+            "hr",
+            "hu",
+            "no",
+            "sl",
+            "ca",
+            "nn",
+            "af"
+          ]
+        }
+      },
+      "voiceSet": "minimax"
+    },
+    {
+      "id": "MiniMax/speech-02-hd",
+      "label": "MiniMax 02-hd",
+      "family": "minimax",
+      "voices": [],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised",
+        "whisper"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar"
+      ],
+      "channels": [
+        "bailian",
+        "minimax"
+      ],
+      "channelOverrides": {
+        "minimax": {
+          "emotions": [
+            "neutral",
+            "happy",
+            "sad",
+            "angry",
+            "fearful",
+            "disgusted",
+            "surprised"
+          ],
+          "interjections": [],
+          "languages": [
+            "zh",
+            "yue",
+            "en",
+            "ja",
+            "ko",
+            "fr",
+            "de",
+            "es",
+            "ru",
+            "pt",
+            "th",
+            "id",
+            "vi",
+            "it",
+            "ms",
+            "ar",
+            "tr",
+            "nl",
+            "uk",
+            "pl",
+            "ro",
+            "el",
+            "cs",
+            "fi",
+            "hi",
+            "bg",
+            "da",
+            "he",
+            "sk",
+            "sv",
+            "hr",
+            "hu",
+            "no",
+            "sl",
+            "ca",
+            "nn",
+            "af"
+          ]
+        }
+      },
+      "voiceSet": "minimax"
+    },
+    {
+      "id": "MiniMax/speech-2.6-turbo",
+      "label": "MiniMax 2.6-turbo",
+      "family": "minimax",
+      "voices": [],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised",
+        "fluent",
+        "whisper"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar",
+        "tr",
+        "nl",
+        "uk",
+        "pl",
+        "ro",
+        "el",
+        "cs",
+        "fi",
+        "hi",
+        "bg",
+        "da",
+        "he",
+        "fa",
+        "sk",
+        "sv",
+        "hr",
+        "hu",
+        "no",
+        "sl",
+        "ca",
+        "nn",
+        "ta",
+        "af"
+      ],
+      "channels": [
+        "minimax"
+      ],
+      "voiceSet": "minimax"
+    },
+    {
+      "id": "MiniMax/speech-2.6-hd",
+      "label": "MiniMax 2.6-hd",
+      "family": "minimax",
+      "voices": [],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised",
+        "fluent",
+        "whisper"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "fil",
+        "ar",
+        "tr",
+        "nl",
+        "uk",
+        "pl",
+        "ro",
+        "el",
+        "cs",
+        "fi",
+        "hi",
+        "bg",
+        "da",
+        "he",
+        "fa",
+        "sk",
+        "sv",
+        "hr",
+        "hu",
+        "no",
+        "sl",
+        "ca",
+        "nn",
+        "ta",
+        "af"
+      ],
+      "channels": [
+        "minimax"
+      ],
+      "voiceSet": "minimax"
+    },
+    {
+      "id": "MiniMax/speech-01-turbo",
+      "label": "MiniMax 01-turbo",
+      "family": "minimax",
+      "voices": [],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "ar",
+        "tr",
+        "nl",
+        "uk",
+        "pl",
+        "ro",
+        "el",
+        "cs",
+        "fi",
+        "hi",
+        "bg",
+        "da",
+        "he",
+        "sk",
+        "sv",
+        "hr",
+        "hu",
+        "no",
+        "sl",
+        "ca",
+        "nn",
+        "af"
+      ],
+      "channels": [
+        "minimax"
+      ],
+      "voiceSet": "minimax"
+    },
+    {
+      "id": "MiniMax/speech-01-hd",
+      "label": "MiniMax 01-hd",
+      "family": "minimax",
+      "voices": [],
+      "instructionMode": "none",
+      "customVoiceInstructionMode": "none",
+      "customVoicesOnly": false,
+      "emotions": [
+        "neutral",
+        "happy",
+        "sad",
+        "angry",
+        "fearful",
+        "disgusted",
+        "surprised"
+      ],
+      "interjections": [],
+      "languages": [
+        "zh",
+        "yue",
+        "en",
+        "ja",
+        "ko",
+        "fr",
+        "de",
+        "es",
+        "ru",
+        "pt",
+        "th",
+        "id",
+        "vi",
+        "it",
+        "ms",
+        "ar",
+        "tr",
+        "nl",
+        "uk",
+        "pl",
+        "ro",
+        "el",
+        "cs",
+        "fi",
+        "hi",
+        "bg",
+        "da",
+        "he",
+        "sk",
+        "sv",
+        "hr",
+        "hu",
+        "no",
+        "sl",
+        "ca",
+        "nn",
+        "af"
+      ],
+      "channels": [
+        "minimax"
+      ],
+      "voiceSet": "minimax"
+    }
+  ],
+  "emotions": [
+    {
+      "value": "neutral",
+      "label": "自然",
+      "qwenTag": "",
+      "minimaxValue": "calm"
+    },
+    {
+      "value": "excited",
+      "label": "兴奋",
+      "qwenTag": "excited",
+      "minimaxValue": ""
+    },
+    {
+      "value": "curious",
+      "label": "好奇",
+      "qwenTag": "curious",
+      "minimaxValue": ""
+    },
+    {
+      "value": "serious",
+      "label": "严肃",
+      "qwenTag": "serious",
+      "minimaxValue": ""
+    },
+    {
+      "value": "empathetic",
+      "label": "共情",
+      "qwenTag": "empathetic",
+      "minimaxValue": ""
+    },
+    {
+      "value": "happy",
+      "label": "高兴",
+      "qwenTag": "",
+      "minimaxValue": "happy"
+    },
+    {
+      "value": "sad",
+      "label": "悲伤",
+      "qwenTag": "sad",
+      "minimaxValue": "sad"
+    },
+    {
+      "value": "angry",
+      "label": "愤怒",
+      "qwenTag": "angry",
+      "minimaxValue": "angry"
+    },
+    {
+      "value": "fearful",
+      "label": "害怕",
+      "qwenTag": "panicked",
+      "minimaxValue": "fearful"
+    },
+    {
+      "value": "disgusted",
+      "label": "厌恶",
+      "qwenTag": "",
+      "minimaxValue": "disgusted"
+    },
+    {
+      "value": "surprised",
+      "label": "惊讶",
+      "qwenTag": "amazed",
+      "minimaxValue": "surprised"
+    },
+    {
+      "value": "whisper",
+      "label": "低声",
+      "qwenTag": "whispers",
+      "minimaxValue": "whisper"
+    },
+    {
+      "value": "fluent",
+      "label": "流畅",
+      "qwenTag": "",
+      "minimaxValue": "fluent"
+    },
+    {
+      "value": "deep_shouting",
+      "label": "深沉呐喊",
+      "qwenTag": "deep and loud shouting",
+      "minimaxValue": ""
+    },
+    {
+      "value": "trembling",
+      "label": "颤抖",
+      "qwenTag": "trembling",
+      "minimaxValue": ""
+    },
+    {
+      "value": "sarcastic",
+      "label": "讽刺",
+      "qwenTag": "sarcastic",
+      "minimaxValue": ""
+    },
+    {
+      "value": "dracula",
+      "label": "吸血鬼语气",
+      "qwenTag": "like dracula",
+      "minimaxValue": ""
+    },
+    {
+      "value": "bored",
+      "label": "无聊",
+      "qwenTag": "bored",
+      "minimaxValue": ""
+    },
+    {
+      "value": "tired",
+      "label": "疲倦",
+      "qwenTag": "tired",
+      "minimaxValue": ""
+    },
+    {
+      "value": "scornful",
+      "label": "轻蔑",
+      "qwenTag": "scornful",
+      "minimaxValue": ""
+    },
+    {
+      "value": "shouting",
+      "label": "大喊",
+      "qwenTag": "shouting",
+      "minimaxValue": ""
+    },
+    {
+      "value": "asmr",
+      "label": "轻声细语",
+      "qwenTag": "asmr",
+      "minimaxValue": ""
+    },
+    {
+      "value": "mischievous",
+      "label": "调皮",
+      "qwenTag": "mischievously",
+      "minimaxValue": ""
+    },
+    {
+      "value": "reluctant",
+      "label": "不情愿",
+      "qwenTag": "reluctantly",
+      "minimaxValue": ""
+    },
+    {
+      "value": "crying",
+      "label": "哭泣",
+      "qwenTag": "crying",
+      "minimaxValue": ""
+    },
+    {
+      "value": "very_slowly",
+      "label": "非常缓慢",
+      "qwenTag": "very slowly",
+      "minimaxValue": ""
+    },
+    {
+      "value": "very_fast",
+      "label": "非常快速",
+      "qwenTag": "very fast",
+      "minimaxValue": ""
+    }
+  ],
+  "interjections": [
+    {
+      "value": "laughing",
+      "label": "笑声",
+      "qwenTag": "laughing",
+      "minimaxTag": "laughs"
+    },
+    {
+      "value": "giggles",
+      "label": "轻笑",
+      "qwenTag": "giggles",
+      "minimaxTag": "chuckle"
+    },
+    {
+      "value": "sighing",
+      "label": "叹息",
+      "qwenTag": "sighing",
+      "minimaxTag": "sighs"
+    },
+    {
+      "value": "gasp",
+      "label": "吸气",
+      "qwenTag": "gasp",
+      "minimaxTag": "gasps"
+    },
+    {
+      "value": "clears_throat",
+      "label": "清嗓",
+      "qwenTag": "clears throat",
+      "minimaxTag": "clear-throat"
+    },
+    {
+      "value": "cough",
+      "label": "咳嗽",
+      "qwenTag": "cough",
+      "minimaxTag": "coughs"
+    },
+    {
+      "value": "snorts",
+      "label": "哼声",
+      "qwenTag": "snorts",
+      "minimaxTag": "snorts"
+    },
+    {
+      "value": "groaning",
+      "label": "呻吟",
+      "qwenTag": "",
+      "minimaxTag": "groans"
+    },
+    {
+      "value": "breath",
+      "label": "呼吸",
+      "qwenTag": "",
+      "minimaxTag": "breath"
+    },
+    {
+      "value": "panting",
+      "label": "喘气",
+      "qwenTag": "",
+      "minimaxTag": "pant"
+    },
+    {
+      "value": "inhaling",
+      "label": "吸气声",
+      "qwenTag": "",
+      "minimaxTag": "inhale"
+    },
+    {
+      "value": "exhaling",
+      "label": "呼气",
+      "qwenTag": "",
+      "minimaxTag": "exhale"
+    },
+    {
+      "value": "sniffing",
+      "label": "吸鼻声",
+      "qwenTag": "",
+      "minimaxTag": "sniffs"
+    },
+    {
+      "value": "burping",
+      "label": "打嗝",
+      "qwenTag": "",
+      "minimaxTag": "burps"
+    },
+    {
+      "value": "lip_smacking",
+      "label": "咂嘴",
+      "qwenTag": "",
+      "minimaxTag": "lip-smacking"
+    },
+    {
+      "value": "humming",
+      "label": "哼唱",
+      "qwenTag": "",
+      "minimaxTag": "humming"
+    },
+    {
+      "value": "hissing",
+      "label": "嘶声",
+      "qwenTag": "",
+      "minimaxTag": "hissing"
+    },
+    {
+      "value": "emm",
+      "label": "嗯声",
+      "qwenTag": "",
+      "minimaxTag": "emm"
+    },
+    {
+      "value": "sneezing",
+      "label": "喷嚏",
+      "qwenTag": "",
+      "minimaxTag": "sneezes"
+    }
+  ],
+  "languages": [
+    {
+      "value": "zh",
+      "label": "中文",
+      "minimaxValue": "Chinese"
+    },
+    {
+      "value": "yue",
+      "label": "粤语",
+      "minimaxValue": "Chinese,Yue"
+    },
+    {
+      "value": "en",
+      "label": "英语",
+      "minimaxValue": "English"
+    },
+    {
+      "value": "ja",
+      "label": "日语",
+      "minimaxValue": "Japanese"
+    },
+    {
+      "value": "ko",
+      "label": "韩语",
+      "minimaxValue": "Korean"
+    },
+    {
+      "value": "fr",
+      "label": "法语",
+      "minimaxValue": "French"
+    },
+    {
+      "value": "de",
+      "label": "德语",
+      "minimaxValue": "German"
+    },
+    {
+      "value": "es",
+      "label": "西班牙语",
+      "minimaxValue": "Spanish"
+    },
+    {
+      "value": "ru",
+      "label": "俄语",
+      "minimaxValue": "Russian"
+    },
+    {
+      "value": "pt",
+      "label": "葡萄牙语",
+      "minimaxValue": "Portuguese"
+    },
+    {
+      "value": "th",
+      "label": "泰语",
+      "minimaxValue": "Thai"
+    },
+    {
+      "value": "id",
+      "label": "印尼语",
+      "minimaxValue": "Indonesian"
+    },
+    {
+      "value": "vi",
+      "label": "越南语",
+      "minimaxValue": "Vietnamese"
+    },
+    {
+      "value": "it",
+      "label": "意大利语",
+      "minimaxValue": "Italian"
+    },
+    {
+      "value": "ms",
+      "label": "马来语",
+      "minimaxValue": "Malay"
+    },
+    {
+      "value": "fil",
+      "label": "菲律宾语",
+      "minimaxValue": "Filipino"
+    },
+    {
+      "value": "ar",
+      "label": "阿拉伯语",
+      "minimaxValue": "Arabic"
+    },
+    {
+      "value": "tr",
+      "label": "土耳其语",
+      "minimaxValue": "Turkish"
+    },
+    {
+      "value": "nl",
+      "label": "荷兰语",
+      "minimaxValue": "Dutch"
+    },
+    {
+      "value": "uk",
+      "label": "乌克兰语",
+      "minimaxValue": "Ukrainian"
+    },
+    {
+      "value": "pl",
+      "label": "波兰语",
+      "minimaxValue": "Polish"
+    },
+    {
+      "value": "ro",
+      "label": "罗马尼亚语",
+      "minimaxValue": "Romanian"
+    },
+    {
+      "value": "el",
+      "label": "希腊语",
+      "minimaxValue": "Greek"
+    },
+    {
+      "value": "cs",
+      "label": "捷克语",
+      "minimaxValue": "Czech"
+    },
+    {
+      "value": "fi",
+      "label": "芬兰语",
+      "minimaxValue": "Finnish"
+    },
+    {
+      "value": "hi",
+      "label": "印地语",
+      "minimaxValue": "Hindi"
+    },
+    {
+      "value": "bg",
+      "label": "保加利亚语",
+      "minimaxValue": "Bulgarian"
+    },
+    {
+      "value": "da",
+      "label": "丹麦语",
+      "minimaxValue": "Danish"
+    },
+    {
+      "value": "he",
+      "label": "希伯来语",
+      "minimaxValue": "Hebrew"
+    },
+    {
+      "value": "fa",
+      "label": "波斯语",
+      "minimaxValue": "Persian"
+    },
+    {
+      "value": "sk",
+      "label": "斯洛伐克语",
+      "minimaxValue": "Slovak"
+    },
+    {
+      "value": "sv",
+      "label": "瑞典语",
+      "minimaxValue": "Swedish"
+    },
+    {
+      "value": "hr",
+      "label": "克罗地亚语",
+      "minimaxValue": "Croatian"
+    },
+    {
+      "value": "hu",
+      "label": "匈牙利语",
+      "minimaxValue": "Hungarian"
+    },
+    {
+      "value": "no",
+      "label": "挪威语",
+      "minimaxValue": "Norwegian"
+    },
+    {
+      "value": "sl",
+      "label": "斯洛文尼亚语",
+      "minimaxValue": "Slovenian"
+    },
+    {
+      "value": "ca",
+      "label": "加泰罗尼亚语",
+      "minimaxValue": "Catalan"
+    },
+    {
+      "value": "nn",
+      "label": "新挪威语",
+      "minimaxValue": "Nynorsk"
+    },
+    {
+      "value": "ta",
+      "label": "泰米尔语",
+      "minimaxValue": "Tamil"
+    },
+    {
+      "value": "af",
+      "label": "南非荷兰语",
+      "minimaxValue": "Afrikaans"
+    }
+  ],
+  "sources": [
+    "https://help.aliyun.com/zh/model-studio/non-realtime-tts-user-guide",
+    "https://help.aliyun.com/zh/model-studio/qwen-audio-tts-voice-list",
+    "https://help.aliyun.com/zh/model-studio/cosyvoice-voice-list",
+    "https://help.aliyun.com/zh/model-studio/minimax-synchronous-speech-synthesis-api",
+    "https://help.aliyun.com/zh/model-studio/voice-clone-design-http-api",
+    "https://platform.minimax.cn/docs/api-reference/speech-t2a-http",
+    "https://platform.minimax.cn/docs/faq/system-voice-id"
+  ],
+  "voiceSets": {
+    "minimax": [
+      {
+        "id": "male-qn-qingse",
+        "label": "青涩青年 · 男声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "bailian",
+          "minimax"
+        ]
+      },
+      {
+        "id": "female-shaonv",
+        "label": "少女 · 女声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "bailian",
+          "minimax"
+        ]
+      },
+      {
+        "id": "male-qn-jingying",
+        "label": "精英青年音色",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "male-qn-badao",
+        "label": "霸道青年音色",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "male-qn-daxuesheng",
+        "label": "青年大学生音色",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "female-yujie",
+        "label": "御姐音色",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "female-chengshu",
+        "label": "成熟女性音色",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "female-tianmei",
+        "label": "甜美女性音色",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "male-qn-qingse-jingpin",
+        "label": "青涩青年音色-beta",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "male-qn-jingying-jingpin",
+        "label": "精英青年音色-beta",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "male-qn-badao-jingpin",
+        "label": "霸道青年音色-beta",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "male-qn-daxuesheng-jingpin",
+        "label": "青年大学生音色-beta",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "female-shaonv-jingpin",
+        "label": "少女音色-beta",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "female-yujie-jingpin",
+        "label": "御姐音色-beta",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "female-chengshu-jingpin",
+        "label": "成熟女性音色-beta",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "female-tianmei-jingpin",
+        "label": "甜美女性音色-beta",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "clever_boy",
+        "label": "聪明男童",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "cute_boy",
+        "label": "可爱男童",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "lovely_girl",
+        "label": "萌萌女童",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "cartoon_pig",
+        "label": "卡通猪小琪",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "bingjiao_didi",
+        "label": "病娇弟弟",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "junlang_nanyou",
+        "label": "俊朗男友",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "chunzhen_xuedi",
+        "label": "纯真学弟",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "lengdan_xiongzhang",
+        "label": "冷淡学长",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "badao_shaoye",
+        "label": "霸道少爷",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "tianxin_xiaoling",
+        "label": "甜心小玲",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "qiaopi_mengmei",
+        "label": "俏皮萌妹",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "wumei_yujie",
+        "label": "妩媚御姐",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "diadia_xuemei",
+        "label": "嗲嗲学妹",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "danya_xuejie",
+        "label": "淡雅学姐",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Reliable_Executive",
+        "label": "沉稳高管",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_News_Anchor",
+        "label": "新闻女声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Mature_Woman",
+        "label": "傲娇御姐",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Unrestrained_Young_Man",
+        "label": "不羁青年",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Arrogant_Miss",
+        "label": "嚣张小姐",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Robot_Armor",
+        "label": "机械战甲",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Kind-hearted_Antie",
+        "label": "热心大婶",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_HK_Flight_Attendant",
+        "label": "港普空姐",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Humorous_Elder",
+        "label": "搞笑大爷",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Gentleman",
+        "label": "温润男声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Warm_Bestie",
+        "label": "温暖闺蜜",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Male_Announcer",
+        "label": "播报男声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Sweet_Lady",
+        "label": "甜美女声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Southern_Young_Man",
+        "label": "南方小哥",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Wise_Women",
+        "label": "阅历姐姐",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Gentle_Youth",
+        "label": "温润青年",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Warm_Girl",
+        "label": "温暖少女",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Kind-hearted_Elder",
+        "label": "花甲奶奶",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Cute_Spirit",
+        "label": "憨憨萌兽",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Radio_Host",
+        "label": "电台男主播",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Lyrical_Voice",
+        "label": "抒情男声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Straightforward_Boy",
+        "label": "率真弟弟",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Sincere_Adult",
+        "label": "真诚青年",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Gentle_Senior",
+        "label": "温柔学姐",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Stubborn_Friend",
+        "label": "嘴硬竹马",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Crisp_Girl",
+        "label": "清脆少女",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Pure-hearted_Boy",
+        "label": "清澈邻家弟弟",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Chinese (Mandarin)_Soft_Girl",
+        "label": "柔和少女",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Cantonese_ProfessionalHost（F)",
+        "label": "专业女主持",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Cantonese_GentleLady",
+        "label": "温柔女声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Cantonese_ProfessionalHost（M)",
+        "label": "专业男主持",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Cantonese_PlayfulMan",
+        "label": "活泼男声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Cantonese_CuteGirl",
+        "label": "可爱女孩",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Cantonese_KindWoman",
+        "label": "善良女声",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Santa_Claus",
+        "label": "Santa Claus",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Grinch",
+        "label": "Grinch",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Rudolph",
+        "label": "Rudolph",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Arnold",
+        "label": "Arnold",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Charming_Santa",
+        "label": "Charming Santa",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Charming_Lady",
+        "label": "Charming Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Sweet_Girl",
+        "label": "Sweet Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Cute_Elf",
+        "label": "Cute Elf",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Attractive_Girl",
+        "label": "Attractive Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Serene_Woman",
+        "label": "Serene Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "English_Trustworthy_Man",
+        "label": "Trustworthy Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "English_Graceful_Lady",
+        "label": "Graceful Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "English_Aussie_Bloke",
+        "label": "Aussie Bloke",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "English_Whispering_girl",
+        "label": "Whispering girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "English_Diligent_Man",
+        "label": "Diligent Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "English_Gentle-voiced_man",
+        "label": "Gentle-voiced man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_IntellectualSenior",
+        "label": "Intellectual Senior",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_DecisivePrincess",
+        "label": "Decisive Princess",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_LoyalKnight",
+        "label": "Loyal Knight",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_DominantMan",
+        "label": "Dominant Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_SeriousCommander",
+        "label": "Serious Commander",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_ColdQueen",
+        "label": "Cold Queen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_DependableWoman",
+        "label": "Dependable Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_GentleButler",
+        "label": "Gentle Butler",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_KindLady",
+        "label": "Kind Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_CalmLady",
+        "label": "Calm Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_OptimisticYouth",
+        "label": "Optimistic Youth",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_GenerousIzakayaOwner",
+        "label": "Generous Izakaya Owner",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_SportyStudent",
+        "label": "Sporty Student",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_InnocentBoy",
+        "label": "Innocent Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Japanese_GracefulMaiden",
+        "label": "Graceful Maiden",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_SweetGirl",
+        "label": "Sweet Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CheerfulBoyfriend",
+        "label": "Cheerful Boyfriend",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_EnchantingSister",
+        "label": "Enchanting Sister",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ShyGirl",
+        "label": "Shy Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ReliableSister",
+        "label": "Reliable Sister",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_StrictBoss",
+        "label": "Strict Boss",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_SassyGirl",
+        "label": "Sassy Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ChildhoodFriendGirl",
+        "label": "Childhood Friend Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_PlayboyCharmer",
+        "label": "Playboy Charmer",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ElegantPrincess",
+        "label": "Elegant Princess",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_BraveFemaleWarrior",
+        "label": "Brave Female Warrior",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_BraveYouth",
+        "label": "Brave Youth",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CalmLady",
+        "label": "Calm Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_EnthusiasticTeen",
+        "label": "Enthusiastic Teen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_SoothingLady",
+        "label": "Soothing Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_IntellectualSenior",
+        "label": "Intellectual Senior",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_LonelyWarrior",
+        "label": "Lonely Warrior",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_MatureLady",
+        "label": "Mature Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_InnocentBoy",
+        "label": "Innocent Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CharmingSister",
+        "label": "Charming Sister",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_AthleticStudent",
+        "label": "Athletic Student",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_BraveAdventurer",
+        "label": "Brave Adventurer",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CalmGentleman",
+        "label": "Calm Gentleman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_WiseElf",
+        "label": "Wise Elf",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CheerfulCoolJunior",
+        "label": "Cheerful Cool Junior",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_DecisiveQueen",
+        "label": "Decisive Queen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ColdYoungMan",
+        "label": "Cold Young Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_MysteriousGirl",
+        "label": "Mysterious Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_QuirkyGirl",
+        "label": "Quirky Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ConsiderateSenior",
+        "label": "Considerate Senior",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CheerfulLittleSister",
+        "label": "Cheerful Little Sister",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_DominantMan",
+        "label": "Dominant Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_AirheadedGirl",
+        "label": "Airheaded Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ReliableYouth",
+        "label": "Reliable Youth",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_FriendlyBigSister",
+        "label": "Friendly Big Sister",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_GentleBoss",
+        "label": "Gentle Boss",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ColdGirl",
+        "label": "Cold Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_HaughtyLady",
+        "label": "Haughty Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CharmingElderSister",
+        "label": "Charming Elder Sister",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_IntellectualMan",
+        "label": "Intellectual Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CaringWoman",
+        "label": "Caring Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_WiseTeacher",
+        "label": "Wise Teacher",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ConfidentBoss",
+        "label": "Confident Boss",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_AthleticGirl",
+        "label": "Athletic Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_PossessiveMan",
+        "label": "Possessive Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_GentleWoman",
+        "label": "Gentle Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_CockyGuy",
+        "label": "Cocky Guy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_ThoughtfulWoman",
+        "label": "Thoughtful Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Korean_OptimisticYouth",
+        "label": "Optimistic Youth",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_SereneWoman",
+        "label": "Serene Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_MaturePartner",
+        "label": "Mature Partner",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_CaptivatingStoryteller",
+        "label": "Captivating Storyteller",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Narrator",
+        "label": "Narrator",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_WiseScholar",
+        "label": "Wise Scholar",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Kind-heartedGirl",
+        "label": "Kind-hearted Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_DeterminedManager",
+        "label": "Determined Manager",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_BossyLeader",
+        "label": "Bossy Leader",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_ReservedYoungMan",
+        "label": "Reserved Young Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_ConfidentWoman",
+        "label": "Confident Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_ThoughtfulMan",
+        "label": "Thoughtful Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Strong-WilledBoy",
+        "label": "Strong-willed Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_SophisticatedLady",
+        "label": "Sophisticated Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_RationalMan",
+        "label": "Rational Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_AnimeCharacter",
+        "label": "Anime Character",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Deep-tonedMan",
+        "label": "Deep-toned Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Fussyhostess",
+        "label": "Fussy hostess",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_SincereTeen",
+        "label": "Sincere Teen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_FrankLady",
+        "label": "Frank Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Comedian",
+        "label": "Comedian",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Debator",
+        "label": "Debator",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_ToughBoss",
+        "label": "Tough Boss",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Wiselady",
+        "label": "Wise Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Steadymentor",
+        "label": "Steady Mentor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Jovialman",
+        "label": "Jovial Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_SantaClaus",
+        "label": "Santa Claus",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Rudolph",
+        "label": "Rudolph",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Intonategirl",
+        "label": "Intonate Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Arnold",
+        "label": "Arnold",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_Ghost",
+        "label": "Ghost",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_HumorousElder",
+        "label": "Humorous Elder",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_EnergeticBoy",
+        "label": "Energetic Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_WhimsicalGirl",
+        "label": "Whimsical Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_StrictBoss",
+        "label": "Strict Boss",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_ReliableMan",
+        "label": "Reliable Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_SereneElder",
+        "label": "Serene Elder",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_AngryMan",
+        "label": "Angry Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_AssertiveQueen",
+        "label": "Assertive Queen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_CaringGirlfriend",
+        "label": "Caring Girlfriend",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_PowerfulSoldier",
+        "label": "Powerful Soldier",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_PassionateWarrior",
+        "label": "Passionate Warrior",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_ChattyGirl",
+        "label": "Chatty Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_RomanticHusband",
+        "label": "Romantic Husband",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_CompellingGirl",
+        "label": "Compelling Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_PowerfulVeteran",
+        "label": "Powerful Veteran",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_SensibleManager",
+        "label": "Sensible Manager",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Spanish_ThoughtfulLady",
+        "label": "Thoughtful Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_SentimentalLady",
+        "label": "Sentimental Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_BossyLeader",
+        "label": "Bossy Leader",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Wiselady",
+        "label": "Wise lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Strong-WilledBoy",
+        "label": "Strong-willed Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Deep-VoicedGentleman",
+        "label": "Deep-voiced Gentleman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_UpsetGirl",
+        "label": "Upset Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_PassionateWarrior",
+        "label": "Passionate Warrior",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_AnimeCharacter",
+        "label": "Anime Character",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_ConfidentWoman",
+        "label": "Confident Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_AngryMan",
+        "label": "Angry Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_CaptivatingStoryteller",
+        "label": "Captivating Storyteller",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Godfather",
+        "label": "Godfather",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_ReservedYoungMan",
+        "label": "Reserved Young Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_SmartYoungGirl",
+        "label": "Smart Young Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Kind-heartedGirl",
+        "label": "Kind-hearted Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Pompouslady",
+        "label": "Pompous lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Grinch",
+        "label": "Grinch",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Debator",
+        "label": "Debator",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_SweetGirl",
+        "label": "Sweet Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_AttractiveGirl",
+        "label": "Attractive Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_ThoughtfulMan",
+        "label": "Thoughtful Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_PlayfulGirl",
+        "label": "Playful Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_GorgeousLady",
+        "label": "Gorgeous Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_LovelyLady",
+        "label": "Lovely Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_SereneWoman",
+        "label": "Serene Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_SadTeen",
+        "label": "Sad Teen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_MaturePartner",
+        "label": "Mature Partner",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Comedian",
+        "label": "Comedian",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_NaughtySchoolgirl",
+        "label": "Naughty Schoolgirl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Narrator",
+        "label": "Narrator",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_ToughBoss",
+        "label": "Tough Boss",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Fussyhostess",
+        "label": "Fussy hostess",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Dramatist",
+        "label": "Dramatist",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Steadymentor",
+        "label": "Steady Mentor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Jovialman",
+        "label": "Jovial Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_CharmingQueen",
+        "label": "Charming Queen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_SantaClaus",
+        "label": "Santa Claus",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Rudolph",
+        "label": "Rudolph",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Arnold",
+        "label": "Arnold",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_CharmingSanta",
+        "label": "Charming Santa",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_CharmingLady",
+        "label": "Charming Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Ghost",
+        "label": "Ghost",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_HumorousElder",
+        "label": "Humorous Elder",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_CalmLeader",
+        "label": "Calm Leader",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_GentleTeacher",
+        "label": "Gentle Teacher",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_EnergeticBoy",
+        "label": "Energetic Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_ReliableMan",
+        "label": "Reliable Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_SereneElder",
+        "label": "Serene Elder",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_GrimReaper",
+        "label": "Grim Reaper",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_AssertiveQueen",
+        "label": "Assertive Queen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_WhimsicalGirl",
+        "label": "Whimsical Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_StressedLady",
+        "label": "Stressed Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_FriendlyNeighbor",
+        "label": "Friendly Neighbor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_CaringGirlfriend",
+        "label": "Caring Girlfriend",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_PowerfulSoldier",
+        "label": "Powerful Soldier",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_FascinatingBoy",
+        "label": "Fascinating Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_RomanticHusband",
+        "label": "Romantic Husband",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_StrictBoss",
+        "label": "Strict Boss",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_InspiringLady",
+        "label": "Inspiring Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_PlayfulSpirit",
+        "label": "Playful Spirit",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_ElegantGirl",
+        "label": "Elegant Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_CompellingGirl",
+        "label": "Compelling Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_PowerfulVeteran",
+        "label": "Powerful Veteran",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_SensibleManager",
+        "label": "Sensible Manager",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_ThoughtfulLady",
+        "label": "Thoughtful Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_TheatricalActor",
+        "label": "Theatrical Actor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_FragileBoy",
+        "label": "Fragile Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_ChattyGirl",
+        "label": "Chatty Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_Conscientiousinstructor",
+        "label": "Conscientious Instructor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_RationalMan",
+        "label": "Rational Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_WiseScholar",
+        "label": "Wise Scholar",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_FrankLady",
+        "label": "Frank Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Portuguese_DeterminedManager",
+        "label": "Determined Manager",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "French_Male_Speech_New",
+        "label": "Level-Headed Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "French_Female_News Anchor",
+        "label": "Patient Female Presenter",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "French_CasualMan",
+        "label": "Casual Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "French_MovieLeadFemale",
+        "label": "Movie Lead Female",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "French_FemaleAnchor",
+        "label": "Female Anchor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "French_MaleNarrator",
+        "label": "Male Narrator",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_SweetGirl",
+        "label": "Sweet Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_ReservedYoungMan",
+        "label": "Reserved Young Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_CharmingGirl",
+        "label": "Charming Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_CalmWoman",
+        "label": "Calm Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_ConfidentWoman",
+        "label": "Confident Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_CaringMan",
+        "label": "Caring Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_BossyLeader",
+        "label": "Bossy Leader",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_DeterminedBoy",
+        "label": "Determined Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Indonesian_GentleGirl",
+        "label": "Gentle Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "German_FriendlyMan",
+        "label": "Friendly Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "German_SweetLady",
+        "label": "Sweet Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "German_PlayfulMan",
+        "label": "Playful Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Russian_HandsomeChildhoodFriend",
+        "label": "Handsome Childhood Friend",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Russian_BrightHeroine",
+        "label": "Bright Queen",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Russian_AmbitiousWoman",
+        "label": "Ambitious Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Russian_ReliableMan",
+        "label": "Reliable Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Russian_CrazyQueen",
+        "label": "Crazy Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Russian_PessimisticGirl",
+        "label": "Pessimistic Girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Russian_AttractiveGuy",
+        "label": "Attractive Guy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Russian_Bad-temperedBoy",
+        "label": "Bad-tempered Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Italian_BraveHeroine",
+        "label": "Brave Heroine",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Italian_Narrator",
+        "label": "Narrator",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Italian_WanderingSorcerer",
+        "label": "Wandering Sorcerer",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Italian_DiligentLeader",
+        "label": "Diligent Leader",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Arabic_CalmWoman",
+        "label": "Calm Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Arabic_FriendlyGuy",
+        "label": "Friendly Guy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Turkish_CalmWoman",
+        "label": "Calm Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Turkish_Trustworthyman",
+        "label": "Trustworthy man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Ukrainian_CalmWoman",
+        "label": "Calm Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Ukrainian_WiseScholar",
+        "label": "Wise Scholar",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Dutch_kindhearted_girl",
+        "label": "Kind-hearted girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Dutch_bossy_leader",
+        "label": "Bossy leader",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Vietnamese_kindhearted_girl",
+        "label": "Kind-hearted girl",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Thai_male_1_sample8",
+        "label": "Serene Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Thai_male_2_sample2",
+        "label": "Friendly Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Thai_female_1_sample1",
+        "label": "Confident Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Thai_female_2_sample2",
+        "label": "Energetic Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Polish_male_1_sample4",
+        "label": "Male Narrator",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Polish_male_2_sample3",
+        "label": "Male Anchor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Polish_female_1_sample1",
+        "label": "Calm Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Polish_female_2_sample3",
+        "label": "Casual Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Romanian_male_1_sample2",
+        "label": "Reliable Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Romanian_male_2_sample1",
+        "label": "Energetic Youth",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Romanian_female_1_sample4",
+        "label": "Optimistic Youth",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Romanian_female_2_sample1",
+        "label": "Gentle Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "greek_male_1a_v1",
+        "label": "Thoughtful Mentor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Greek_female_1_sample1",
+        "label": "Gentle Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "Greek_female_2_sample3",
+        "label": "Girl Next Door",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "czech_male_1_v1",
+        "label": "Assured Presenter",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "czech_female_5_v7",
+        "label": "Steadfast Narrator",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "czech_female_2_v2",
+        "label": "Elegant Lady",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "finnish_male_3_v1",
+        "label": "Upbeat Man",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "finnish_male_1_v2",
+        "label": "Friendly Boy",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "finnish_female_4_v1",
+        "label": "Assetive Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "hindi_male_1_v2",
+        "label": "Trustworthy Advisor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "hindi_female_2_v1",
+        "label": "Tranquil Woman",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      },
+      {
+        "id": "hindi_female_1_v2",
+        "label": "News Anchor",
+        "instructionMode": "none",
+        "emotionTemplate": "",
+        "emotions": [],
+        "languages": [],
+        "channels": [
+          "minimax"
+        ]
+      }
+    ]
+  }
+}

@@ -14,7 +14,6 @@ spec:
     name: Handsome
     website: https://www.xhhao.com
   logo: static/icon.svg
-  settingName: plugin-summaraidGPT-settings
   configMapName: plugin-summaraidGPT-configMap
   homepage: https://www.xhhao.com
   repo: https://github.com/acanyo/halo-plugin-summaraidGPT
@@ -25,6 +24,7 @@ spec:
     # 必须保持必选依赖：PF4J 不会把可选依赖放进依赖图，写成 "ai-foundation?" 就没有启动顺序保证，
     # 即使 AI 基座已经 STARTED，本插件也可能先启动而看不到 run.halo.aifoundation.* 的类。
     ai-foundation: "*"
+    "plugin-lingui?": ">=1.0.3 & <2.0.0"
   license:
     - name: "GPL-3.0"
       url: "https://github.com/halo-dev/plugin-starter/blob/main/LICENSE"

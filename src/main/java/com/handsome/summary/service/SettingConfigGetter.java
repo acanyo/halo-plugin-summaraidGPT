@@ -142,6 +142,7 @@ public interface SettingConfigGetter {
     class StyleConfig {
         public static final String GROUP = "style";
         private String uiStyle;
+        private String linguiProjectId;
         private String fixedTone;
         private String fixedDensity;
         private String themeName;

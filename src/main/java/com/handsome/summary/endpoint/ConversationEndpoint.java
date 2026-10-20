@@ -120,6 +120,7 @@ public class ConversationEndpoint implements CustomEndpoint {
         Integer typeSpeed,
         String darkSelector,
         String uiStyle,
+        String linguiProjectId,
         String fixedTone,
         String fixedDensity,
         String themeName,
@@ -660,6 +661,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                 summaryConfig.getTypeSpeed() != null ? summaryConfig.getTypeSpeed() : 20,
                 summaryConfig.getDarkSelector() != null ? summaryConfig.getDarkSelector() : "",
                 resolveUiStyle(styleConfig),
+                styleConfig.getLinguiProjectId() != null ? styleConfig.getLinguiProjectId().strip() : "",
                 resolveFixedTone(styleConfig),
                 resolveFixedDensity(styleConfig),
                 resolveThemeName(styleConfig),
@@ -681,6 +683,7 @@ public class ConversationEndpoint implements CustomEndpoint {
                 20,
                 "",
                 "simple",
+                "",
                 "violet",
                 "compact",
                 "custom",
@@ -715,6 +718,9 @@ public class ConversationEndpoint implements CustomEndpoint {
     }
 
     private String resolveUiStyle(SettingConfigGetter.StyleConfig styleConfig) {
+        if ("lingui".equals(styleConfig.getUiStyle())) {
+            return "lingui";
+        }
         if (styleConfig.getUiStyle() != null) {
             if ("simple".equals(styleConfig.getUiStyle())) {
                 return "simple";

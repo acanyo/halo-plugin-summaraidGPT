@@ -1,0 +1,293 @@
+.sw-settings-layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 850px);
+  gap: 30px;
+  align-items: start;
+}
+.sw-settings-sidebar {
+  min-width: 0;
+  position: sticky;
+  top: 20px;
+}
+.sw-settings-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  margin-bottom: 20px;
+  border: 1px solid var(--sw-border);
+  border-radius: 9px;
+  color: var(--sw-faint);
+}
+.sw-settings-search:focus-within {
+  border-color: var(--sw-muted);
+}
+.sw-settings-search input {
+  min-width: 0;
+  width: 100%;
+  height: 36px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--sw-text);
+  font: inherit;
+  font-size: 12px;
+}
+.sw-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.sw-settings-category {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sw-settings-category-label {
+  padding: 0 12px 7px;
+  color: var(--sw-faint);
+  font-size: 10px;
+}
+.sw-settings-category > a,
+.sw-settings-migration-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  color: var(--sw-muted);
+  font-size: 12px;
+  text-decoration: none;
+}
+.sw-settings-category > a > span,
+.sw-settings-migration-link > span {
+  flex: 1;
+}
+.sw-settings-category > a:hover,
+.sw-settings-migration-link:hover {
+  background: var(--sw-sidebar);
+  color: var(--sw-text);
+}
+.sw-settings-category > a.is-active,
+.sw-settings-migration-link.is-active {
+  background: var(--sw-subtle);
+  color: var(--sw-text);
+  font-weight: 550;
+}
+.sw-settings-migration-link {
+  border-top: 1px solid var(--sw-border);
+  border-radius: 0;
+  padding-top: 18px;
+}
+.sw-settings-sidebar-note {
+  padding: 18px 12px;
+  color: var(--sw-faint);
+  font-size: 10px;
+  line-height: 1.9;
+}
+.sw-settings-no-results {
+  color: var(--sw-muted);
+  font-size: 12px;
+  line-height: 1.8;
+  padding: 12px;
+}
+.sw-settings-panel {
+  min-width: 0;
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius);
+}
+.sw-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 24px;
+  border-bottom: 1px solid var(--sw-border);
+}
+.sw-settings-heading h2 {
+  font-size: 17px;
+  font-weight: 550;
+}
+.sw-settings-heading p {
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--sw-muted);
+  line-height: 1.8;
+}
+.sw-unsaved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  color: var(--sw-muted);
+  font-size: 11px;
+}
+.sw-settings-form {
+  padding: 24px;
+}
+.sw-settings-form:has(.sw-settings-section) {
+  padding: 0;
+}
+.sw-settings-section {
+  padding: 26px;
+}
+.sw-settings-section + .sw-settings-section {
+  border-top: 1px solid var(--sw-border);
+}
+.sw-settings-section > header {
+  margin-bottom: 24px;
+}
+.sw-settings-section h3 {
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.2px;
+}
+.sw-settings-section > header p {
+  margin-top: 7px;
+  font-size: 12px;
+  color: var(--sw-muted);
+  line-height: 1.8;
+}
+.sw-settings-section-fields {
+  padding: 0;
+}
+.sw-settings-section-fields > .formkit-outer:last-child {
+  margin-bottom: 0;
+}
+.sw-settings-section :where(.formkit-fieldset) {
+  background: var(--sw-sidebar);
+  padding: 18px;
+  border-radius: 10px;
+}
+.sw-settings-section :where(.formkit-legend) {
+  padding: 0 7px;
+  font-size: 12px;
+}
+.sw-settings-section :where(.formkit-help) {
+  max-width: 620px;
+}
+.sw-settings-save-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sw-settings-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 20px 24px 0;
+  border: 1px solid var(--sw-border);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--sw-sidebar);
+}
+.sw-settings-action strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.sw-settings-action p {
+  margin-top: 5px;
+  color: var(--sw-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.sw-settings-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  border-top: 1px solid var(--sw-border);
+  border-radius: 0 0 var(--sw-radius) var(--sw-radius);
+  padding: 16px 24px;
+  background: var(--sw-bg);
+  z-index: 1;
+}
+.sw-settings-footer > span {
+  color: var(--sw-muted);
+  font-size: 12px;
+}
+.sw-readonly-note {
+  padding: 16px 24px 0;
+  color: var(--sw-muted);
+  font-size: 12px;
+}
+.sw-settings-form :where(.formkit-outer) {
+  margin-bottom: 23px;
+}
+.sw-settings-form :where(.formkit-label, .formkit-legend) {
+  color: var(--sw-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+.sw-settings-form :where(.formkit-help) {
+  color: var(--sw-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.sw-settings-form :where(.formkit-fieldset) {
+  border-color: var(--sw-border);
+  border-radius: 10px;
+}
+.sw-settings-form :where(textarea) {
+  min-height: 100px;
+  line-height: 1.8;
+}
+@container summaraid-workbench (max-width: 800px) {
+  .sw-settings-layout {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .sw-settings-sidebar {
+    position: static;
+  }
+  .sw-settings-search {
+    max-width: 350px;
+    margin-bottom: 14px;
+  }
+  .sw-settings-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .sw-settings-category {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .sw-settings-category-label,
+  .sw-settings-sidebar-note {
+    display: none;
+  }
+  .sw-settings-category > a,
+  .sw-settings-migration-link {
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  .sw-settings-heading,
+  .sw-settings-form {
+    padding: 20px;
+  }
+  .sw-settings-section {
+    padding: 22px 20px;
+  }
+  .sw-settings-action {
+    margin: 18px 20px 0;
+    flex-wrap: wrap;
+  }
+  .sw-settings-footer {
+    padding: 15px 20px;
+    flex-wrap: wrap;
+  }
+  .sw-settings-section :where(.formkit-fieldset) {
+    padding: 12px;
+  }
+}
+
+.sw-settings-action.is-secondary {
+  margin-bottom: 24px;
+}

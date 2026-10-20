@@ -20,6 +20,7 @@ export interface SummaryWidgetConfig {
   typeSpeed: number;
   darkSelector: string;
   uiStyle: string;
+  linguiProjectId: string;
   fixedTone: string;
   fixedDensity: string;
   themeName: string;
@@ -56,6 +57,7 @@ export const DEFAULT_SUMMARY_CONFIG: SummaryWidgetConfig = {
   typeSpeed: 20,
   darkSelector: '',
   uiStyle: 'simple',
+  linguiProjectId: '',
   fixedTone: 'violet',
   fixedDensity: 'compact',
   themeName: 'custom',

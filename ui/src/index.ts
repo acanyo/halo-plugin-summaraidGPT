@@ -8,109 +8,53 @@ import ArticlePolish from '@/extensions/ArticlePolish'
 import ArticleGenerate from '@/extensions/ArticleGenerate'
 import { articleReadingApi } from '@/api/article-reading'
 import { hasUiPermission } from '@/utils/permissions'
+import {
+  legacyWorkbenchPages,
+  legacyWorkbenchRedirect,
+  workbenchPermissions,
+} from '@/workbench/navigation'
 import RiBrainLine from '~icons/ri/brain-line'
-import RiBearSmileLine from '~icons/ri/bear-smile-line'
-import RiFileList3Line from '~icons/ri/file-list-3-line'
-import RiMessage3Line from '~icons/ri/message-3-line'
+import FormKitSpeechSettings from '@/components/podcast/FormKitSpeechSettings.vue'
 import 'uno.css'
 
 export default definePlugin({
+  formkit: {
+    inputs: {
+      summaraidSpeechSettings: {
+        type: 'group',
+        props: ['channel'],
+        component: markRaw(FormKitSpeechSettings),
+      },
+    },
+  },
   routes: [
     {
       parentName: 'Root',
       route: {
-        path: '/summaraidgpt/article-readings',
-        name: 'SummaraidGptArticleReadings',
-        component: () => import('@/views/ArticleReadingGraphView.vue'),
+        path: '/summaraidgpt',
+        name: 'SummaraidGptWorkbench',
+        component: () => import('@/views/WorkbenchView.vue'),
         meta: {
-          title: '洞察图谱',
+          title: '智阅 AI 工作台',
           searchable: true,
-          permissions: ['plugin:summaraidGPT:article-reading:view'],
+          permissions: workbenchPermissions,
           menu: {
-            name: '洞察图谱',
-            group: '智阅 AI 助手',
+            name: '智阅 AI',
+            group: 'tool',
             icon: markRaw(RiBrainLine),
             priority: 44,
           },
         },
       },
     },
-    {
+    ...legacyWorkbenchPages.map((page) => ({
       parentName: 'Root',
       route: {
-        path: '/summaraidgpt/rag',
-        name: 'SummaraidGptRagKnowledge',
-        component: () => import('@/views/RagKnowledgeView.vue'),
-        meta: {
-          title: 'RAG 知识库',
-          searchable: true,
-          permissions: ['plugin:summaraidGPT:rag:view'],
-          menu: {
-            name: 'RAG 知识库',
-            group: '智阅 AI 助手',
-            icon: markRaw(RiBrainLine),
-            priority: 45,
-          },
-        },
+        path: page.path,
+        name: page.name,
+        redirect: (to: import('vue-router').RouteLocation) => legacyWorkbenchRedirect(page.tab, to),
       },
-    },
-    {
-      parentName: 'Root',
-      route: {
-        path: '/summaraidgpt/pets',
-        name: 'SummaraidGptPets',
-        component: () => import('@/views/PetListView.vue'),
-        meta: {
-          title: '宠物列表',
-          searchable: true,
-          permissions: ['plugin:summaraidGPT:pets:view'],
-          menu: {
-            name: '宠物列表',
-            group: '智阅 AI 助手',
-            icon: markRaw(RiBearSmileLine),
-            priority: 46,
-          },
-        },
-      },
-    },
-    {
-      parentName: 'Root',
-      route: {
-        path: '/summaraidgpt/rag-conversations',
-        name: 'SummaraidGptRagConversations',
-        component: () => import('@/views/RagConversationsView.vue'),
-        meta: {
-          title: '会话记录',
-          searchable: true,
-          permissions: ['plugin:summaraidGPT:rag:view'],
-          menu: {
-            name: '会话记录',
-            group: '智阅 AI 助手',
-            icon: markRaw(RiMessage3Line),
-            priority: 47,
-          },
-        },
-      },
-    },
-    {
-      parentName: 'Root',
-      route: {
-        path: '/summaraidgpt/ai-call-logs',
-        name: 'SummaraidGptAiCallLogs',
-        component: () => import('@/views/AiCallLogsView.vue'),
-        meta: {
-          title: 'AI 调用日志',
-          searchable: true,
-          permissions: ['plugin:summaraidGPT:ai-call-logs:view'],
-          menu: {
-            name: 'AI 调用日志',
-            group: '智阅 AI 助手',
-            icon: markRaw(RiFileList3Line),
-            priority: 48,
-          },
-        },
-      },
-    },
+    })),
   ],
   extensionPoints: {
     'default:editor:extension:create': () => {

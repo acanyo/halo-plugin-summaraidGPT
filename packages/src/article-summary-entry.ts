@@ -59,6 +59,7 @@ function applyConfig(
   element.typewriter = config.typewriter ?? true;
   element.darkSelector = config.darkSelector || '';
   element.uiStyle = config.uiStyle || 'simple';
+  element.linguiProjectId = config.linguiProjectId || '';
   element.fixedTone = config.fixedTone || 'violet';
   element.fixedDensity = config.fixedDensity || 'compact';
   element.themeName = config.themeName || 'custom';

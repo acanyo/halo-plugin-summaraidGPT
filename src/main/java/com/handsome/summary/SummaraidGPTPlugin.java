@@ -3,6 +3,8 @@ package com.handsome.summary;
 import com.handsome.summary.extension.Summary;
 import com.handsome.summary.ai.extension.AiCallLog;
 import com.handsome.summary.pet.extension.PetCompanion;
+import com.handsome.summary.podcast.extension.ArticlePodcast;
+import com.handsome.summary.podcast.service.PodcastService;
 import com.handsome.summary.reading.extension.ArticleReading;
 import com.handsome.summary.reading.extension.ArticleReadingInteraction;
 import com.handsome.summary.rag.extension.RagConversation;
@@ -34,30 +36,35 @@ public class SummaraidGPTPlugin extends BasePlugin {
     private final SchemeManager schemeManager;
     private final AiRequestSecurityService aiRequestSecurityService;
     private final DefaultRagIndexTaskService ragIndexTaskService;
+    private final PodcastService podcastService;
 
     public SummaraidGPTPlugin(PluginContext pluginContext, SchemeManager schemeManager,
         AiRequestSecurityService aiRequestSecurityService,
-        DefaultRagIndexTaskService ragIndexTaskService) {
+        DefaultRagIndexTaskService ragIndexTaskService, PodcastService podcastService) {
         super(pluginContext);
         this.schemeManager = schemeManager;
         this.aiRequestSecurityService = aiRequestSecurityService;
         this.ragIndexTaskService = ragIndexTaskService;
+        this.podcastService = podcastService;
     }
 
     @Override
     public void start() {
         registerScheme();
         ragIndexTaskService.resumeRunningTasks();
+        podcastService.recoverInterrupted();
     }
 
     @Override
     public void stop() {
         ragIndexTaskService.disposeRunningTasks();
+        podcastService.dispose();
         aiRequestSecurityService.dispose();
         unregisterScheme();
     }
 
     private void registerScheme() {
+        schemeManager.register(ArticlePodcast.class);
         schemeManager.register(Summary.class, indexSpecs -> {
             indexSpecs.add(IndexSpecs.<Summary, String>single("summarySpec.postMetadataName", String.class)
                 .indexFunc(summary -> Optional.ofNullable(summary.getSummarySpec())
@@ -196,6 +203,7 @@ public class SummaraidGPTPlugin extends BasePlugin {
     }
 
     private void unregisterScheme() {
+        schemeManager.unregister(schemeManager.get(ArticlePodcast.class));
         Scheme tokenScheme = schemeManager.get(Summary.class);
         schemeManager.unregister(tokenScheme);
         Scheme articleReadingScheme = schemeManager.get(ArticleReading.class);
