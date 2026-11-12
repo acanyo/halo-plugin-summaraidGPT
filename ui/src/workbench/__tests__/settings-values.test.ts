@@ -48,10 +48,13 @@ describe('configuration migration values', () => {
       'roles',
       'summary',
       'articleReading',
+      'glossary',
+      'smartSearch',
       'podcast',
       'style',
       'assistant',
       'agent',
+      'mcp',
     ])
     const assistant = settingGroups.find((group) => group.group === 'assistant')!
     expect(assistant.formSchema.find((field) => field.name === 'welcomeMessage')).toMatchObject({

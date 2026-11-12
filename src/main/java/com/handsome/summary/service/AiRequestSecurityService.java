@@ -47,6 +47,25 @@ public class AiRequestSecurityService {
             .then();
     }
 
+    /** For authenticated management routes whose permissions are enforced by Halo RBAC. */
+    public Mono<Void> secureManagement(ServerRequest request) {
+        return request.principal()
+            .filter(this::authenticated)
+            .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                "请登录后管理知识库")))
+            .flatMap(principal -> settingConfigGetter.getAiSecurityConfig()
+                .doOnNext(security -> {
+                    verifyFetchSite(request);
+                    // Browser-controlled same-origin metadata survives reverse-proxy URL rewriting.
+                    if (!"same-origin".equalsIgnoreCase(
+                        request.headers().firstHeader("Sec-Fetch-Site"))) {
+                        verifyHotlink(request, security);
+                    }
+                    verifyRateLimit(request, security, principal);
+                }))
+            .then();
+    }
+
     public AgentAccessMode resolveAccessMode(SettingConfigGetter.AiSecurityConfig security) {
         if (security == null) {
             return AgentAccessMode.ANONYMOUS_CHAT_AGENT;
@@ -80,12 +99,7 @@ public class AiRequestSecurityService {
             return;
         }
 
-        var fetchSite = request.headers().firstHeader("Sec-Fetch-Site");
-        if (StringUtils.hasText(fetchSite)
-            && !TRUSTED_FETCH_SITES.contains(fetchSite.toLowerCase(Locale.ROOT))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                "Cross-site AI requests are not allowed");
-        }
+        verifyFetchSite(request);
 
         var sourceOrigin = requestOrigin(request);
         if (!StringUtils.hasText(sourceOrigin)) {
@@ -105,6 +119,15 @@ public class AiRequestSecurityService {
         if (!allowed) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "AI requests are only allowed from trusted site origins");
+        }
+    }
+
+    private void verifyFetchSite(ServerRequest request) {
+        var fetchSite = request.headers().firstHeader("Sec-Fetch-Site");
+        if (StringUtils.hasText(fetchSite)
+            && !TRUSTED_FETCH_SITES.contains(fetchSite.toLowerCase(Locale.ROOT))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Cross-site AI requests are not allowed");
         }
     }
 

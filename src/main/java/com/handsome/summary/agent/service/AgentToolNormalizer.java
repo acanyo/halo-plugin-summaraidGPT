@@ -71,7 +71,7 @@ public class AgentToolNormalizer {
         var name = trimToNull(tool.name()) == null
             ? ""
             : tool.name().trim().toLowerCase(Locale.ROOT);
-        if (!TOOL_NAME_PATTERN.matcher(name).matches()) {
+        if (!TOOL_NAME_PATTERN.matcher(name).matches() || name.startsWith("mcp_")) {
             log.warn("Ignore invalid Agent tool name: {}", tool.name());
             return java.util.Optional.empty();
         }

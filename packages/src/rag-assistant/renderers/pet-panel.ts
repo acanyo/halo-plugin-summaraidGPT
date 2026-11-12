@@ -14,6 +14,8 @@ import { markdownToHtml } from '../format';
 import { renderSourceList } from '../source-list';
 import { renderTyping } from './common';
 import type { RagAssistantMessage } from '../types';
+import { renderMcpResults } from './mcp-results';
+import { renderMcpCapabilities, type McpCapability } from '../agent/mcp-capabilities';
 
 export interface PetPanelRenderOptions {
   assistantName: string;
@@ -26,6 +28,7 @@ export interface PetPanelRenderOptions {
   messages: RagAssistantMessage[];
   welcomeMessage: string;
   quickQuestions: string[];
+  mcpCapabilities?: McpCapability[];
   input: string;
   petInputPlaceholder: string;
   panelStyle: string;
@@ -106,6 +109,7 @@ export function renderPetPanel(options: PetPanelRenderOptions): TemplateResult {
       </div>
 
       <div class="pet-panel-content">
+        ${renderMcpCapabilities(options.mcpCapabilities || [], options.streaming, options.onUsePrompt)}
         ${options.selectedContext
           ? html`
               <div class="pet-context">
@@ -230,6 +234,7 @@ function renderPanelMessage(
           : html`<span class="message-text">${content}</span>`}
         ${message.streaming ? renderTyping() : nothing}
       </div>
+      ${message.role === 'assistant' ? renderMcpResults(message.toolResults) : nothing}
       ${sources.length
         ? html`
             <details class="pet-panel-sources">

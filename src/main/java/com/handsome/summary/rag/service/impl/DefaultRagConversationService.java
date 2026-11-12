@@ -153,6 +153,37 @@ public class DefaultRagConversationService implements RagConversationService {
         return saveAssistantMessage(conversationId, content, sources, error);
     }
 
+    @Override
+    public Mono<RagConversation> recordAgentMessage(String conversationId, String messageId, String content,
+        List<RagSourceReference> sources, boolean error,
+        List<com.handsome.summary.mcp.model.McpToolResult> toolResults) {
+        return Mono.defer(() -> get(conversationId)).flatMap(conversation -> {
+            var spec = conversation.getSpec();
+            var messages = new ArrayList<>(spec.getMessages() == null ? List.<RagConversation.Message>of() : spec.getMessages());
+            var message = assistantMessage(content, sources, error);
+            message.setId(messageId);
+            message.setToolResults(toolResults);
+            int existing = -1;
+            for (int i = 0; i < messages.size(); i++) if (messageId.equals(messages.get(i).getId())
+                && "assistant".equals(messages.get(i).getRole())) { existing = i; break; }
+            if (existing >= 0) {
+                var previous = messages.get(existing);
+                message.setCreatedAt(previous.getCreatedAt());
+                var merged = new java.util.LinkedHashMap<String, com.handsome.summary.mcp.model.McpToolResult>();
+                if (previous.getToolResults() != null) previous.getToolResults().forEach(card -> merged.put(card.id(), card));
+                if (toolResults != null) toolResults.forEach(card -> merged.put(card.id(), card));
+                message.setToolResults(new ArrayList<>(merged.values()).stream().limit(16).toList());
+                if (!StringUtils.hasText(content)) message.setContent(previous.getContent());
+                messages.set(existing, message);
+            }
+            else messages.add(message);
+            conversation.getSpec().setMessages(messages);
+            conversation.setStatus(statusFrom(messages, conversation.getStatus()));
+            return client.update(conversation);
+        }).retryWhen(reactor.util.retry.Retry.max(2)
+            .filter(errorCause -> errorCause instanceof org.springframework.dao.OptimisticLockingFailureException));
+    }
+
     private Mono<RagChatStreamEvent> handleStreamEvent(String conversationName,
         RagChatStreamEvent event, StringBuilder answerText, List<RagSourceReference> sources,
         java.util.concurrent.atomic.AtomicBoolean assistantSaved) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
+import { computed, defineAsyncComponent, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { hasUiPermission } from '@/utils/permissions'
 import WorkbenchIcon from '@/workbench/components/WorkbenchIcon.vue'
@@ -23,12 +23,20 @@ const panels = {
   overview: defineAsyncComponent(() => import('@/workbench/overview/WorkbenchOverview.vue')),
   knowledge: defineAsyncComponent(() => import('@/views/RagKnowledgeView.vue')),
   reading: defineAsyncComponent(() => import('@/views/ArticleReadingGraphView.vue')),
+  glossary: defineAsyncComponent(() => import('@/views/ArticleGlossaryView.vue')),
   podcast: defineAsyncComponent(() => import('@/components/podcast/PodcastManager.vue')),
   assistant: defineAsyncComponent(() => import('@/views/PetListView.vue')),
+  mcp: defineAsyncComponent(() => import('@/views/McpManagerView.vue')),
   conversations: defineAsyncComponent(() => import('@/views/RagConversationsView.vue')),
   logs: defineAsyncComponent(() => import('@/views/AiCallLogsView.vue')),
   settings: defineAsyncComponent(() => import('@/workbench/settings/WorkbenchSettings.vue')),
 }
+
+watch(() => [route.query.tab, route.query.group], () => {
+  if (route.query.tab === 'settings' && route.query.group === 'mcp') {
+    void router.replace(workbenchLocation('mcp'))
+  }
+}, { immediate: true })
 
 function navigate(tab: WorkbenchTabId) {
   if (tab !== activeTab.value.id) void router.push(workbenchLocation(tab))

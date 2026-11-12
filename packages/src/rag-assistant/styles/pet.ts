@@ -75,7 +75,7 @@ export const petStyles = css`
   .bubble:focus-visible .pet-sprite {
     filter:
       drop-shadow(0 16px 24px rgba(15, 23, 42, 0.24))
-      drop-shadow(0 0 14px color-mix(in srgb, var(--rag-gold) 28%, transparent));
+      drop-shadow(0 0 14px var(--rag-ring));
   }
 
   .bubble.dragging .pet-sprite {
@@ -89,11 +89,11 @@ export const petStyles = css`
     width: max-content;
     max-width: min(196px, calc(100vw - 32px));
     padding: 8px 10px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 58%, white);
+    border: 1px solid var(--rag-line);
     border-radius: 16px;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.82));
-    color: #334155;
+      linear-gradient(180deg, var(--rag-header-surface), var(--rag-window-surface-2));
+    color: var(--rag-text);
     box-shadow:
       0 10px 24px rgba(15, 23, 42, 0.11),
       inset 0 1px 0 rgba(255, 255, 255, 0.72);
@@ -135,13 +135,13 @@ export const petStyles = css`
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     width: min(410px, calc(100vw - 32px));
-    height: min(var(--rag-pet-panel-height, 318px), calc(100dvh - 132px));
+    height: min(var(--rag-pet-panel-height, 318px), calc(var(--rag-viewport-height, 100vh) - 132px));
     padding: 13px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 62%, white);
+    border: 1px solid var(--rag-line);
     border-radius: var(--rag-radius-panel, 20px);
     background:
-      radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--rag-gold) 11%, transparent), transparent 34%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.97), color-mix(in srgb, var(--rag-panel) 92%, white));
+      radial-gradient(circle at 14% 0%, var(--rag-primary-glow), transparent 34%),
+      linear-gradient(180deg, var(--rag-window-surface), var(--rag-window-surface-2));
     box-shadow:
       0 22px 58px rgba(15, 23, 42, 0.18),
       0 8px 20px rgba(15, 23, 42, 0.08),
@@ -183,7 +183,7 @@ export const petStyles = css`
     right: 16px;
     height: 3px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--rag-muted) 28%, transparent);
+    background: var(--rag-muted);
     opacity: 0.52;
     transition:
       opacity 0.14s ease,
@@ -195,7 +195,7 @@ export const petStyles = css`
   .pet-panel-resize:focus-visible::before,
   .pet-panel.resizing .pet-panel-resize::before {
     opacity: 0.9;
-    background: color-mix(in srgb, var(--rag-gold) 54%, var(--rag-muted));
+    background: var(--rag-hover-border);
     transform: scaleX(1.18);
   }
 
@@ -242,7 +242,7 @@ export const petStyles = css`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: color-mix(in srgb, var(--rag-muted) 82%, transparent);
+    color: var(--rag-muted);
     font-size: 10.5px;
     font-weight: 680;
     line-height: 1;
@@ -271,16 +271,16 @@ export const petStyles = css`
     width: 20px;
     height: 20px;
     padding: 0;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 68%, transparent);
+    border: 1px solid var(--rag-line);
     border-radius: 999px;
-    color: color-mix(in srgb, var(--rag-muted) 82%, var(--rag-text));
-    background: color-mix(in srgb, var(--rag-paper) 82%, transparent);
+    color: var(--rag-muted);
+    background: var(--rag-control-surface);
     cursor: pointer;
   }
 
   .pet-message-actions button:hover:not(:disabled) {
-    color: var(--rag-gold-strong);
-    border-color: color-mix(in srgb, var(--rag-gold) 24%, var(--rag-line));
+    color: var(--rag-link);
+    border-color: var(--rag-hover-border);
   }
 
   .pet-message-actions button:disabled {
@@ -301,10 +301,10 @@ export const petStyles = css`
   .pet-panel-bubble {
     max-width: 100%;
     padding: 9px 10px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 68%, transparent);
+    border: 1px solid var(--rag-line);
     border-radius: 14px;
-    color: #263244;
-    background: color-mix(in srgb, var(--rag-paper) 84%, transparent);
+    color: var(--rag-text);
+    background: var(--rag-assistant-message-bg);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.54);
     font-size: 12.8px;
     line-height: 1.62;
@@ -313,22 +313,22 @@ export const petStyles = css`
 
   .pet-panel-message.user .pet-panel-bubble {
     color: var(--rag-primary-contrast);
-    border-color: color-mix(in srgb, var(--rag-gold) 46%, transparent);
+    border-color: var(--rag-ring);
     background:
       linear-gradient(145deg, var(--rag-user-message-start), var(--rag-user-message-end));
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.18) inset,
-      0 8px 18px color-mix(in srgb, var(--rag-gold) 12%, transparent);
+      0 8px 18px var(--rag-primary-glow);
   }
 
   .pet-panel-bubble.error {
-    color: #9f1d1d;
-    border-color: rgba(220, 38, 38, 0.24);
-    background: rgba(255, 247, 247, 0.94);
+    color: var(--rag-error-text);
+    border-color: var(--rag-error-border);
+    background: var(--rag-error-surface);
   }
 
   .pet-panel-bubble.streaming {
-    border-color: color-mix(in srgb, var(--rag-gold) 30%, var(--rag-line));
+    border-color: var(--rag-hover-border);
   }
 
   .pet-panel-sources {
@@ -341,10 +341,10 @@ export const petStyles = css`
     gap: 5px;
     min-height: 24px;
     padding: 0 9px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 72%, transparent);
+    border: 1px solid var(--rag-line);
     border-radius: 999px;
-    color: var(--rag-gold-strong);
-    background: color-mix(in srgb, var(--rag-gold-faint) 68%, white);
+    color: var(--rag-link);
+    background: var(--rag-highlight-surface);
     cursor: pointer;
     font-size: 11.5px;
     font-weight: 760;
@@ -388,14 +388,14 @@ export const petStyles = css`
       radial-gradient(circle at 34% 20%, rgba(255, 255, 255, 0.24), transparent 28%),
       linear-gradient(145deg, var(--rag-gold), var(--rag-gold-strong));
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--rag-gold) 20%, transparent),
-      0 8px 18px color-mix(in srgb, var(--rag-gold) 12%, transparent);
+      0 0 0 1px var(--rag-ring),
+      0 8px 18px var(--rag-primary-glow);
     font-size: 12px;
     font-weight: 840;
   }
 
   .pet-panel-avatar.has-image {
-    background: color-mix(in srgb, var(--rag-paper) 88%, white);
+    background: var(--rag-control-surface);
   }
 
   .pet-panel-avatar-fallback {
@@ -425,7 +425,7 @@ export const petStyles = css`
 
   .pet-panel-kicker {
     overflow: hidden;
-    color: color-mix(in srgb, var(--rag-muted) 82%, var(--rag-text));
+    color: var(--rag-muted);
     font-size: 11px;
     font-weight: 740;
     line-height: 1.2;
@@ -459,10 +459,10 @@ export const petStyles = css`
     gap: 5px;
     min-height: 28px;
     padding: 0 9px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 72%, transparent);
+    border: 1px solid var(--rag-line);
     border-radius: 999px;
-    color: color-mix(in srgb, var(--rag-text) 76%, var(--rag-muted));
-    background: color-mix(in srgb, var(--rag-paper) 82%, transparent);
+    color: var(--rag-text);
+    background: var(--rag-control-surface);
     box-shadow: 0 5px 12px rgba(15, 23, 42, 0.04);
     cursor: pointer;
     font-size: 12px;
@@ -502,9 +502,9 @@ export const petStyles = css`
     width: 8px;
     height: 8px;
     margin-right: 12px;
-    border-left: 1px solid color-mix(in srgb, var(--rag-line) 76%, transparent);
-    border-top: 1px solid color-mix(in srgb, var(--rag-line) 76%, transparent);
-    background: color-mix(in srgb, var(--rag-paper) 96%, white);
+    border-left: 1px solid var(--rag-line);
+    border-top: 1px solid var(--rag-line);
+    background: var(--rag-control-surface);
     transform: translateY(3px) rotate(45deg);
   }
 
@@ -514,10 +514,10 @@ export const petStyles = css`
     min-width: max-content;
     max-width: 160px;
     padding: 6px 8px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 76%, transparent);
+    border: 1px solid var(--rag-line);
     border-radius: 9px;
     color: var(--rag-text);
-    background: color-mix(in srgb, var(--rag-paper) 96%, white);
+    background: var(--rag-control-surface);
     box-shadow:
       0 10px 24px rgba(15, 23, 42, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.58);
@@ -542,27 +542,27 @@ export const petStyles = css`
 
   .pet-panel-action.is-primary {
     color: var(--rag-primary-contrast);
-    border-color: color-mix(in srgb, var(--rag-gold) 42%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--rag-gold) 92%, white), var(--rag-gold-strong));
+    border-color: var(--rag-ring);
+    background: linear-gradient(180deg, var(--rag-user-message-start), var(--rag-gold-strong));
   }
 
   .pet-panel-action.is-danger {
-    color: #b91c1c;
-    border-color: rgba(239, 68, 68, 0.18);
-    background: rgba(254, 242, 242, 0.82);
+    color: var(--rag-error-text);
+    border-color: var(--rag-error-border);
+    background: var(--rag-error-surface);
   }
 
   .pet-panel-action:hover,
   .pet-source-link:hover {
     transform: translateY(-1px);
     color: var(--rag-text);
-    border-color: color-mix(in srgb, var(--rag-gold) 22%, var(--rag-line));
+    border-color: var(--rag-hover-border);
     background: var(--rag-paper);
   }
 
   .pet-panel-action.is-primary:hover {
     color: var(--rag-primary-contrast);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--rag-gold) 94%, white), var(--rag-gold-strong));
+    background: linear-gradient(180deg, var(--rag-user-message-start), var(--rag-gold-strong));
   }
 
   .pet-panel-action svg,
@@ -586,12 +586,12 @@ export const petStyles = css`
     display: grid;
     gap: 4px;
     padding: 8px 34px 8px 10px;
-    border: 1px solid color-mix(in srgb, var(--rag-gold) 18%, var(--rag-line));
-    background: color-mix(in srgb, var(--rag-gold-faint) 82%, white);
+    border: 1px solid var(--rag-hover-border);
+    background: var(--rag-highlight-surface);
   }
 
   .pet-context span {
-    color: var(--rag-gold-strong);
+    color: var(--rag-link);
     font-size: 11px;
     font-weight: 820;
     line-height: 1;
@@ -601,7 +601,7 @@ export const petStyles = css`
     display: -webkit-box;
     margin: 0;
     overflow: hidden;
-    color: #475569;
+    color: var(--rag-text);
     font-size: 12px;
     line-height: 1.45;
     -webkit-box-orient: vertical;
@@ -620,7 +620,7 @@ export const petStyles = css`
     padding: 0;
     border: 0;
     border-radius: 999px;
-    color: color-mix(in srgb, var(--rag-muted) 86%, var(--rag-text));
+    color: var(--rag-muted);
     background: transparent;
     cursor: pointer;
   }
@@ -630,14 +630,14 @@ export const petStyles = css`
     display: flex;
     flex-direction: column;
     padding: 10px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 68%, transparent);
-    background: color-mix(in srgb, var(--rag-paper) 84%, transparent);
+    border: 1px solid var(--rag-line);
+    background: var(--rag-control-surface);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.54);
   }
 
   .pet-answer.error {
-    border-color: rgba(220, 38, 38, 0.24);
-    background: rgba(255, 247, 247, 0.94);
+    border-color: var(--rag-error-border);
+    background: var(--rag-error-surface);
   }
 
   .pet-answer-meta {
@@ -646,7 +646,7 @@ export const petStyles = css`
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 7px;
-    color: color-mix(in srgb, var(--rag-muted) 86%, transparent);
+    color: var(--rag-muted);
     font-size: 11px;
     line-height: 1;
   }
@@ -668,7 +668,7 @@ export const petStyles = css`
     max-height: none;
     min-height: 0;
     overflow: auto;
-    color: #263244;
+    color: var(--rag-text);
     font-size: 12.8px;
     line-height: 1.62;
     scrollbar-width: thin;
@@ -677,8 +677,8 @@ export const petStyles = css`
   .pet-source-link {
     margin-top: 8px;
     min-height: 26px;
-    color: var(--rag-gold-strong);
-    background: color-mix(in srgb, var(--rag-gold-faint) 68%, white);
+    color: var(--rag-link);
+    background: var(--rag-highlight-surface);
   }
 
   .pet-panel-empty {
@@ -688,14 +688,14 @@ export const petStyles = css`
     gap: 10px;
     padding: 11px;
     overflow: auto;
-    border: 1px dashed color-mix(in srgb, var(--rag-line) 74%, transparent);
-    color: color-mix(in srgb, var(--rag-muted) 90%, var(--rag-text));
-    background: color-mix(in srgb, var(--rag-panel) 76%, white);
+    border: 1px dashed var(--rag-line);
+    color: var(--rag-muted);
+    background: var(--rag-window-surface);
   }
 
   .pet-panel-welcome {
     margin: 0;
-    color: #263244;
+    color: var(--rag-text);
     font-size: 12.8px;
     font-weight: 680;
     line-height: 1.58;
@@ -716,10 +716,10 @@ export const petStyles = css`
     max-width: 100%;
     min-height: 28px;
     padding: 0 9px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 72%, transparent);
+    border: 1px solid var(--rag-line);
     border-radius: 999px;
-    color: color-mix(in srgb, var(--rag-text) 78%, var(--rag-muted));
-    background: color-mix(in srgb, var(--rag-paper) 82%, transparent);
+    color: var(--rag-text);
+    background: var(--rag-control-surface);
     box-shadow: 0 5px 12px rgba(15, 23, 42, 0.04);
     cursor: pointer;
     font-size: 11.5px;
@@ -735,7 +735,7 @@ export const petStyles = css`
   .pet-panel-quick button:hover {
     transform: translateY(-1px);
     color: var(--rag-text);
-    border-color: color-mix(in srgb, var(--rag-gold) 22%, var(--rag-line));
+    border-color: var(--rag-hover-border);
     background: var(--rag-paper);
   }
 

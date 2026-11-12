@@ -10,11 +10,14 @@ public interface SettingConfigGetter {
     Mono<BasicConfig> getBasicConfig();
     Mono<SummaryConfig> getSummaryConfig();
     Mono<ArticleReadingConfig> getArticleReadingConfig();
+    Mono<GlossaryConfig> getGlossaryConfig();
+    Mono<SmartSearchConfig> getSmartSearchConfig();
     Mono<StyleConfig> getStyleConfig();
     Mono<RoleConfig> getRoleConfig();
     Mono<GenerationConfig> getGenerationConfig();
     Mono<AssistantConfig> getAssistantConfig();
     Mono<AgentSettings> getAgentSettings();
+    Mono<com.handsome.summary.mcp.model.McpSettings> getMcpSettings();
     Mono<AiSecurityConfig> getAiSecurityConfig();
     Mono<RagConfig> getRagConfig();
     
@@ -135,6 +138,28 @@ public interface SettingConfigGetter {
         private Boolean enableUiInjection = true;
         private Boolean autoGenerate = true;
         private Boolean defaultCollapsed = false;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    class GlossaryConfig {
+        public static final String GROUP = "glossary";
+        private Boolean enable = false;
+        private Boolean autoGenerate = true;
+        private Integer maxTerms = 8;
+
+        public int termLimit() {
+            return maxTerms == null ? 8 : Math.max(1, Math.min(15, maxTerms));
+        }
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    class SmartSearchConfig {
+        public static final String GROUP = "smartSearch";
+        private Boolean enable = false;
+        private Boolean enableSemantic = true;
+        private Boolean enableAi = true;
     }
 
     @Data

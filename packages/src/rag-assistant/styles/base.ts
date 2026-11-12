@@ -14,11 +14,19 @@ export const baseStyles = css`
     --rag-gold-strong: #85510a;
     --rag-gold-soft: rgba(161, 98, 7, 0.16);
     --rag-gold-faint: rgba(161, 98, 7, 0.05);
-    --rag-input-surface-resolved: color-mix(in srgb, var(--rag-panel) 90%, white);
+    --rag-input-surface-resolved: #fdfdfd;
     --rag-user-message-start: var(--rag-gold);
     --rag-user-message-end: var(--rag-gold-strong);
-    --rag-ring: color-mix(in srgb, var(--rag-gold) 42%, transparent);
-    --rag-frost: color-mix(in srgb, var(--rag-paper) 74%, transparent);
+    --rag-ring: rgba(161, 98, 7, 0.42);
+    --rag-frost: rgba(255, 255, 255, 0.96);
+    --rag-primary-glow: rgba(161, 98, 7, 0.16);
+    --rag-code-surface: rgba(24, 24, 27, 0.07);
+    --rag-link: #85510a;
+    --rag-highlight-surface: #f5f2ed;
+    --rag-hover-border: rgba(161, 98, 7, 0.28);
+    --rag-error-text: #9f1d1d;
+    --rag-error-surface: #fff7f7;
+    --rag-error-border: rgba(220, 38, 38, 0.24);
     --rag-primary-contrast: #fff;
     position: fixed;
     right: 24px;
@@ -65,7 +73,7 @@ export const baseStyles = css`
   a:focus-visible {
     outline: none;
     box-shadow:
-      0 0 0 3px color-mix(in srgb, var(--rag-gold) 14%, transparent),
+      0 0 0 3px var(--rag-primary-glow),
       0 6px 16px rgba(15, 23, 42, 0.06);
   }
 

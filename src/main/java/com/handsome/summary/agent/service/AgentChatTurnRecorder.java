@@ -6,12 +6,12 @@ import com.handsome.summary.ai.model.AiCallLogRecord;
 import com.handsome.summary.ai.service.AiCallLogService;
 import com.handsome.summary.rag.model.RagSourceReference;
 import com.handsome.summary.rag.service.RagConversationService;
+import com.handsome.summary.mcp.service.McpTurnResults;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +30,7 @@ import run.halo.aifoundation.ui.UIMessageChatRequest;
 import run.halo.aifoundation.ui.UIMessageChunk;
 import run.halo.aifoundation.ui.UIMessagePart;
 import run.halo.aifoundation.ui.UIMessageRole;
+import run.halo.aifoundation.ui.UIMessageTransportCodec;
 
 @Slf4j
 @Component
@@ -50,12 +51,35 @@ public class AgentChatTurnRecorder {
                 : chatRequest.trigger().value(), traceId,
             chatRequest == null ? 0 : chatRequest.messages().size());
         ingestMessageSources(turn, chatRequest);
+        turn.continuation = !recordUserMessage && chatRequest != null && StringUtils.hasText(chatRequest.messageId());
+        if (chatRequest != null && chatRequest.messages() != null && !recordUserMessage) {
+            var messages = chatRequest.messages();
+            if (!messages.isEmpty() && messages.getLast().role() == UIMessageRole.ASSISTANT) {
+                turn.assistantMessageId = messages.getLast().id();
+            }
+        }
         return turn;
     }
 
     public Mono<Void> recordUserMessage(AgentChatTurn turn) {
         if (turn == null || !turn.recordUserMessage || !StringUtils.hasText(turn.question)) {
-            return Mono.empty();
+            return turn != null && StringUtils.hasText(turn.conversationId)
+                ? ragConversationService.getForVisitor(turn.conversationId, turn.visitorId)
+                    .doOnNext(conversation -> {
+                        if (conversation.getSpec() == null || conversation.getSpec().getMessages() == null) return;
+                        if (!turn.continuation) return;
+                        var savedMessages = conversation.getSpec().getMessages();
+                        var saved = savedMessages.stream()
+                            .filter(message -> turn.assistantMessageId.equals(message.getId())
+                                && "assistant".equals(message.getRole()))
+                            .findFirst().orElse(savedMessages.isEmpty() ? null : savedMessages.getLast());
+                        if (saved != null && "assistant".equals(saved.getRole())) {
+                            turn.assistantMessageId = saved.getId();
+                            turn.toolResults.restore(saved.getToolResults());
+                            turn.answerText.append(saved.getContent() == null ? "" : saved.getContent());
+                        }
+                    }).then()
+                : Mono.empty();
         }
         return ragConversationService.recordUserMessage(turn.knowledgeBase, turn.conversationId,
                 turn.visitorId, turn.userAgent, turn.question)
@@ -64,17 +88,18 @@ public class AgentChatTurnRecorder {
                     turn.conversationId = conversation.getMetadata().getName();
                 }
             })
-            .then()
-            .onErrorResume(error -> {
-                log.warn("Failed to persist Agent user message: {}", error.getMessage());
-                return Mono.empty();
-            });
+            .then();
     }
 
     public void observe(AgentChatTurn turn, UIMessageChunk chunk) {
         if (turn == null || chunk == null) {
             return;
         }
+        var chunkMap = UIMessageTransportCodec.chunkToMap(chunk);
+        if (!turn.continuation && "start".equals(chunkMap.get("type")) && chunkMap.get("messageId") instanceof String id) {
+            turn.assistantMessageId = id;
+        }
+        turn.toolResults.observe(chunkMap);
         if (chunk instanceof TextDeltaChunk text && text.delta() != null) {
             turn.outputChunks.incrementAndGet();
             turn.outputChars.addAndGet(AiFoundationCallLog.safeLength(text.delta()));
@@ -104,9 +129,17 @@ public class AgentChatTurnRecorder {
     }
 
     public Mono<Void> finish(AgentChatTurn turn, Throwable error) {
-        if (turn == null || !turn.finished.compareAndSet(false, true)) {
-            return Mono.empty();
+        if (turn == null) return Mono.empty();
+        synchronized (turn) {
+            if (turn.finishWork == null) {
+                // A browser may close the stream as soon as it sees finish. Keep the save alive.
+                turn.finishWork = Mono.defer(() -> persistTurn(turn, error)).cache();
+            }
+            return turn.finishWork;
         }
+    }
+
+    private Mono<Void> persistTurn(AgentChatTurn turn, Throwable error) {
         if (error != null) {
             turn.markError(AiFoundationCallLog.rootErrorType(error),
                 AiFoundationCallLog.rootErrorMessage(error));
@@ -117,11 +150,12 @@ public class AgentChatTurnRecorder {
         if (!StringUtils.hasText(content) && turn.failed) {
             content = StringUtils.hasText(turn.errorMessage) ? turn.errorMessage : "Agent 问答失败";
         }
-        if (!StringUtils.hasText(content) || !StringUtils.hasText(turn.conversationId)) {
+        if ((!StringUtils.hasText(content) && turn.toolResults.snapshot().isEmpty())
+            || !StringUtils.hasText(turn.conversationId)) {
             return Mono.empty();
         }
-        return ragConversationService.recordAssistantMessage(turn.conversationId, content,
-                new ArrayList<>(turn.sources.values()), turn.failed)
+        return ragConversationService.recordAgentMessage(turn.conversationId, turn.assistantMessageId, content,
+                new ArrayList<>(turn.sources.values()), turn.failed, turn.toolResults.snapshot())
             .then()
             .onErrorResume(saveError -> {
                 log.warn("Failed to persist Agent assistant message: {}", saveError.getMessage());
@@ -260,8 +294,11 @@ public class AgentChatTurnRecorder {
         private final AtomicInteger outputChunks = new AtomicInteger();
         private final AtomicLong outputChars = new AtomicLong();
         private final StringBuilder answerText = new StringBuilder();
+        private final McpTurnResults toolResults = new McpTurnResults();
+        private String assistantMessageId = "agent-message-" + java.util.UUID.randomUUID();
         private final Map<String, RagSourceReference> sources = new LinkedHashMap<>();
-        private final AtomicBoolean finished = new AtomicBoolean(false);
+        private Mono<Void> finishWork;
+        private boolean continuation;
         private String conversationId;
         private boolean failed;
         private String errorType;

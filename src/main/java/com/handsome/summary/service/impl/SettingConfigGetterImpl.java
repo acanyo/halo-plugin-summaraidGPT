@@ -15,6 +15,12 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     private final ReactiveSettingFetcher settingFetcher;
 
     @Override
+    public Mono<com.handsome.summary.mcp.model.McpSettings> getMcpSettings() {
+        return settingFetcher.fetch("mcp", com.handsome.summary.mcp.model.McpSettings.class)
+            .defaultIfEmpty(com.handsome.summary.mcp.model.McpSettings.defaults());
+    }
+
+    @Override
     public Mono<BasicConfig> getBasicConfig() {
         return settingFetcher.fetch(BasicConfig.GROUP, BasicConfig.class)
             .defaultIfEmpty(new BasicConfig());
@@ -30,6 +36,18 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
     public Mono<ArticleReadingConfig> getArticleReadingConfig() {
         return settingFetcher.fetch(ArticleReadingConfig.GROUP, ArticleReadingConfig.class)
             .defaultIfEmpty(new ArticleReadingConfig());
+    }
+
+    @Override
+    public Mono<GlossaryConfig> getGlossaryConfig() {
+        return settingFetcher.fetch(GlossaryConfig.GROUP, GlossaryConfig.class)
+            .defaultIfEmpty(new GlossaryConfig());
+    }
+
+    @Override
+    public Mono<SmartSearchConfig> getSmartSearchConfig() {
+        return settingFetcher.fetch(SmartSearchConfig.GROUP, SmartSearchConfig.class)
+            .defaultIfEmpty(new SmartSearchConfig());
     }
 
     @Override
@@ -108,7 +126,7 @@ public class SettingConfigGetterImpl implements SettingConfigGetter {
 
     private String getModelNameForFunction(BasicConfig basicConfig, String functionType) {
         return switch (normalizeFunctionType(functionType)) {
-            case "summary", "articlereading", "reading" -> basicConfig.getSummaryModelName();
+            case "summary", "articlereading", "reading", "glossary" -> basicConfig.getSummaryModelName();
             case "tags" -> basicConfig.getTagModelName();
             case "conversation", "assistant" -> basicConfig.getAssistantModelName();
             case "agent" -> StringUtils.hasText(basicConfig.getAgentModelName())

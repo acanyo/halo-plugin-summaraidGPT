@@ -12,9 +12,9 @@ export const composerStyles = css`
     align-items: flex-end;
     gap: 8px;
     padding: 7px 7px 7px 11px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 82%, var(--rag-gold) 8%);
+    border: 1px solid var(--rag-line);
     border-radius: 16px;
-    background: color-mix(in srgb, var(--rag-input-surface-resolved) 90%, white);
+    background: var(--rag-input-surface-resolved);
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.055);
     transition:
       border-color 0.16s ease,
@@ -27,7 +27,7 @@ export const composerStyles = css`
     border-color: var(--rag-ring);
     background: var(--rag-paper);
     box-shadow:
-      0 0 0 3px color-mix(in srgb, var(--rag-gold) 13%, transparent),
+      0 0 0 3px var(--rag-primary-glow),
       0 8px 18px rgba(15, 23, 42, 0.055);
   }
 
@@ -61,7 +61,7 @@ export const composerStyles = css`
 
   .input::placeholder,
   .pet-composer-input::placeholder {
-    color: color-mix(in srgb, var(--rag-muted) 78%, transparent);
+    color: var(--rag-muted);
   }
 
   .send,
@@ -77,9 +77,9 @@ export const composerStyles = css`
     border-radius: 12px;
     color: var(--rag-primary-contrast);
     background:
-      linear-gradient(180deg, color-mix(in srgb, var(--rag-gold) 92%, white), var(--rag-gold-strong));
+      linear-gradient(180deg, var(--rag-user-message-start), var(--rag-gold-strong));
     box-shadow:
-      0 8px 18px color-mix(in srgb, var(--rag-gold) 17%, transparent),
+      0 8px 18px var(--rag-primary-glow),
       inset 0 1px 0 rgba(255, 255, 255, 0.22);
     cursor: pointer;
     transition:

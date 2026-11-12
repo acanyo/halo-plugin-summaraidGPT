@@ -1,28 +1,34 @@
 import { css } from 'lit';
 
 export const stageStyles = css`
-  .pet-stage-backdrop {
+  .pet-stage-backdrop,
+  .pet-stage {
     position: fixed;
-    inset: 0;
+    top: var(--rag-viewport-top, 0px);
+    left: var(--rag-viewport-left, 0px);
+    width: var(--rag-viewport-width, 100vw);
+    height: var(--rag-viewport-height, 100vh);
+  }
+
+  .pet-stage-backdrop {
     z-index: 99997;
     background:
       radial-gradient(circle at 50% 28%, rgba(32, 68, 148, 0.2), transparent 34%),
-      radial-gradient(circle at 34% 72%, color-mix(in srgb, var(--rag-gold) 18%, transparent), transparent 28%),
-      linear-gradient(180deg, rgba(8, 10, 16, 0.43), rgba(5, 7, 12, 0.74));
+      radial-gradient(circle at 34% 72%, var(--rag-primary-glow), transparent 28%),
+      linear-gradient(180deg, rgba(8, 10, 16, 0.86), rgba(5, 7, 12, 0.94));
     backdrop-filter: blur(5px) saturate(0.9);
     -webkit-backdrop-filter: blur(5px) saturate(0.9);
     animation: stage-backdrop-in 0.2s ease-out;
   }
 
   .pet-stage {
-    position: fixed;
     z-index: 99999;
-    inset: 0;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     gap: clamp(12px, 2vh, 22px);
     min-width: 0;
-    overflow: visible;
+    min-height: 0;
+    overflow: hidden;
     padding:
       clamp(20px, 4vh, 46px)
       max(28px, calc((100vw - 1680px) / 2 + 42px))
@@ -47,6 +53,7 @@ export const stageStyles = css`
     display: grid;
     align-items: start;
     min-width: 0;
+    flex: 1;
     gap: 5px;
   }
 
@@ -78,6 +85,7 @@ export const stageStyles = css`
 
   .pet-stage-action,
   .pet-stage-close {
+    flex: 0 0 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -205,15 +213,15 @@ export const stageStyles = css`
       radial-gradient(circle at 32% 20%, rgba(255, 255, 255, 0.24), transparent 26%),
       linear-gradient(145deg, var(--rag-gold), var(--rag-gold-strong));
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--rag-gold) 22%, transparent),
-      0 5px 14px color-mix(in srgb, var(--rag-gold) 12%, transparent);
+      0 0 0 1px var(--rag-ring),
+      0 5px 14px var(--rag-primary-glow);
     font-size: 12px;
     font-weight: 820;
     overflow: hidden;
   }
 
   .pet-stage-avatar.has-image {
-    background: color-mix(in srgb, var(--rag-paper) 86%, white);
+    background: var(--rag-control-surface);
   }
 
   .pet-stage-avatar-fallback {
@@ -292,7 +300,7 @@ export const stageStyles = css`
   }
 
   .pet-stage-bubble.streaming {
-    border-color: color-mix(in srgb, var(--rag-gold) 30%, var(--rag-line));
+    border-color: var(--rag-hover-border);
   }
 
   .pet-stage-bubble.error {
@@ -307,10 +315,10 @@ export const stageStyles = css`
     color: var(--rag-primary-contrast);
     background:
       linear-gradient(145deg, var(--rag-user-message-start), var(--rag-user-message-end));
-    border-color: color-mix(in srgb, var(--rag-gold) 46%, transparent);
+    border-color: var(--rag-ring);
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.16) inset,
-      0 8px 18px color-mix(in srgb, var(--rag-gold) 16%, transparent);
+      0 8px 18px var(--rag-primary-glow);
   }
 
   .pet-stage-message-actions {
@@ -367,8 +375,8 @@ export const stageStyles = css`
 
   .pet-stage-message.user .pet-stage-message-actions button {
     color: var(--rag-muted);
-    border-color: color-mix(in srgb, var(--rag-line) 70%, transparent);
-    background: color-mix(in srgb, var(--rag-paper) 72%, transparent);
+    border-color: var(--rag-line);
+    background: var(--rag-control-surface);
   }
 
   .pet-stage .markdown-body h1,
@@ -482,6 +490,10 @@ export const stageStyles = css`
     padding: 0;
     background: transparent;
     pointer-events: auto;
+    min-width: 0;
+    min-height: 0;
+    max-height: calc(var(--rag-viewport-height, 100vh) * 0.48);
+    overflow-y: auto;
   }
 
   .pet-stage-shortcuts {
@@ -636,7 +648,7 @@ export const stageStyles = css`
 
     .pet-panel {
       width: min(344px, calc(100vw - 32px));
-      height: min(var(--rag-pet-panel-height, 318px), calc(100dvh - 132px));
+      height: min(var(--rag-pet-panel-height, 318px), calc(var(--rag-viewport-height, 100vh) - 132px));
       overflow: hidden;
     }
 
@@ -654,10 +666,33 @@ export const stageStyles = css`
     .pet-stage {
       gap: 10px;
       padding: 14px 12px 16px;
+      padding-top: max(14px, env(safe-area-inset-top, 0px));
+      padding-right: max(12px, env(safe-area-inset-right, 0px));
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+      padding-left: max(12px, env(safe-area-inset-left, 0px));
     }
 
     .pet-stage-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 44px;
       gap: 10px;
+    }
+
+    .pet-stage-title {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .pet-stage-close {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .pet-stage-actions {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-width: 0;
+      flex-wrap: wrap;
     }
 
     .pet-stage-title {

@@ -1,6 +1,7 @@
 package com.handsome.summary;
 
 import com.handsome.summary.extension.Summary;
+import com.handsome.summary.glossary.extension.ArticleGlossary;
 import com.handsome.summary.ai.extension.AiCallLog;
 import com.handsome.summary.pet.extension.PetCompanion;
 import com.handsome.summary.podcast.extension.ArticlePodcast;
@@ -64,6 +65,7 @@ public class SummaraidGPTPlugin extends BasePlugin {
     }
 
     private void registerScheme() {
+        schemeManager.register(ArticleGlossary.class);
         schemeManager.register(ArticlePodcast.class);
         schemeManager.register(Summary.class, indexSpecs -> {
             indexSpecs.add(IndexSpecs.<Summary, String>single("summarySpec.postMetadataName", String.class)
@@ -203,6 +205,7 @@ public class SummaraidGPTPlugin extends BasePlugin {
     }
 
     private void unregisterScheme() {
+        schemeManager.unregister(schemeManager.get(ArticleGlossary.class));
         schemeManager.unregister(schemeManager.get(ArticlePodcast.class));
         Scheme tokenScheme = schemeManager.get(Summary.class);
         schemeManager.unregister(tokenScheme);

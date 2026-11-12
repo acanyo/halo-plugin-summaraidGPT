@@ -12,6 +12,12 @@ type BundleTarget = {
 };
 
 const BUNDLE_TARGETS: Record<string, BundleTarget> = {
+  search: {
+    entry: './src/smart-search-entry.ts',
+    name: 'SummaraidSearch',
+    fileName: 'SmartSearch.js',
+    emptyOutDir: false,
+  },
   summary: {
     entry: './src/article-summary-entry.ts',
     name: 'ArticleSummary',

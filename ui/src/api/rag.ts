@@ -134,6 +134,17 @@ export interface RagConversationMessage {
   createdAt?: string
   sources?: RagSourceReference[]
   error?: boolean
+  toolResults?: McpHistoryResult[]
+}
+
+export interface McpHistoryResult {
+  id: string
+  title: string
+  status: string
+  content?: { type: string; text?: string; url?: string; title?: string }[]
+  structuredContent?: unknown
+  structuredJson?: string
+  truncated?: boolean
 }
 
 export interface RagConversation {

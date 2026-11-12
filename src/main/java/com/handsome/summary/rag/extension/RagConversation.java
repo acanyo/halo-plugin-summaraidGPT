@@ -50,6 +50,7 @@ public class RagConversation extends AbstractExtension {
         private String content;
         private Instant createdAt;
         private List<Source> sources = List.of();
+        private List<com.handsome.summary.mcp.model.McpToolResult> toolResults = List.of();
         private Boolean error = false;
     }
 

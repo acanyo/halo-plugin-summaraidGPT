@@ -3,9 +3,12 @@ import roles from './schemas/roles'
 import rag from './schemas/rag'
 import summary from './schemas/summary'
 import articleReading from './schemas/articleReading'
+import glossary from './schemas/glossary'
+import smartSearch from './schemas/smartSearch'
 import style from './schemas/style'
 import assistant from './schemas/assistant'
 import agent from './schemas/agent'
+import mcp from './schemas/mcp'
 import podcast from './schemas/podcast'
 import { mergeConfigValues, type ConfigValues } from '@/api/plugin-config'
 
@@ -18,7 +21,20 @@ export interface SettingsField {
   [key: string]: unknown
 }
 
-const schemas = { basic, rag, roles, summary, articleReading, podcast, style, assistant, agent }
+const schemas = {
+  basic,
+  rag,
+  roles,
+  summary,
+  articleReading,
+  glossary,
+  smartSearch,
+  podcast,
+  style,
+  assistant,
+  agent,
+  mcp,
+}
 export type SettingGroupId = keyof typeof schemas
 
 export const settingGroupDetails: Record<string, { description: string; icon: string }> = {
@@ -30,6 +46,11 @@ export const settingGroupDetails: Record<string, { description: string; icon: st
   roles: { description: '为摘要、写作、润色和问答设置不同的角色与提示词。', icon: 'message' },
   summary: { description: '控制文章摘要的生成、同步方式和前台展示。', icon: 'book' },
   articleReading: { description: '配置洞察图谱的生成、文章页展示与默认折叠。', icon: 'graph' },
+  glossary: { description: '自动识别文章中的生僻词与专业术语，结合上下文提供解释。', icon: 'book' },
+  smartSearch: {
+    description: '连接主题搜索入口，提供语义查找与带来源的 AI 解答。',
+    icon: 'search',
+  },
   podcast: {
     description: '用 AI 基座编写讨论稿，配置双音色语音服务与音频存储。',
     icon: 'headphones',
@@ -40,6 +61,10 @@ export const settingGroupDetails: Record<string, { description: string; icon: st
     description: '选择助手可以使用的站点工具，并设置工具范围和执行方式。',
     icon: 'activity',
   },
+  mcp: {
+    description: '连接外部工具服务，为前台聊天添加搜索、文档和业务查询能力。',
+    icon: 'activity',
+  },
 }
 
 const labels: Record<SettingGroupId, string> = {
@@ -48,10 +73,13 @@ const labels: Record<SettingGroupId, string> = {
   roles: '角色设置',
   summary: '摘要设置',
   articleReading: '洞察图谱',
+  glossary: '热词注释',
+  smartSearch: '智能搜索',
   podcast: '播客听读',
   style: '摘要样式',
   assistant: '前台智能助手',
   agent: 'Agent 能力',
+  mcp: 'MCP 服务',
 }
 
 function prepareSchema(fields: SettingsField[]): SettingsField[] {

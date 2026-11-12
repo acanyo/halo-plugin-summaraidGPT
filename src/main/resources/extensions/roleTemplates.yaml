@@ -8,6 +8,15 @@ metadata:
     rbac.authorization.halo.run/aggregate-to-anonymous: "true"
 rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["smartSearchConfig","mcpCapabilities"]
+    verbs: ["get", "list"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["smartSearch","smartSearchAnswer","smartSearchDiscovery"]
+    verbs: ["create"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["articleGlossaries"]
+    verbs: ["get"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["updateContent","dialogConfig","summaryConfig"]
     verbs: ["update", "create", "get", "list"]
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
@@ -30,7 +39,7 @@ metadata:
     rbac.authorization.halo.run/module: "智阅AI助手"
     rbac.authorization.halo.run/display-name: "查看智阅 AI 助手"
     rbac.authorization.halo.run/ui-permissions: |
-      ["plugin:summaraidGPT:rag:view","plugin:summaraidGPT:ai-call-logs:view","plugin:summaraidGPT:pets:view","plugin:summaraidGPT:article-reading:view"]
+      ["plugin:summaraidGPT:rag:view","plugin:summaraidGPT:ai-call-logs:view","plugin:summaraidGPT:pets:view","plugin:summaraidGPT:article-reading:view","plugin:summaraidGPT:glossary:view"]
 rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragKnowledgeBases","ragDocuments"]
@@ -63,7 +72,7 @@ metadata:
     rbac.authorization.halo.run/module: "智阅AI助手"
     rbac.authorization.halo.run/display-name: "管理智阅 AI 助手"
     rbac.authorization.halo.run/ui-permissions: |
-      ["plugin:summaraidGPT:rag:manage","plugin:summaraidGPT:ai-call-logs:manage","plugin:summaraidGPT:pets:manage","plugin:summaraidGPT:article-reading:manage"]
+      ["plugin:summaraidGPT:rag:manage","plugin:summaraidGPT:ai-call-logs:manage","plugin:summaraidGPT:pets:manage","plugin:summaraidGPT:article-reading:manage","plugin:summaraidGPT:glossary:manage"]
 rules:
   - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
     resources: ["ragKnowledgeBases","ragDocuments","ragDocuments/status"]
@@ -88,3 +97,25 @@ rules:
     verbs: ["get", "list", "create", "update", "delete"]
   - nonResourceURLs: ["/apis/api.summary.summaraidgpt.lik.cc/v1alpha1/petCompanions/import"]
     verbs: ["create"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["articleGlossaries"]
+    verbs: ["get", "create"]
+
+---
+apiVersion: v1alpha1
+kind: Role
+metadata:
+  name: role-template-manage-summaraidGPT-mcp
+  labels:
+    halo.run/role-template: "true"
+  annotations:
+    rbac.authorization.halo.run/module: "智阅AI助手"
+    rbac.authorization.halo.run/display-name: "管理 MCP 服务"
+    rbac.authorization.halo.run/ui-permissions: '["plugin:summaraidGPT:mcp:manage"]'
+rules:
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["mcpTest"]
+    verbs: ["create"]
+  - apiGroups: ["api.summary.summaraidgpt.lik.cc"]
+    resources: ["mcpConfig","mcpStatus","mcpCalls"]
+    verbs: ["get", "list", "update"]

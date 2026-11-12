@@ -1,5 +1,6 @@
 import './article-summary/widget';
 import './article-reading/widget';
+import './article-glossary/widget';
 import {
   fetchSummaryConfig,
   fetchSummaryContent,

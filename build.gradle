@@ -22,6 +22,17 @@ dependencies {
     compileOnly 'org.apache.lucene:lucene-analysis-common:10.3.2'
     compileOnly 'org.apache.lucene:lucene-queryparser:10.3.2'
     implementation 'org.jsoup:jsoup:1.22.1'
+    // Use Halo's Jackson 2 / Reactor runtime instead of bundling a second copy.
+    implementation('io.modelcontextprotocol.sdk:mcp-core:1.1.5') {
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'io.projectreactor'
+        exclude group: 'org.slf4j'
+    }
+    implementation('io.modelcontextprotocol.sdk:mcp-json-jackson2:1.1.5') {
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'io.projectreactor'
+        exclude group: 'org.slf4j'
+    }
     testImplementation 'run.halo.app:api'
     testImplementation 'run.halo.aifoundation:api:1.0.0-beta.4'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

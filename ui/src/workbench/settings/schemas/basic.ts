@@ -21,7 +21,7 @@ export default [
         modelType: 'language',
         clearable: true,
         placeholder: '留空使用默认语言模型',
-        help: '为摘要生成单独选择 AI 基座语言模型；留空使用默认语言模型。',
+        help: '用于摘要、洞察图谱与热词注释；留空使用默认语言模型。',
       },
       {
         $formkit: 'aiModelSelector',

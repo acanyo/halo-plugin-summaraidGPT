@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -39,6 +40,12 @@ public class DefaultRagSearchService implements RagSearchService {
 
     @Override
     public Mono<List<RagSearchResult>> search(String knowledgeBase, String query, Integer limit) {
+        return searchFiltered(knowledgeBase, query, limit, Mono::just);
+    }
+
+    @Override
+    public Mono<List<RagSearchResult>> searchFiltered(String knowledgeBase, String query, Integer limit,
+        Function<List<RagSearchResult>, Mono<List<RagSearchResult>>> candidateFilter) {
         if (!StringUtils.hasText(query)) {
             return Mono.just(List.of());
         }
@@ -57,6 +64,7 @@ public class DefaultRagSearchService implements RagSearchService {
                     .flatMap(kb -> searchKnowledgeBase(kb, searchQuery, ragConfig)
                         .flatMapMany(Flux::fromIterable))
                     .collectList()
+                    .flatMap(candidateFilter)
                     .flatMap(results -> rerankIfNeeded(searchQuery, results, basicConfig, ragConfig,
                         finalLimit));
             });

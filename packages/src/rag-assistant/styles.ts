@@ -4,6 +4,7 @@ import { composerStyles } from './styles/composer';
 import { contentStyles } from './styles/content';
 import { petStyles } from './styles/pet';
 import { stageStyles } from './styles/stage';
+import { mcpResultStyles } from './renderers/mcp-results';
 
 export const ragAssistantStyles: CSSResultGroup = [
   baseStyles,
@@ -11,4 +12,5 @@ export const ragAssistantStyles: CSSResultGroup = [
   contentStyles,
   composerStyles,
   stageStyles,
+  mcpResultStyles,
 ];

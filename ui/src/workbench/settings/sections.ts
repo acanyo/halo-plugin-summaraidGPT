@@ -106,6 +106,9 @@ const definitions: Partial<Record<SettingGroupId, SettingSection[]>> = {
       'aiTools',
     ]),
   ],
+  mcp: [
+    section('services', '外部工具服务', '管理服务连接与访客可用的工具。', ['enabled', 'servers']),
+  ],
   roles: [
     section('reading', '阅读与知识问答', '为摘要、洞察图谱和知识库问答设定表达方式。', [
       'summarySystemPrompt',
@@ -145,6 +148,9 @@ export function settingSections(group: SettingGroupId) {
 
 export const settingsCategories = [
   { label: '基础配置', groups: ['basic', 'roles'] },
-  { label: '内容与阅读', groups: ['rag', 'summary', 'articleReading', 'podcast', 'style'] },
-  { label: '站点体验', groups: ['assistant', 'agent'] },
+  {
+    label: '内容与阅读',
+    groups: ['rag', 'summary', 'articleReading', 'glossary', 'podcast', 'style'],
+  },
+  { label: '站点体验', groups: ['smartSearch', 'assistant', 'agent', 'mcp'] },
 ] as const

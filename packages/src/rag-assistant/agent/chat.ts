@@ -13,6 +13,7 @@ import {
 import { AgentToolRuntime } from './runtime';
 import { AgentChatTransport } from './transport';
 import type { AgentRuntimeConfig } from './types';
+import { extractMcpCards, isMcpTool, mcpMessagesForTransport, mcpToolLabel, type McpResultCard } from './mcp';
 
 const SERVER_MANAGED_TOOL_NAMES = new Set([
   'search_halo_resources',
@@ -38,6 +39,7 @@ interface SourceCandidate {
 export interface AgentChatCallbacks {
   onText?: (text: string) => void;
   onSources?: (sources: RagSourceReference[]) => void;
+  onToolResults?: (results: McpResultCard[]) => void;
   onError?: (error: string) => void;
   onFinish?: (messages: UIMessage[]) => void;
 }
@@ -55,6 +57,7 @@ export interface AgentChatOptions {
 
 export class AgentChatClient {
   private chat?: Chat;
+  private runtime?: AgentToolRuntime;
 
   async sendMessage(
     message: string,
@@ -62,12 +65,16 @@ export class AgentChatClient {
     callbacks: AgentChatCallbacks = {},
   ): Promise<UIMessage[]> {
     const runtime = new AgentToolRuntime(options.agent);
+    this.runtime = runtime;
     const pendingContinuations = new Set<Promise<void>>();
     const queuedToolCalls = new Map<string, ToolPart>();
     const handledToolCalls = new Set<string>();
     const handledApprovals = new Set<string>();
     const handledToolStatuses = new Set<string>();
     const submittedAutomaticContinuationKeys = new Set<string>();
+    const needsClientContinuation = (part: ToolPart) => runtime.canExecute(part.toolName)
+      || (isMcpTool(part.toolName)
+        && (part.state === 'approval-requested' || part.state === 'approval-responded'));
     let latestSourcesKey = '';
     seedHandledToolStatuses(options.historyMessages ?? [], handledToolStatuses);
 
@@ -89,7 +96,7 @@ export class AgentChatClient {
       }
       handledToolCalls.add(part.toolCallId);
       if (!runtime.canExecute(part.toolName)) {
-        if (SERVER_MANAGED_TOOL_NAMES.has(part.toolName)) {
+        if (SERVER_MANAGED_TOOL_NAMES.has(part.toolName) || isMcpTool(part.toolName)) {
           return undefined;
         }
         return trackContinuation(
@@ -133,6 +140,10 @@ export class AgentChatClient {
     };
 
     const flushQueuedToolCalls = () => {
+      if (!this.chat) {
+        queuedToolCalls.clear();
+        return;
+      }
       if (shouldQueueToolCall() || queuedToolCalls.size === 0) {
         return;
       }
@@ -192,11 +203,11 @@ export class AgentChatClient {
         prepareSendMessagesRequest: (request) => {
           for (const key of automaticContinuationKeys(
             request.messages,
-            (part) => runtime.canExecute(part.toolName),
+            needsClientContinuation,
           )) {
             submittedAutomaticContinuationKeys.add(key);
           }
-          return {};
+          return { body: { ...request.body, messages: mcpMessagesForTransport(request.messages) } };
         },
       }),
       onError: (error) => {
@@ -212,11 +223,11 @@ export class AgentChatClient {
       sendAutomaticallyWhen: ({ messages }) => {
         const continuationKeys = automaticContinuationKeys(
           messages,
-          (part) => runtime.canExecute(part.toolName),
+          needsClientContinuation,
         );
         return lastAssistantMessageHasCompletedClientToolContinuations(
           messages,
-          (part) => runtime.canExecute(part.toolName),
+          needsClientContinuation,
         )
           && continuationKeys.some((key) => !submittedAutomaticContinuationKeys.has(key));
       },
@@ -236,6 +247,7 @@ export class AgentChatClient {
       const latest = chat.messages[chat.messages.length - 1];
       runtime.ingestMessages(chat.messages);
       emitToolStatusesForCurrentTurn(chat.messages, handledToolStatuses);
+      callbacks.onToolResults?.(extractMcpCards(currentTurnMessages(chat.messages)));
       emitSources();
       if (!latest || latest.role !== 'assistant') {
         flushQueuedToolCalls();
@@ -254,8 +266,9 @@ export class AgentChatClient {
         ) {
           handledApprovals.add(part.approval.id);
           trackContinuation(
-            runtime.requestApproval(`要我帮你执行「${part.toolName}」吗？`)
-              .then((approved) => chat.addToolApprovalResponse({
+            runtime.requestApproval(`要我帮你执行「${toolLabel(part.toolName)}」吗？${
+              isMcpTool(part.toolName) ? `\n参数：${JSON.stringify(part.input ?? {}).slice(0, 800)}` : ''}`)
+              .then((approved) => options.signal?.aborted || this.chat !== chat ? undefined : chat.addToolApprovalResponse({
                 id: part.approval?.id,
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
@@ -284,26 +297,31 @@ export class AgentChatClient {
 
     const abortHandler = () => this.stop();
     options.signal?.addEventListener('abort', abortHandler, { once: true });
+    const activeChat = this.chat;
     try {
-      await this.chat.sendMessage({ text: message });
+      await activeChat.sendMessage({ text: message });
       flushQueuedToolCalls();
       await waitForContinuations();
       emitSources();
-      callbacks.onFinish?.(this.chat.messages);
-      if (this.chat.error) {
-        throw this.chat.error;
+      if (!options.signal?.aborted) callbacks.onFinish?.(activeChat.messages);
+      if (activeChat.error) {
+        throw activeChat.error;
       }
-      return this.chat.messages;
+      return activeChat.messages;
     } catch (error) {
       console.error('[summaraidGPT] Agent chat request failed', error);
       throw error;
     } finally {
       options.signal?.removeEventListener('abort', abortHandler);
+      runtime.cancelPendingApprovals();
+      if (this.runtime === runtime) this.runtime = undefined;
       unsubscribe();
     }
   }
 
   stop(): void {
+    this.runtime?.cancelPendingApprovals();
+    this.runtime = undefined;
     this.chat?.stop();
     this.chat = undefined;
   }
@@ -680,6 +698,10 @@ function toolStatus(part: ToolPart): { message: string; kind: 'pending' | 'succe
     return { message: `等待确认「${toolLabel(part.toolName)}」`, kind: 'warning' };
   }
   if (part.state === 'output-available') {
+    if (isMcpTool(part.toolName) && part.output && typeof part.output === 'object'
+      && (part.output as { ok?: boolean }).ok === false) {
+      return { message: `${toolLabel(part.toolName)}调用失败`, kind: 'error' };
+    }
     return { message: successToolMessage(part.toolName, part.output), kind: 'success' };
   }
   if (part.state === 'output-error') {
@@ -692,6 +714,7 @@ function toolStatus(part: ToolPart): { message: string; kind: 'pending' | 'succe
 }
 
 function pendingToolMessage(toolName: string): string {
+  if (isMcpTool(toolName)) return '正在调用 MCP 外部工具';
   const map: Record<string, string> = {
     get_current_page_context: '正在读取当前页面',
     search_halo_resources: '正在搜索站内内容',
@@ -735,6 +758,7 @@ function successToolMessage(toolName: string, output: unknown): string {
 }
 
 function toolLabel(toolName: string): string {
+  if (isMcpTool(toolName)) return `MCP · ${mcpToolLabel(toolName)}`;
   const map: Record<string, string> = {
     get_current_page_context: '读取页面',
     search_halo_resources: '站内搜索',

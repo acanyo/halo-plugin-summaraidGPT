@@ -13,6 +13,8 @@ import {
 } from '../icons';
 import { markdownToHtml } from '../format';
 import { renderSourceList } from '../source-list';
+import { renderMcpResults } from './mcp-results';
+import { renderMcpCapabilities, type McpCapability } from '../agent/mcp-capabilities';
 import { renderTyping } from './common';
 import type { RagAssistantMessage, RagSourceReference } from '../types';
 
@@ -25,6 +27,7 @@ export interface PetStageRenderOptions {
   welcomeMessage: string;
   welcomeTime: string;
   quickQuestions: string[];
+  mcpCapabilities?: McpCapability[];
   input: string;
   inputPlaceholder: string;
   streaming: boolean;
@@ -73,10 +76,10 @@ export function renderPetStage(options: PetStageRenderOptions): TemplateResult {
                 </button>
               `
             : nothing}
-          <button class="pet-stage-close" type="button" title="关闭" aria-label="关闭" @click=${options.onClose}>
-            ${closeIcon()}
-          </button>
         </div>
+        <button class="pet-stage-close" type="button" title="关闭" aria-label="关闭" @click=${options.onClose}>
+          ${closeIcon()}
+        </button>
       </header>
       <main class="pet-stage-output">
         <div class="pet-stage-output-inner">
@@ -86,6 +89,7 @@ export function renderPetStage(options: PetStageRenderOptions): TemplateResult {
         </div>
       </main>
       <footer class="pet-stage-footer">
+        ${renderMcpCapabilities(options.mcpCapabilities || [], options.streaming, options.onUsePrompt)}
         ${renderShortcuts(options)}
         ${renderComposer(options)}
         <div class="pet-stage-note">内容由 AI 生成，仅供参考</div>
@@ -144,6 +148,7 @@ function renderStageMessage(
             ${retryIcon()}<span>${message.role === 'assistant' ? '重试' : '再问'}</span>
           </button>
         </div>
+        ${message.role === 'assistant' ? renderMcpResults(message.toolResults) : nothing}
         ${message.role === 'assistant' ? renderStageSources(sources, message.id, options) : nothing}
         <div class="pet-stage-time">${message.time}</div>
       </div>

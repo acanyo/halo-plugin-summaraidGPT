@@ -4,7 +4,7 @@ import type { RagAssistantMessage } from './types';
 export function createMessage(
   role: RagAssistantMessage['role'],
   content: string,
-  options: Partial<Pick<RagAssistantMessage, 'id' | 'streaming' | 'sources' | 'error' | 'time'>> = {},
+  options: Partial<Pick<RagAssistantMessage, 'id' | 'streaming' | 'sources' | 'error' | 'time' | 'toolResults'>> = {},
 ): RagAssistantMessage {
   return {
     id: options.id || createMessageId(),
@@ -14,6 +14,7 @@ export function createMessage(
     sources: options.sources,
     streaming: options.streaming,
     error: options.error,
+    toolResults: options.toolResults,
   };
 }
 

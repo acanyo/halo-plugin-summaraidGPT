@@ -600,7 +600,7 @@ public class RagEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> importPosts(ServerRequest request) {
-        return aiRequestSecurityService.secure(request)
+        return aiRequestSecurityService.secureManagement(request)
             .then(request.bodyToMono(ImportPostsRequest.class)
                 .defaultIfEmpty(new ImportPostsRequest(null, List.of(), false)))
             .flatMap(body -> {
@@ -622,7 +622,7 @@ public class RagEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> importDocsmeDocuments(ServerRequest request) {
-        return aiRequestSecurityService.secure(request)
+        return aiRequestSecurityService.secureManagement(request)
             .then(request.bodyToMono(ImportDocsmeDocumentsRequest.class)
                 .defaultIfEmpty(new ImportDocsmeDocumentsRequest(null, List.of(), false)))
             .flatMap(body -> {
@@ -645,7 +645,7 @@ public class RagEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> rebuild(ServerRequest request) {
-        return aiRequestSecurityService.secure(request)
+        return aiRequestSecurityService.secureManagement(request)
             .then(request.bodyToMono(RebuildRequest.class)
                 .defaultIfEmpty(new RebuildRequest(null)))
             .flatMap(body -> {
@@ -658,7 +658,7 @@ public class RagEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> forceRebuild(ServerRequest request) {
-        return aiRequestSecurityService.secure(request)
+        return aiRequestSecurityService.secureManagement(request)
             .then(request.bodyToMono(RebuildRequest.class)
                 .defaultIfEmpty(new RebuildRequest(null)))
             .flatMap(body -> {
@@ -671,7 +671,7 @@ public class RagEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> stopIndexTask(ServerRequest request) {
-        return aiRequestSecurityService.secure(request)
+        return aiRequestSecurityService.secureManagement(request)
             .then(request.bodyToMono(RebuildRequest.class)
                 .defaultIfEmpty(new RebuildRequest(null)))
             .flatMap(body -> {
@@ -686,7 +686,7 @@ public class RagEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> indexDocuments(ServerRequest request) {
-        return aiRequestSecurityService.secure(request)
+        return aiRequestSecurityService.secureManagement(request)
             .then(request.bodyToMono(IndexDocumentsRequest.class)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Index documents request body is required"))))
@@ -705,7 +705,7 @@ public class RagEndpoint implements CustomEndpoint {
     }
 
     private Mono<ServerResponse> rebuildNow(ServerRequest request) {
-        return aiRequestSecurityService.secure(request)
+        return aiRequestSecurityService.secureManagement(request)
             .then(request.bodyToMono(RebuildRequest.class)
                 .defaultIfEmpty(new RebuildRequest(null)))
             .flatMap(body -> ragIndexService.rebuild(normalizeKnowledgeBase(body.knowledgeBase()))
@@ -1054,7 +1054,7 @@ public class RagEndpoint implements CustomEndpoint {
         if (!enabled(rebuildAfterMutation, false)) {
             return Mono.empty();
         }
-        return aiRequestSecurityService.secure(request)
+        return aiRequestSecurityService.secureManagement(request)
             .then(ragIndexService.rebuild(normalizeKnowledgeBase(knowledgeBase)));
     }
 

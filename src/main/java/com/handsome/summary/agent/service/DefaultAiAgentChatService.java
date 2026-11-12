@@ -2,6 +2,7 @@ package com.handsome.summary.agent.service;
 
 import com.handsome.summary.agent.model.AgentChatTraceContext;
 import com.handsome.summary.agent.model.AgentToolSet;
+import com.handsome.summary.mcp.service.McpModelOutput;
 import com.handsome.summary.ai.AiFoundationCallLog;
 import com.handsome.summary.ai.ConditionalOnHaloAiFoundation;
 import com.handsome.summary.ai.HaloAiFoundationAvailability;
@@ -171,7 +172,9 @@ public class DefaultAiAgentChatService implements AiAgentChatService {
                 .system(systemMessage)
                 .tools(hasTools ? agentToolSet.tools() : null)
                 .toolChoice(hasTools ? ToolChoice.auto() : ToolChoice.none())
-                .stopWhen(hasTools ? StopCondition.stepCountIs(5) : null))
+                .stopWhen(hasTools ? StopCondition.stepCountIs(5) : null)
+                .prepareStep(context -> run.halo.aifoundation.chat.PreparedStep.builder()
+                    .messages(McpModelOutput.prepare(context.getMessages())).build()))
             .prepare(context -> {
                 logPreparedRequest(modelName, model, trace, phase,
                     context.getRequestBuilder().build());
@@ -355,6 +358,10 @@ public class DefaultAiAgentChatService implements AiAgentChatService {
             .providerMetadata(Map.of("summaraidCompatibility", true,
                 "rawToolName", call.rawToolName()))
             .build();
+        if (tool.getApprovalPolicy() != null && tool.getApprovalPolicy().requiresApproval(context)) {
+            return Mono.just(CompatibilityToolResult.error(call,
+                "此工具需要用户确认，当前模型的兼容调用无法执行，请使用支持原生工具调用的模型"));
+        }
         return tool.getExecutor().execute(context)
             .defaultIfEmpty(Map.of("ok", true))
             .map(output -> {
@@ -418,7 +425,8 @@ public class DefaultAiAgentChatService implements AiAgentChatService {
             } else if (result.delegatedToBrowser()) {
                 builder.append("\n  output: 工具已交给浏览器端执行，当前后端无结果。");
             } else {
-                builder.append("\n  output: ").append(truncate(safeJson(result.output())));
+                builder.append("\n  output: ").append(truncate(safeJson(
+                    McpModelOutput.withoutImageData(result.output()))));
             }
             builder.append('\n');
         }

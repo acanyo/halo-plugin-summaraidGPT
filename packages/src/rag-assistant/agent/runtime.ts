@@ -64,6 +64,9 @@ export class AgentToolRuntime {
   private readonly trustedResources = new Map<string, TrustedResource>();
   private readonly trustedPageLinks = new Map<string, TrustedPageLink>();
   private navigationStarted = false;
+  private approvalQueue: Promise<void> = Promise.resolve();
+  private approvalsCancelled = false;
+  private cancelActiveApproval?: () => void;
 
   constructor(config?: AgentRuntimeConfig) {
     this.config = normalizeAgentRuntimeConfig(config);
@@ -155,6 +158,17 @@ export class AgentToolRuntime {
   }
 
   requestApproval(message: string): Promise<boolean> {
+    const pending = this.approvalQueue.then(() => this.approvalsCancelled ? false : this.showApproval(message));
+    this.approvalQueue = pending.then(() => undefined, () => undefined);
+    return pending;
+  }
+
+  cancelPendingApprovals(): void {
+    this.approvalsCancelled = true;
+    this.cancelActiveApproval?.();
+  }
+
+  private showApproval(message: string): Promise<boolean> {
     return new Promise((resolve) => {
       document.getElementById('summaraid-agent-approval')?.remove();
       const container = document.createElement('div');
@@ -190,8 +204,10 @@ export class AgentToolRuntime {
       deny.style.cssText = buttonStyle(AGENT_SECONDARY_BACKGROUND, AGENT_SECONDARY_TEXT);
       const cleanup = (approved: boolean) => {
         container.remove();
+        this.cancelActiveApproval = undefined;
         resolve(approved);
       };
+      this.cancelActiveApproval = () => cleanup(false);
       allow.addEventListener('click', () => cleanup(true), { once: true });
       deny.addEventListener('click', () => cleanup(false), { once: true });
       container.append(text, allow, deny);

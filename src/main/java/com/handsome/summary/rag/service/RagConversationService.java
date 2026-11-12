@@ -30,6 +30,10 @@ public interface RagConversationService {
     Mono<RagConversation> recordAssistantMessage(String conversationId, String content,
         List<RagSourceReference> sources, boolean error);
 
+    Mono<RagConversation> recordAgentMessage(String conversationId, String messageId, String content,
+        List<RagSourceReference> sources, boolean error,
+        List<com.handsome.summary.mcp.model.McpToolResult> toolResults);
+
     record ConversationPage(List<RagConversation> items, int page, int size, int total) {
     }
 }

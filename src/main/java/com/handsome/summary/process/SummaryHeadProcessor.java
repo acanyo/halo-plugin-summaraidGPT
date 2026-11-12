@@ -37,7 +37,8 @@ public class SummaryHeadProcessor implements TemplateHeadProcessor {
         return Mono.zip(
             settingConfigGetter.getSummaryConfig(),
             settingConfigGetter.getAssistantConfig(),
-            settingConfigGetter.getArticleReadingConfig()
+            settingConfigGetter.getArticleReadingConfig(),
+            settingConfigGetter.getGlossaryConfig()
         ).flatMap(tuple -> {
             SettingConfigGetter.SummaryConfig summaryConfig = tuple.getT1();
             SettingConfigGetter.AssistantConfig assistantConfig = tuple.getT2();
@@ -50,7 +51,8 @@ public class SummaryHeadProcessor implements TemplateHeadProcessor {
             boolean isArticleReadingUiEnabled = isArticleReadingEnabled
                 && (articleReadingConfig.getEnableUiInjection() == null
                 || articleReadingConfig.getEnableUiInjection());
-            boolean needsArticleSummaryAssets = isSummaryEnabled || isArticleReadingUiEnabled;
+            boolean needsArticleSummaryAssets = isSummaryEnabled || isArticleReadingUiEnabled
+                || Boolean.TRUE.equals(tuple.getT4().getEnable());
             if (!needsArticleSummaryAssets && !isAssistantEnabled) {
                 return Mono.empty();
             }

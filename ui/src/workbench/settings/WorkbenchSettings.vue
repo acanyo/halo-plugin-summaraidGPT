@@ -20,6 +20,7 @@ const categories = computed(() => {
       ...category,
       forms: settingGroups.filter(
         (form) =>
+          form.group !== 'mcp' &&
           (category.groups as readonly string[]).includes(form.group) &&
           (!keyword ||
             `${form.label} ${settingGroupDetails[form.group]?.description} ${JSON.stringify(form.formSchema.map((field) => [field.label, field.children?.map((child) => child.label)]))}`

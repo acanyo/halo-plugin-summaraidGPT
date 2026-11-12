@@ -171,6 +171,18 @@ export function applyAssistantTheme(
     : `0 8px 18px ${withAlpha(text, 0.05)}`);
   setCssVar(host, '--rag-user-message-start', toHex(mixColors(primary, white, dark ? 0.08 : 0.16)));
   setCssVar(host, '--rag-user-message-end', toHex(mixColors(primary, black, 0.18)));
+  // Resolve these colors in JS: unsupported color-mix() invalidates an entire CSS
+  // background/shadow declaration in older browsers, including gradients.
+  setCssVar(host, '--rag-ring', withAlpha(primary, 0.42));
+  setCssVar(host, '--rag-frost', withAlpha(surface, 0.96));
+  setCssVar(host, '--rag-primary-glow', withAlpha(primary, 0.16));
+  setCssVar(host, '--rag-code-surface', withAlpha(text, 0.07));
+  setCssVar(host, '--rag-link', dark ? toHex(mixColors(primary, white, 0.52)) : toHex(mixColors(primary, black, 0.18)));
+  setCssVar(host, '--rag-highlight-surface', toHex(mixColors(surface, primary, dark ? 0.12 : 0.055)));
+  setCssVar(host, '--rag-hover-border', withAlpha(primary, dark ? 0.48 : 0.28));
+  setCssVar(host, '--rag-error-text', dark ? '#fca5a5' : '#9f1d1d');
+  setCssVar(host, '--rag-error-surface', dark ? '#3b2024' : '#fff7f7');
+  setCssVar(host, '--rag-error-border', dark ? 'rgba(248, 113, 113, 0.4)' : 'rgba(220, 38, 38, 0.24)');
 }
 
 function resolveModePalette(style: RagAssistantStyleConfig): RagAssistantStyleConfig {
@@ -180,9 +192,15 @@ function resolveModePalette(style: RagAssistantStyleConfig): RagAssistantStyleCo
 
   return {
     ...style,
-    surfaceColor: replaceDefault(style.surfaceColor, DEFAULT_RAG_ASSISTANT_STYLE.surfaceColor, DARK_DEFAULTS.surfaceColor),
-    textColor: replaceDefault(style.textColor, DEFAULT_RAG_ASSISTANT_STYLE.textColor, DARK_DEFAULTS.textColor),
-    secondaryColor: replaceDefault(style.secondaryColor, DEFAULT_RAG_ASSISTANT_STYLE.secondaryColor, DARK_DEFAULTS.secondaryColor),
+    surfaceColor: style.stylePreset === 'custom'
+      ? replaceDefault(style.surfaceColor, DEFAULT_RAG_ASSISTANT_STYLE.surfaceColor, DARK_DEFAULTS.surfaceColor)
+      : DARK_DEFAULTS.surfaceColor,
+    textColor: style.stylePreset === 'custom'
+      ? replaceDefault(style.textColor, DEFAULT_RAG_ASSISTANT_STYLE.textColor, DARK_DEFAULTS.textColor)
+      : DARK_DEFAULTS.textColor,
+    secondaryColor: style.stylePreset === 'custom'
+      ? replaceDefault(style.secondaryColor, DEFAULT_RAG_ASSISTANT_STYLE.secondaryColor, DARK_DEFAULTS.secondaryColor)
+      : DARK_DEFAULTS.secondaryColor,
   };
 }
 

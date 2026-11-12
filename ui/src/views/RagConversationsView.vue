@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import WorkbenchSectionHeader from '@/workbench/components/WorkbenchSectionHeader.vue'
+import McpHistoryResults from '@/components/mcp/McpHistoryResults.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
   Dialog,
@@ -455,8 +456,9 @@ onMounted(fetchConversations)
                     class=":uno: max-w-full whitespace-pre-wrap break-words rounded-lg px-3 py-2.5 text-[13px] leading-relaxed"
                     :class="messageBubbleClass(message.role, message.error)"
                   >
-                    {{ message.content || '空消息' }}
+                    {{ message.content || (message.toolResults?.length ? '工具调用' : '空消息') }}
                   </div>
+                  <McpHistoryResults v-if="message.toolResults?.length" :results="message.toolResults" />
                   <div
                     v-if="message.sources?.length"
                     class=":uno: flex max-w-full flex-wrap gap-1.5"

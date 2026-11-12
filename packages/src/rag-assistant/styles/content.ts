@@ -50,21 +50,21 @@ export const contentStyles = css`
   }
 
   .markdown-body em {
-    color: color-mix(in srgb, var(--rag-text) 88%, var(--rag-gold-strong));
+    color: var(--rag-text);
   }
 
   .markdown-body hr {
     height: 1px;
     margin: 12px 0;
     border: 0;
-    background: color-mix(in srgb, var(--rag-line) 76%, transparent);
+    background: var(--rag-line);
   }
 
   .markdown-body code {
     padding: 1px 5px 2px;
     border-radius: 6px;
-    background: color-mix(in srgb, var(--rag-text) 7%, transparent);
-    color: color-mix(in srgb, var(--rag-text) 76%, var(--rag-gold-strong));
+    background: var(--rag-code-surface);
+    color: var(--rag-text);
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.92em;
   }
@@ -90,8 +90,8 @@ export const contentStyles = css`
     padding: 8px 10px;
     border-left: 3px solid var(--rag-gold);
     border-radius: 0 12px 12px 0;
-    background: color-mix(in srgb, var(--rag-secondary-soft) 64%, transparent);
-    color: color-mix(in srgb, var(--rag-text) 72%, var(--rag-muted));
+    background: var(--rag-secondary-soft);
+    color: var(--rag-text);
   }
 
   .markdown-body table {
@@ -105,21 +105,21 @@ export const contentStyles = css`
   .markdown-body th,
   .markdown-body td {
     padding: 6px 8px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 72%, transparent);
+    border: 1px solid var(--rag-line);
     text-align: left;
     vertical-align: top;
   }
 
   .markdown-body th {
-    background: color-mix(in srgb, var(--rag-secondary-soft) 58%, transparent);
+    background: var(--rag-secondary-soft);
     font-weight: 820;
   }
 
   .markdown-body a {
-    color: var(--rag-gold-strong);
+    color: var(--rag-link);
     font-weight: 750;
     text-decoration: none;
-    border-bottom: 1px solid color-mix(in srgb, var(--rag-gold) 32%, transparent);
+    border-bottom: 1px solid var(--rag-ring);
   }
 
   .typing {
@@ -157,9 +157,9 @@ export const contentStyles = css`
     display: grid;
     gap: 5px;
     padding: 5px;
-    border: 1px solid color-mix(in srgb, var(--rag-line) 64%, transparent);
+    border: 1px solid var(--rag-line);
     border-radius: 13px;
-    background: color-mix(in srgb, var(--rag-paper) 78%, transparent);
+    background: var(--rag-control-surface);
   }
 
   .pet-source-row {
@@ -170,7 +170,7 @@ export const contentStyles = css`
     min-height: 32px;
     padding: 5px 7px;
     border-radius: 10px;
-    color: #334155;
+    color: var(--rag-text);
     text-decoration: none;
     transition:
       background 0.14s ease,
@@ -179,7 +179,7 @@ export const contentStyles = css`
 
   .pet-source-row:hover {
     color: var(--rag-text);
-    background: color-mix(in srgb, var(--rag-gold-faint) 74%, white);
+    background: var(--rag-highlight-surface);
   }
 
   .pet-source-icon,
@@ -187,7 +187,7 @@ export const contentStyles = css`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--rag-gold-strong);
+    color: var(--rag-link);
   }
 
   .pet-source-icon {
@@ -195,7 +195,7 @@ export const contentStyles = css`
     height: 22px;
     margin-top: 1px;
     border-radius: 8px;
-    background: color-mix(in srgb, var(--rag-gold-soft) 34%, transparent);
+    background: var(--rag-gold-faint);
   }
 
   .pet-source-main {
@@ -216,7 +216,7 @@ export const contentStyles = css`
 
   .pet-source-meta {
     overflow: hidden;
-    color: color-mix(in srgb, var(--rag-muted) 82%, transparent);
+    color: var(--rag-muted);
     font-size: 10.5px;
     font-weight: 650;
     line-height: 1.25;

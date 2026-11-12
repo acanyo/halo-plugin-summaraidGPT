@@ -13,6 +13,7 @@ import com.handsome.summary.agent.service.AgentChatTurnRecorder;
 import com.handsome.summary.agent.service.AgentToolService;
 import com.handsome.summary.agent.service.AiAgentChatService;
 import com.handsome.summary.ai.ConditionalOnHaloAiFoundation;
+import com.handsome.summary.mcp.service.McpAgentToolService;
 import com.handsome.summary.service.AiRequestSecurityService;
 import com.handsome.summary.service.SettingConfigGetter;
 import java.security.Principal;
@@ -53,6 +54,7 @@ public class AgentChatEndpoint implements CustomEndpoint {
     private final AiRequestSecurityService aiRequestSecurityService;
     private final SettingConfigGetter settingConfigGetter;
     private final AgentToolService agentToolService;
+    private final McpAgentToolService mcpAgentToolService;
     private final AgentChatTurnRecorder agentChatTurnRecorder;
     private final AiAgentChatService aiAgentChatService;
 
@@ -139,29 +141,31 @@ public class AgentChatEndpoint implements CustomEndpoint {
                     var authenticated = tuple.getT5();
                     var ragAvailableForAgent = context.ragEnabledForAgent()
                         && !Boolean.FALSE.equals(ragConfig.getEnableRag());
-                    var toolSet = agentToolService.buildTools(agentSettings, authenticated,
+                    var baseToolSet = agentToolService.buildTools(agentSettings, authenticated,
                         accessMode.agentAllowed(), ragAvailableForAgent);
-                    log.info("Agent chat settings resolved: {} model={} accessMode={} "
-                            + "authenticated={} ragEnabledForAgent={} ragAvailable={} tools={} "
-                            + "toolNames={}",
-                        context.traceContext().summary(), aiConfig.getModelName(),
-                        accessMode.value(), authenticated, context.ragEnabledForAgent(),
-                        ragAvailableForAgent, toolCount(toolSet),
-                        toolNames(toolSet));
-                    var turn = agentChatTurnRecorder.start(aiConfig.getModelName(),
-                        context.knowledgeBase(), context.conversationId(), context.visitorId(),
-                        userAgent(request), context.chatRequest(),
-                        shouldRecordUserMessage(context), context.traceContext().traceId());
-                    return agentChatTurnRecorder.recordUserMessage(turn)
-                        .then(aiAgentChatService.streamChatCompletion(
-                            aiConfig.getModelName(),
-                            agentToolService.appendCapabilityPrompt(aiConfig.getSystemPrompt(),
-                                toolSet),
-                            context.chatRequest(),
-                            toolSet,
-                            context.traceContext()
-                        ))
-                        .map(response -> observeResponse(response, turn, context.traceContext()));
+                    return mcpAgentToolService.appendTools(baseToolSet, authenticated).flatMap(toolSet -> {
+                        log.info("Agent chat settings resolved: {} model={} accessMode={} "
+                                + "authenticated={} ragEnabledForAgent={} ragAvailable={} tools={} "
+                                + "toolNames={}",
+                            context.traceContext().summary(), aiConfig.getModelName(),
+                            accessMode.value(), authenticated, context.ragEnabledForAgent(),
+                            ragAvailableForAgent, toolCount(toolSet),
+                            toolNames(toolSet));
+                        var turn = agentChatTurnRecorder.start(aiConfig.getModelName(),
+                            context.knowledgeBase(), context.conversationId(), context.visitorId(),
+                            userAgent(request), context.chatRequest(),
+                            shouldRecordUserMessage(context), context.traceContext().traceId());
+                        return agentChatTurnRecorder.recordUserMessage(turn)
+                            .then(aiAgentChatService.streamChatCompletion(
+                                aiConfig.getModelName(),
+                                agentToolService.appendCapabilityPrompt(aiConfig.getSystemPrompt(),
+                                    toolSet),
+                                context.chatRequest(),
+                                toolSet,
+                                context.traceContext()
+                            ))
+                            .map(response -> observeResponse(response, turn, context.traceContext()));
+                    });
                 });
             });
     }
@@ -170,6 +174,10 @@ public class AgentChatEndpoint implements CustomEndpoint {
         AgentChatTurnRecorder.AgentChatTurn turn, AgentChatTraceContext traceContext) {
         var stream = response.stream()
             .doOnNext(chunk -> agentChatTurnRecorder.observe(turn, chunk))
+            .concatMap(chunk -> chunk instanceof run.halo.aifoundation.ui.FinishChunk
+                ? agentChatTurnRecorder.finish(turn).thenReturn(chunk) : Mono.just(chunk))
+            .doOnCancel(() -> agentChatTurnRecorder.finish(turn,
+                new java.util.concurrent.CancellationException("生成已停止")).subscribe())
             .doOnError(error -> log.error("Agent chat stream failed: {}",
                 traceContext.summary(), error))
             .onErrorResume(error -> agentChatTurnRecorder.finish(turn, error)

@@ -10,10 +10,13 @@
 | 角色设置 | `roles` | [角色设置](./role-settings.md) |
 | 知识库设置 | `rag` | [知识库设置](./rag-settings.md) |
 | 摘要设置 | `summary` | [摘要设置](./summary-settings.md) |
+| 智能搜索 | `smartSearch` | [智能搜索](./smart-search.md) |
+| 热词注释 | `glossary` | [热词注释](./glossary.md) |
 | 播客听读 | `podcast` | [播客听读](./podcast-settings.md) |
 | 摘要框样式设置 | `style` | [摘要框样式设置](./summary-style-settings.md) |
 | RAG 智能助手 | `assistant` | [RAG 智能助手](./rag-assistant.md) |
 | Agent 能力 | `agent` | [Agent 能力](./agent-settings.md) |
+| MCP 服务 | `mcp` | [MCP 服务](./mcp.md) |
 
 ## 配置前置条件
 

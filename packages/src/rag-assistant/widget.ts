@@ -29,6 +29,8 @@ import {
   resolveSelectionPopup,
 } from './selection';
 import { AgentChatClient } from './agent/chat';
+import { fetchMcpCapabilities, type McpCapability } from './agent/mcp-capabilities';
+import { restoredMcpCards, conversationModelHistory } from './agent/mcp-history';
 import {
   consumeAgentAfterNavigationIntent,
   type AgentAfterNavigationResume,
@@ -37,6 +39,7 @@ import { renderPetPanel as renderPetPanelTemplate } from './renderers/pet-panel'
 import { renderPetStage as renderPetStageTemplate } from './renderers/pet-stage';
 import { renderSelectionPopover } from './renderers/selection-popover';
 import { applyAssistantTheme } from './theme';
+import { observeAssistantViewport } from './viewport';
 import type {
   RagAssistantConfig,
   RagAssistantActivity,
@@ -93,6 +96,9 @@ export class RagAssistantWidget extends LitElement {
 
   @state()
   private configLoaded = false;
+
+  @state()
+  private mcpCapabilities: McpCapability[] = [];
 
   @state()
   private open = false;
@@ -186,6 +192,17 @@ export class RagAssistantWidget extends LitElement {
   private petAnimationTimer = 0;
   private petSpeechTimer = 0;
   private petSpeechHideTimer = 0;
+  private stopObservingViewport?: () => void;
+  private colorScheme?: MediaQueryList;
+  private readonly handleColorSchemeChange = () => {
+    if (this.config.styleConfig.colorMode === 'auto') this.applyTheme();
+  };
+  private readonly handleEscape = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && this.open) {
+      event.preventDefault();
+      this.close();
+    }
+  };
   private readonly welcomeTime = formatTime();
   private readonly handleDocumentMouseUp = () => {
     window.setTimeout(() => this.updateSelectionPopup(), 0);
@@ -304,12 +321,20 @@ export class RagAssistantWidget extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.stopObservingViewport = observeAssistantViewport(this);
+    this.colorScheme = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (this.colorScheme?.addEventListener) {
+      this.colorScheme.addEventListener('change', this.handleColorSchemeChange);
+    } else {
+      this.colorScheme?.addListener(this.handleColorSchemeChange);
+    }
     this.applyTheme();
     this.petPanelHeight = this.clampPetPanelHeight(this.loadSavedPetPanelHeight());
     this.floatingPositionLocked = this.applySavedFloatingPosition();
     this.bindSelectionListeners();
     window.addEventListener('resize', this.handleWindowResize, { passive: true });
     window.addEventListener('summaraid:agent-status', this.handleAgentStatus);
+    window.addEventListener('keydown', this.handleEscape);
     void this.initializeAssistant();
   }
 
@@ -318,6 +343,13 @@ export class RagAssistantWidget extends LitElement {
     this.unbindSelectionListeners();
     window.removeEventListener('resize', this.handleWindowResize);
     window.removeEventListener('summaraid:agent-status', this.handleAgentStatus);
+    window.removeEventListener('keydown', this.handleEscape);
+    this.stopObservingViewport?.();
+    if (this.colorScheme?.removeEventListener) {
+      this.colorScheme.removeEventListener('change', this.handleColorSchemeChange);
+    } else {
+      this.colorScheme?.removeListener(this.handleColorSchemeChange);
+    }
     this.unbindBubbleDragListeners();
     this.unbindPanelResizeListeners();
     this.stopPetAnimation();
@@ -368,7 +400,7 @@ export class RagAssistantWidget extends LitElement {
   protected render(): TemplateResult {
     return html`
       ${this.renderSelectionPopup()}
-      ${this.renderBubble()}
+      ${this.open ? nothing : this.renderBubble()}
       ${this.open && !this.isPetOnlyMode ? this.renderStage() : nothing}
     `;
   }
@@ -398,6 +430,7 @@ export class RagAssistantWidget extends LitElement {
       return;
     }
     await this.loadStoredConversation();
+    if (this.useAgentChat) this.mcpCapabilities = await fetchMcpCapabilities();
     await this.resumeAgentAfterNavigationIfNeeded();
   }
 
@@ -477,6 +510,7 @@ export class RagAssistantWidget extends LitElement {
       messages: this.messages,
       welcomeMessage: this.welcomeMessage,
       quickQuestions: this.quickQuestions,
+      mcpCapabilities: this.mcpCapabilities,
       input: this.input,
       petInputPlaceholder: this.petInputPlaceholder,
       panelStyle: this.petPanelStyle,
@@ -507,6 +541,7 @@ export class RagAssistantWidget extends LitElement {
       welcomeMessage: this.welcomeMessage,
       welcomeTime: this.welcomeTime,
       quickQuestions: this.quickQuestions,
+      mcpCapabilities: this.mcpCapabilities,
       input: this.input,
       inputPlaceholder: this.petInputPlaceholder,
       streaming: this.streaming,
@@ -1094,6 +1129,10 @@ export class RagAssistantWidget extends LitElement {
         {
           onText: (text) => this.setAssistantContent(assistantMessageId, text),
           onSources: (sources) => this.receiveSources(assistantMessageId, sources),
+          onToolResults: (toolResults) => {
+            this.messages = updateMessageById(this.messages, assistantMessageId,
+              current => ({ ...current, toolResults }));
+          },
           onError: (error) => {
             if (this.isAgentToolCallStreamProtocolError(error)) {
               this.appendAgentActivity('当前模型的工具调用流格式不兼容', 'warning');
@@ -1160,6 +1199,10 @@ export class RagAssistantWidget extends LitElement {
         {
           onText: (text) => this.setAssistantContent(assistantMessageId, text),
           onSources: (sources) => this.receiveSources(assistantMessageId, sources),
+          onToolResults: (toolResults) => {
+            this.messages = updateMessageById(this.messages, assistantMessageId,
+              current => ({ ...current, toolResults }));
+          },
           onError: (error) => {
             if (this.isAgentToolCallStreamProtocolError(error)) {
               this.appendAgentActivity('当前模型的工具调用流格式不兼容', 'warning');
@@ -1290,33 +1333,18 @@ export class RagAssistantWidget extends LitElement {
   private toAssistantMessages(conversation: RagConversation): RagAssistantMessage[] {
     return (conversation.spec?.messages || [])
       .filter((message) => message.role === 'user' || message.role === 'assistant')
-      .filter((message) => Boolean(message.content?.trim()))
+      .filter((message) => Boolean(message.content?.trim()) || Boolean(message.toolResults?.length))
       .map((message) => createMessage(message.role as RagAssistantMessage['role'], message.content || '', {
         id: message.id,
         time: this.messageTime(message),
         sources: message.sources,
         error: message.error,
+        toolResults: restoredMcpCards(message.toolResults),
       }));
   }
 
   private toAgentHistoryMessages(conversation: RagConversation): UIMessage[] {
-    return (conversation.spec?.messages || [])
-      .filter((message) => message.role === 'user' || message.role === 'assistant')
-      .filter((message) => Boolean(message.content?.trim()))
-      .map((message) => {
-        const messageId = message.id || createMessageId();
-        return {
-          id: messageId,
-          role: message.role === 'assistant' ? 'assistant' : 'user',
-          parts: [
-            {
-              type: 'text',
-              id: `${messageId}-text`,
-              text: message.content || '',
-            },
-          ],
-        };
-      });
+    return conversationModelHistory(conversation.spec?.messages || []);
   }
 
   private messageTime(message: RagConversationMessage): string {
@@ -1568,7 +1596,7 @@ export class RagAssistantWidget extends LitElement {
   }
 
   private focusInput(): void {
-    this.inputElement?.focus();
+    this.inputElement?.focus({ preventScroll: true });
   }
 
   private focusPetInput(): void {

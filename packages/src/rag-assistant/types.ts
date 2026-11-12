@@ -1,4 +1,5 @@
 import type { AgentRuntimeConfig } from './agent/types';
+import type { McpResultCard } from './agent/mcp';
 
 export interface RagAssistantConfig {
   assistantAvatar?: string;
@@ -64,6 +65,7 @@ export interface RagConversationMessage {
   createdAt?: string;
   sources?: RagSourceReference[];
   error?: boolean;
+  toolResults?: (McpResultCard & { structuredJson?: string })[];
 }
 
 export interface RagConversation {
@@ -107,6 +109,7 @@ export interface RagAssistantMessage {
   sources?: RagSourceReference[];
   streaming?: boolean;
   error?: boolean;
+  toolResults?: McpResultCard[];
 }
 
 export interface RagAssistantActivity {

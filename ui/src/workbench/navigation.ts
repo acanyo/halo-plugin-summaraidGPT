@@ -13,6 +13,13 @@ export const workbenchTabs = [
     permission: 'plugin:summaraidGPT:article-reading:view',
   },
   { id: 'assistant', label: '前台助手', icon: 'pet', permission: 'plugin:summaraidGPT:pets:view' },
+  { id: 'mcp', label: 'MCP 工具', icon: 'graph', permission: 'plugin:summaraidGPT:mcp:manage' },
+  {
+    id: 'glossary',
+    label: '热词注释',
+    icon: 'book',
+    permission: 'plugin:summaraidGPT:glossary:view',
+  },
   {
     id: 'podcast',
     label: '播客听读',
